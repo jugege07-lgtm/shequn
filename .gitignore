@@ -1,0 +1,75 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build
+dist/
+.build/
+
+# Environment（绝不提交真实密钥）
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# 备份文件
+*.bak
+*.orig
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.trae/
+.workbuddy/
+.dbg/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Prisma
+backend/prisma/migrations/
+
+# 数据库文件
+*.db
+*.db-journal
+
+# 上传的文件（运行时产生，不入库）
+backend/uploads/
+**/uploads/
+
+# 证书/密钥文件
+backend/certs/
+*.pem
+*.p12
+*.key
+
+# 临时/调试文件
+upload_*.jpg
+upload_*.png
+upload_*.jpeg
+upload_*.webp
+
+# Uni-app
+mobile/.hbuilderx/
+mobile/unpackage/
+mobile/dist/
+mobile/src/$null
+mobile/**/*.js.map
+mobile/**/*.css.map
+mobile/.env*
+
+# IDE / 本地计划
+.zcode/
+.workbuddy/

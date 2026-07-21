@@ -1,0 +1,381 @@
+<template>
+  <div class="product-create-page">
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <div class="header-left">
+            <el-button :icon="ArrowLeft" @click="$router.back()" text>返回</el-button>
+            <span class="page-title">{{ pageTitle }}</span>
+          </div>
+        </div>
+      </template>
+
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="100px"
+        label-position="right"
+        class="create-form"
+        v-loading="pageLoading || submitting"
+      >
+        <!-- 基本信息 -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="title-bar"></span>
+            基本信息
+          </div>
+          <el-form-item label="商品名称" prop="name">
+            <el-input v-model="form.name" placeholder="请输入商品名称" maxlength="50" show-word-limit />
+          </el-form-item>
+
+          <el-form-item label="商品分类" prop="categoryId">
+            <el-select v-model="form.categoryId" placeholder="请选择商品分类" style="width: 100%" clearable>
+              <el-option
+                v-for="cat in categories"
+                :key="cat.id"
+                :label="cat.name"
+                :value="cat.id"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-form-item label="价格" prop="price">
+                <el-input-number v-model="form.price" :min="0" :precision="2" :step="1" style="width: 100%">
+                  <template #prepend>¥</template>
+                </el-input-number>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="VIP价格">
+                <el-input-number v-model="form.vipPrice" :min="0" :precision="2" :step="1" style="width: 100%">
+                  <template #prepend>¥</template>
+                </el-input-number>
+                <span class="form-hint">0 表示无 VIP 价</span>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="库存" prop="stock">
+                <el-input-number v-model="form.stock" :min="0" :step="1" style="width: 100%" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+
+        <!-- 商品首图 -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="title-bar"></span>
+            商品首图
+          </div>
+          <el-form-item label="首图" prop="coverImage">
+            <div class="cover-upload-box">
+              <el-upload
+                class="cover-uploader"
+                :show-file-list="false"
+                :before-upload="beforeCoverUpload"
+                :http-request="uploadCover"
+                accept="image/jpg,image/jpeg,image/png,image/webp"
+              >
+                <img v-if="form.coverImage" :src="form.coverImage" class="cover-preview" />
+                <div v-else class="cover-placeholder">
+                  <el-icon :size="28"><Plus /></el-icon>
+                  <span>点击上传首图</span>
+                </div>
+              </el-upload>
+              <div class="upload-tip">
+                <div>支持 JPG / PNG / WebP 格式</div>
+                <div>大小不超过 {{ maxSizeMB }}MB,建议尺寸 800×800</div>
+              </div>
+            </div>
+          </el-form-item>
+        </div>
+
+        <!-- 商品详情（富文本） -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="title-bar"></span>
+            商品详情
+          </div>
+          <el-form-item label="详情描述" prop="description" label-width="0">
+            <div class="rich-editor-wrapper">
+              <RichTextEditor
+                v-model="form.description"
+                height="500px"
+                placeholder="请输入商品详情内容,支持文字排版、图片插入、加粗、斜体、链接、列表等富文本操作..."
+              />
+            </div>
+          </el-form-item>
+        </div>
+
+        <!-- 上架设置 -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="title-bar"></span>
+            上架设置
+          </div>
+          <el-form-item label="上架状态">
+            <el-switch
+              v-model="form.status"
+              :active-value="1"
+              :inactive-value="0"
+              active-text="立即上架"
+              inactive-text="暂不上架"
+            />
+          </el-form-item>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="form-actions">
+          <el-button @click="$router.back()">取消</el-button>
+          <el-button type="primary" :loading="submitting" @click="handleSubmit">
+            {{ isEdit ? '保存修改' : '保存商品' }}
+          </el-button>
+        </div>
+      </el-form>
+    </el-card>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, type FormInstance, type UploadRequestOptions } from 'element-plus'
+import { ArrowLeft, Plus } from '@element-plus/icons-vue'
+import request from '@/api/request'
+import RichTextEditor from '@/components/RichTextEditor.vue'
+
+const route = useRoute()
+const router = useRouter()
+
+// 判断是否为编辑模式
+const isEdit = computed(() => !!route.params.id)
+const productId = computed(() => Number(route.params.id))
+
+// 页面标题
+const pageTitle = computed(() => {
+  return isEdit.value ? `编辑商品（ID: ${productId.value}）` : '新增商品'
+})
+
+const formRef = ref<FormInstance>()
+const pageLoading = ref(false)
+const submitting = ref(false)
+const maxSizeMB = 5
+const categories = ref<any[]>([])
+
+const form = reactive({
+  name: '',
+  coverImage: '',
+  description: '',
+  categoryId: undefined as number | undefined,
+  price: 0,
+  vipPrice: 0,
+  stock: 0,
+  status: 1,
+})
+
+const rules = {
+  name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  categoryId: [{ required: true, message: '请选择商品分类', trigger: 'change' }],
+  price: [{ required: true, message: '请输入商品价格', trigger: 'blur' }],
+  stock: [{ required: true, message: '请输入商品库存', trigger: 'blur' }],
+  coverImage: [{ required: true, message: '请上传商品首图', trigger: 'change' }],
+  description: [{ required: true, message: '请输入商品详情', trigger: 'change' }],
+}
+
+// 加载分类
+async function loadCategories() {
+  try {
+    const data: any = await request.get('/admin/product-categories')
+    categories.value = data || []
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载分类失败')
+  }
+}
+
+// 加载商品详情（编辑模式）
+async function loadProductDetail() {
+  if (!isEdit.value) return
+  pageLoading.value = true
+  try {
+    const data: any = await request.get(`/admin/products/${productId.value}`)
+    if (data) {
+      form.name = data.name || ''
+      form.coverImage = data.coverImage || ''
+      form.description = data.description || ''
+      form.categoryId = data.categoryId
+      form.price = data.price ?? 0
+      form.vipPrice = data.vipPrice ?? 0
+      form.stock = data.stock ?? 0
+      form.status = data.status ?? 1
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载商品详情失败')
+    router.replace('/products')
+  } finally {
+    pageLoading.value = false
+  }
+}
+
+// 首图上传前校验：格式 + 大小
+function beforeCoverUpload(file: File): boolean {
+  const allowedTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    ElMessage.error('首图仅支持 JPG / PNG / WebP 格式')
+    return false
+  }
+  const maxBytes = maxSizeMB * 1024 * 1024
+  if (file.size > maxBytes) {
+    ElMessage.error(`首图大小不能超过 ${maxSizeMB}MB`)
+    return false
+  }
+  return true
+}
+
+// 上传首图
+async function uploadCover(options: UploadRequestOptions) {
+  const formData = new FormData()
+  formData.append('file', options.file)
+  try {
+    const res: any = await request.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    // 确保 URL 格式正确：/uploads/xxx → /api/uploads/xxx
+    let imgUrl = res.url
+    if (imgUrl && !imgUrl.startsWith('http') && !imgUrl.startsWith('/api')) {
+      imgUrl = '/api' + imgUrl
+    }
+    form.coverImage = imgUrl
+    ElMessage.success('首图上传成功')
+    formRef.value?.validateField('coverImage')
+  } catch (err: any) {
+    ElMessage.error(err.message || '上传失败')
+  }
+}
+
+// 提交表单
+async function handleSubmit() {
+  if (!formRef.value) return
+  await formRef.value.validate(async (valid) => {
+    if (!valid) return
+    submitting.value = true
+    try {
+      const payload: any = {
+        name: form.name,
+        coverImage: form.coverImage,
+        description: form.description,
+        categoryId: Number(form.categoryId),
+        price: Number(form.price),
+        vipPrice: Number(form.vipPrice),
+        stock: Number(form.stock),
+        status: form.status,
+      }
+      if (isEdit.value) {
+        await request.put(`/admin/products/${productId.value}`, payload)
+        ElMessage.success('商品更新成功')
+      } else {
+        await request.post('/admin/products', payload)
+        ElMessage.success('商品创建成功')
+      }
+      router.push('/products')
+    } catch (err: any) {
+      ElMessage.error(err.message || '操作失败')
+    } finally {
+      submitting.value = false
+    }
+  })
+}
+
+onMounted(() => {
+  loadCategories()
+  loadProductDetail()
+})
+</script>
+
+<style scoped>
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.page-title { font-size: 16px; font-weight: 600; color: #1f2937; }
+
+.create-form { padding: 8px 16px 16px; }
+
+.form-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+.form-section:last-of-type { border-bottom: none; }
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+}
+.title-bar {
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 2px;
+}
+
+.form-hint {
+  margin-left: 12px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 首图上传 */
+.cover-upload-box { display: flex; align-items: flex-start; gap: 16px; }
+.cover-uploader {
+  width: 200px;
+  height: 200px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+.cover-uploader:hover { border-color: #409eff; }
+.cover-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+.upload-tip {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 8px;
+  line-height: 1.8;
+}
+
+/* 富文本编辑器 */
+.rich-editor-wrapper {
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+</style>
