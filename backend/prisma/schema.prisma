@@ -1,0 +1,528 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ===== 生产环境数据库迁移指南 =====
+// SQLite 不适合生产环境（并发写入、数据量增长场景性能极差）。
+// 上线前请按以下步骤切换为 PostgreSQL 或 MySQL：
+//
+// 1. 修改 provider 为 "postgresql" 或 "mysql"
+// 2. 修改 url 为对应的连接字符串
+// 3. 执行 npx prisma migrate dev
+// 4. 更新 backend/.env 中的 DATABASE_URL
+
+model User {
+  id            Int               @id @default(autoincrement()) @map("id")
+  openid        String            @unique @map("openid")
+  unionId       String?           @map("union_id")
+  sessionKey    String?           @map("session_key")
+  nickname      String            @default("") @map("nickname")
+  avatarUrl     String            @default("") @map("avatar_url")
+  phone         String?           @map("phone")
+  gender        Int               @default(0) @map("gender")
+  role          String            @default("user") @map("role")
+  adminLevel    Int               @default(0) @map("admin_level")
+  vipLevel      Int               @default(0) @map("vip_level")
+  vipExpireAt   DateTime?         @map("vip_expire_at")
+  status        String            @default("normal") @map("status")
+  lastLoginAt   DateTime?         @map("last_login_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  password      String            @default("") @map("password")
+  points        Int               @default(0) @map("points")
+  activities    Activity[]
+  signups       ActivitySignup[]
+  unlocks       BusinessUnlock[]
+  businesses    Business[]
+  cartItems     CartItem[]
+  messages      Message[]
+  orders        Order[]
+  refunds       Refund[]
+  addresses     UserAddress[]
+  card          UserCard?
+  subscriptions VipSubscription[]
+  userCoupons   UserCoupon[]
+  pointLogs     PointLog[]
+
+  @@map("users")
+}
+
+model UserCard {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  realName    String   @map("real_name")
+  company     String   @default("")
+  position    String   @default("")
+  wechat      String   @default("")
+  email       String   @default("")
+  avatarUrl   String   @map("avatar_url")
+  bgImageUrl  String?  @map("background_url")
+  intro       String   @default("")
+  tags        String?  @default("{}")
+  socialLinks String?  @default("{}") @map("social_links")
+  qrcodeUrl   String?  @map("qrcode_url")
+  viewCount   Int      @default(0) @map("view_count")
+  status      Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("user_cards")
+}
+
+model Activity {
+  id              Int              @id @default(autoincrement())
+  title           String
+  coverImage      String           @map("cover_image")
+  description     String
+  images          String?          @default("[]")
+  type            String           @map("type")
+  price           Float            @default(0) @map("price")
+  location        String
+  latitude        Float?           @map("latitude")
+  longitude       Float?           @map("longitude")
+  startTime       DateTime         @map("start_time")
+  endTime         DateTime         @map("end_time")
+  maxParticipants Int?             @map("max_participants")
+  signupCount     Int              @default(0) @map("signup_count")
+  status          String           @default("pending")
+  rejectReason    String           @default("") @map("reject_reason")
+  publisherId     Int              @map("publisher_id")
+  thumbnail       String           @default("")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  publisher       User             @relation(fields: [publisherId], references: [id])
+  signups         ActivitySignup[]
+  orders          Order[]
+
+  @@index([status])
+  @@index([publisherId])
+  @@index([startTime, endTime])
+  @@map("activities")
+}
+
+model ActivitySignup {
+  id          Int       @id @default(autoincrement())
+  activityId  Int       @map("activity_id")
+  userId      Int       @map("user_id")
+  status      String    @default("confirmed")
+  paidAmount  Float     @default(0) @map("paid_amount")
+  orderNo     String    @unique @map("order_no")
+  checkedInAt DateTime? @map("checked_in_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  user        User      @relation(fields: [userId], references: [id])
+  activity    Activity  @relation(fields: [activityId], references: [id])
+
+  @@unique([activityId, userId])
+  @@index([userId])
+  @@map("activity_signups")
+}
+
+model BusinessCategory {
+  id         Int        @id @default(autoincrement())
+  name       String
+  code       String     @unique @map("code")
+  icon       String     @default("")
+  sortOrder  Int        @default(0) @map("sort_order")
+  status     Int        @default(1)
+  createdAt  DateTime   @default(now()) @map("created_at")
+  businesses Business[]
+
+  @@map("business_categories")
+}
+
+model Business {
+  id             Int              @id @default(autoincrement())
+  title          String
+  coverImage     String           @map("cover_image")
+  description    String
+  categoryId     Int              @map("category_id")
+  contactName    String           @map("contact_name")
+  contactPhone   String           @default("") @map("contact_phone")
+  contactWechat  String           @default("") @map("contact_wechat")
+  unlockFee      Float            @default(0) @map("unlock_fee")
+  maxUnlocks     Int              @default(3) @map("max_unlocks")
+  currentUnlocks Int              @default(0) @map("current_unlocks")
+  status         String           @default("pending")
+  rejectReason   String           @default("") @map("reject_reason")
+  publisherId    Int              @map("publisher_id")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  unlocks        BusinessUnlock[]
+  orders         Order[]
+  category       BusinessCategory @relation(fields: [categoryId], references: [id])
+  publisher      User             @relation(fields: [publisherId], references: [id])
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([publisherId])
+  @@map("businesses")
+}
+
+model BusinessUnlock {
+  id         Int      @id @default(autoincrement())
+  businessId Int      @map("business_id")
+  userId     Int      @map("user_id")
+  feePaid    Float    @map("fee_paid")
+  orderNo    String   @unique @map("order_no")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id])
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId])
+  @@index([userId])
+  @@map("business_unlocks")
+}
+
+model ProductCategory {
+  id        Int       @id @default(autoincrement())
+  name      String
+  parentId  Int?      @default(0) @map("parent_id")
+  icon      String    @default("")
+  sortOrder Int       @default(0) @map("sort_order")
+  status    Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at")
+  products  Product[]
+
+  @@map("product_categories")
+}
+
+model Product {
+  id          Int             @id @default(autoincrement())
+  name        String
+  coverImage  String          @map("cover_image")
+  images      String?         @default("[]")
+  description String
+  categoryId  Int             @map("category_id")
+  price       Float
+  vipPrice    Float           @default(0) @map("vip_price")
+  stock       Int             @default(0)
+  salesCount  Int             @default(0) @map("sales_count")
+  specs       String?         @default("{}")
+  status      Int             @default(1)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([status])
+  @@map("products")
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  productId Int      @map("product_id")
+  quantity  Int      @default(1)
+  specs     String?  @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  product   Product  @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, productId])
+  @@map("cart_items")
+}
+
+model UserAddress {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  receiver  String
+  phone     String
+  province  String
+  city      String
+  district  String
+  detail    String
+  isDefault Int      @default(0) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("user_addresses")
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  orderNo         String      @unique @map("order_no")
+  userId          Int         @map("user_id")
+  orderType       String      @default("product") @map("order_type")
+  totalAmount     Float       @map("total_amount")
+  discountAmount  Float       @default(0) @map("discount_amount")
+  payAmount       Float       @map("pay_amount")
+  status          String      @default("pending_payment")
+  transactionId   String?     @map("transaction_id")
+  addressId       Int?        @map("address_id")
+  shippingNo      String      @default("") @map("shipping_no")
+  shippingCompany String      @default("") @map("shipping_company")
+  remark          String      @default("")
+  activityId      Int?        @map("activity_id")
+  businessId      Int?        @map("business_id")
+  paidAt          DateTime?   @map("paid_at")
+  shippedAt       DateTime?   @map("shipped_at")
+  completedAt     DateTime?   @map("completed_at")
+  cancelledAt     DateTime?   @map("cancelled_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  items           OrderItem[]
+  user            User        @relation(fields: [userId], references: [id])
+  refund          Refund?
+  activity        Activity?   @relation(fields: [activityId], references: [id])
+  business        Business?   @relation(fields: [businessId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNo])
+  @@index([orderType])
+  @@index([activityId])
+  @@index([businessId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           Int      @id @default(autoincrement())
+  orderId      Int      @map("order_id")
+  productId    Int      @map("product_id")
+  productName  String   @map("product_name")
+  productImage String   @default("") @map("product_image")
+  price        Float
+  quantity     Int
+  specs        String?  @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  product      Product  @relation(fields: [productId], references: [id])
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Refund {
+  id           Int       @id @default(autoincrement())
+  orderId      Int       @unique @map("order_id")
+  userId       Int       @map("user_id")
+  refundAmount Float     @map("refund_amount")
+  reason       String
+  images       String?   @default("[]")
+  status       String    @default("pending")
+  adminNote    String    @default("") @map("admin_note")
+  processedAt  DateTime? @map("processed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  user         User      @relation(fields: [userId], references: [id])
+  order        Order     @relation(fields: [orderId], references: [id])
+
+  @@index([userId])
+  @@map("refunds")
+}
+
+model VipPlan {
+  id            Int               @id @default(autoincrement())
+  name          String
+  level         Int
+  durationDays  Int               @map("duration_days")
+  originalPrice Float             @map("original_price")
+  currentPrice  Float             @map("current_price")
+  discountRate  Float             @default(1) @map("discount_rate")
+  description   String
+  features      String            @default("[]")
+  status        Int               @default(1)
+  sortOrder     Int               @default(0) @map("sort_order")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  subscriptions VipSubscription[]
+
+  @@map("vip_plans")
+}
+
+model VipSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  planId    Int      @map("plan_id")
+  orderNo   String   @map("order_no")
+  payAmount Float    @map("pay_amount")
+  startAt   DateTime
+  expireAt  DateTime
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  plan      VipPlan  @relation(fields: [planId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("vip_subscriptions")
+}
+
+model Message {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  type      String
+  title     String
+  content   String
+  data      String?   @default("{}")
+  isRead    Int       @default(0) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([type])
+  @@map("messages")
+}
+
+model SystemConfig {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String   @default("")
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("system_configs")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  type      String   @default("notice")
+  status    Int      @default(1)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("announcements")
+}
+
+model Banner {
+  id        Int      @id @default(autoincrement())
+  title     String
+  imageUrl  String   @map("image_url")
+  linkUrl   String   @default("") @map("link_url")
+  linkType  String   @default("") @map("link_type")
+  position  String   @default("home")
+  status    Int      @default(1)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status, position])
+  @@map("banners")
+}
+
+model AppVersion {
+  id          Int      @id @default(autoincrement())
+  platform    String
+  version     String
+  versionCode Int      @map("version_code")
+  title       String
+  content     String
+  downloadUrl String   @default("") @map("download_url")
+  forceUpdate Int      @default(0) @map("force_update")
+  status      Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([platform, status])
+  @@map("app_versions")
+}
+
+model HomeSection {
+  id        Int      @id @default(autoincrement())
+  name      String
+  key       String   @unique
+  title     String
+  subtitle  String   @default("")
+  config    String   @default("{}")
+  sortOrder Int      @default(0) @map("sort_order")
+  status    Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("home_sections")
+}
+
+// ===== 优惠券模块 =====
+model Coupon {
+  id          Int            @id @default(autoincrement())
+  name        String         @map("name")
+  description String         @default("") @map("description")
+  type        String         @default("fixed")         // fixed=固定金额, percent=折扣
+  value       Float          @default(0)               // 金额或折扣率
+  minAmount   Float          @default(0)               // 最低消费门槛
+  totalQty    Int            @default(0)               @map("total_qty")    // 发行总量
+  claimedQty  Int            @default(0)               @map("claimed_qty")  // 已领取数
+  validDays   Int            @default(7)               @map("valid_days")   // 领取后有效天数
+  validFrom   DateTime?      @map("valid_from")   // 固定有效期开始
+  validTo     DateTime?      @map("valid_to")     // 固定有效期结束
+  status      Int            @default(1)               // 1=上架 0=下架
+  sortOrder   Int            @default(0)               @map("sort_order")
+  createdAt   DateTime       @default(now())           @map("created_at")
+  updatedAt   DateTime       @updatedAt                @map("updated_at")
+  userCoupons UserCoupon[]
+
+  @@index([status])
+  @@map("coupons")
+}
+
+model UserCoupon {
+  id          Int      @id @default(autoincrement())
+  couponId    Int      @map("coupon_id")
+  userId      Int      @map("user_id")
+  status      String   @default("unused")   // unused=未使用, used=已使用, expired=已过期
+  orderNo     String?  @map("order_no")     // 使用的订单号
+  claimedAt   DateTime @default(now())      @map("claimed_at")   // 领取时间
+  usedAt      DateTime? @map("used_at")      // 使用时间
+  expiresAt   DateTime @default(now())      @map("expires_at")   // 过期时间
+  createdAt   DateTime @default(now())      @map("created_at")
+  updatedAt   DateTime @updatedAt           @map("updated_at")
+  coupon      Coupon   @relation(fields: [couponId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([couponId])
+  @@index([expiresAt])
+  @@map("user_coupons")
+}
+
+// ===== 积分模块 =====
+model PointRule {
+  id          Int      @id @default(autoincrement())
+  name        String   @default("")          // 规则名称
+  action      String   @default("")          // 动作标识: invite, vip, purchase, activity_signup, checkin, publish_business, unlock_business, card_view
+  ruleGroup   String   @default("default")   @map("rule_group") // 规则分组: default=默认, custom=自定义
+  priority    Int      @default(0)           // 优先级: 数值越大越先执行
+  points      Int      @default(0)           // 每次获得积分
+  maxPerDay   Int      @default(1)           @map("max_per_day")  // 每日上限
+  enabled     Int      @default(1)           // 1=启用 0=停用
+  sortOrder   Int      @default(0)           @map("sort_order")
+  createdAt   DateTime @default(now())       @map("created_at")
+  updatedAt   DateTime @updatedAt            @map("updated_at")
+
+  @@index([action])
+  @@index([enabled])
+  @@index([ruleGroup])
+  @@index([priority])
+  @@map("point_rules")
+}
+
+model PointLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  action    String   @default("")    // 同 PointRule.action
+  points    Int      @default(0)     // 正=获取 负=消耗
+  balance   Int      @default(0)     @map("balance")  // 变动后余额
+  remark    String   @default("")    // 备注说明
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("point_logs")
+}
