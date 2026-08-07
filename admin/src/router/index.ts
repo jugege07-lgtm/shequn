@@ -145,26 +145,34 @@ const routes: RouteRecordRaw[] = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  // 使用 BASE_URL（vite 已配置 base: '/admin/'），使路由与代理挂载路径一致
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
 
 // 导航守卫
 router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('admin_token')
-  
+
+  // 兜底：没有任何路由匹配（例如命中 /admin 挂载点、或旧的/错误的深链）时，
+  // 主动重定向到首页或登录页，避免 <router-view> 无组件可渲染导致白屏。
+  if (to.matched.length === 0) {
+    if (!token) return next('/login')
+    return next('/')
+  }
+
   // 如果访问登录页且有 token，跳转到首页
   if (to.path === '/login' && token) {
     next('/')
     return
   }
-  
+
   // 如果需要认证但没有 token，跳转到登录页
   if (to.meta.requiresAuth !== false && !token) {
     next('/login')
     return
   }
-  
+
   next()
 })
 

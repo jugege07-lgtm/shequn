@@ -303,15 +303,23 @@ onMounted(() => {
 }
 .product-item:active { transform: scale(0.98); }
 .product-image {
-  height: 120px; position: relative; overflow: hidden;
+  /* 容器用 aspect-ratio 比例留位（4:3），让图片按比例撑开父容器
+     关键：不要钉死 height（浏览器会忽略 aspect-ratio 用 height）*/
+  aspect-ratio: 4 / 3;
+  position: relative;
   display: flex; align-items: center; justify-content: center;
   font-size: 48px; color: #fff;
-  background: linear-gradient(135deg,#6366f1,#8b5cf6);
+  background: linear-gradient(135deg,#eef2ff,#e0e7ff);
+  width: 100%;
+  /* 兜底：aspect-ratio 不支持的旧 webview，用 min-height 维持一个合理高度避免塌缩 */
+  min-height: 120px;
 }
 .product-cover-img {
-  width: 100%; height: 100%;
-  object-fit: cover; display: block;
-  background: #f5f5f5;
+  width: 100% !important;
+  height: 100% !important;          /* 强压全局 height: auto，避免按原比例溢出父容器 */
+  object-fit: contain !important;   /* 强压全局 contain，完整显示不裁切 */
+  object-position: center center !important;
+  display: block;
 }
 .product-tag {
   position: absolute; top: 8px; left: 8px;

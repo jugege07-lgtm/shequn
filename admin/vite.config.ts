@@ -3,6 +3,8 @@ import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
 export default defineConfig({
+  // 与管理端在代理中的挂载路径保持一致（/admin），避免路由 base 与代理路径不匹配导致白屏
+  base: '/admin/',
   plugins: [vue()],
   resolve: {
     alias: {

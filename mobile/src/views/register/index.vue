@@ -39,7 +39,7 @@
               <span v-if="errors.phone" class="field-error">{{ errors.phone }}</span>
             </div>
             <div class="code-row">
-              <input v-model="form.code" class="form-input code-input" type="text" placeholder="请输入验证码" maxlength="6" inputmode="numeric" />
+              <input v-model="form.code" class="form-input code-input" type="text" placeholder="请输入验证码" maxlength="6" inputmode="numeric" @input="form.code = form.code.replace(/\D/g, '').slice(0, 6)" />
               <button class="code-btn" :disabled="countdown > 0 || sending" @click="sendCode">
                 {{ countdown > 0 ? `${countdown}s` : sending ? '发送中...' : '获取验证码' }}
               </button>
@@ -187,6 +187,7 @@ function nextStep() {
   if (step.value === 1) {
     if (!/^1[3-9]\d{9}$/.test(form.phone)) { errors.phone = '请输入正确的手机号'; return }
     if (!form.code) { errors.code = '请输入验证码'; return }
+    if (!/^\d{6}$/.test(form.code)) { errors.code = '验证码为 6 位数字'; return }
     step.value = 2
   } else if (step.value === 2) {
     if (!form.realName.trim()) { errors.realName = '请输入真实姓名'; return }
@@ -261,7 +262,13 @@ async function handleRegister() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
     setTimeout(() => router.replace(redirect && redirect.startsWith('/') ? redirect : '/'), 800)
   } catch (err: any) {
-    toast(err.message || '注册失败')
+    // 验证码失效/过期/错误时自动清空输入框，方便用户重新获取
+    const msg = err?.message || '注册失败'
+    if (/验证码/.test(msg)) {
+      form.code = ''
+      errors.code = msg
+    }
+    toast(msg)
   } finally {
     submitting.value = false
   }

@@ -155,9 +155,11 @@ const handleBuy = () => {
   width: 100%;
   height: auto;
   max-height: 420px;
-  object-fit: cover;
+  /* contain：保持原图比例，完整显示不被裁切 */
+  object-fit: contain;
+  object-position: center center;
   display: block;
-  background: #f5f5f5;
+  background: linear-gradient(135deg,#eef2ff,#e0e7ff);
 }
 .product-emoji { font-size: 80px; }
 .info-card { margin: 12px 16px; border-radius: var(--radius-xl); background: rgba(255,255,255,0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.5); box-shadow: var(--glass-shadow); padding: 16px; }

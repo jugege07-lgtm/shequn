@@ -195,23 +195,27 @@ export class SmsService {
   // ============================ 校验验证码 ============================
   /**
    * 校验验证码（一次性）：无论成功或失败均立即失效，防止暴力枚举
-   * @returns true=校验通过；false=验证码错误 / 已过期 / 已使用 / 不存在
+   * 校验失败时直接抛出 BadRequestException，消息区分"已过期/已使用/不正确"
+   * @throws BadRequestException
    */
-  verify(phoneRaw: string, code: string, scene = 'login'): boolean {
+  verify(phoneRaw: string, code: string, scene = 'login'): void {
     const phone = this.normalizePhone(phoneRaw);
     const key = `${phone}:${scene}`;
     const entry = this.store.get(key);
     if (!entry) {
-      return false;
+      // 不存在或已经使用过（一次性，校验后即删）
+      throw new BadRequestException('验证码已失效，请重新获取');
     }
     // 过期
     if (Date.now() > entry.expireAt) {
       this.store.delete(key);
-      return false;
+      throw new BadRequestException('验证码已过期，请重新获取');
     }
     // 一次性：先删除再比对，防止重放/暴力枚举
     this.store.delete(key);
-    return entry.code === code;
+    if (entry.code !== code) {
+      throw new BadRequestException('验证码不正确，请重新输入');
+    }
   }
 
   // ============================ 腾讯云下发 ============================
@@ -258,7 +262,21 @@ export class SmsService {
       const status = resp?.SendStatusSet?.[0];
       if (status?.Code !== 'Ok') {
         this.logger.error(`腾讯云 SMS 发送失败：${status?.Code} - ${status?.Message}`);
-        throw new BadRequestException(`短信发送失败：${status?.Message || '未知错误'}`);
+        const code = status?.Code || '';
+        const map: Record<string, string> = {
+          'LimitExceeded.PhoneNumberDailyLimit': '今日验证码发送次数已达上限，请明日再试',
+          'LimitExceeded.PhoneNumberFrequencyLimit': '发送过于频繁，请稍后再试',
+          'LimitExceeded.PhoneNumberThirtySecondLimit': '同一手机号 30 秒内只能发送一条，请稍后再试',
+          'LimitExceeded.PhoneNumberOneHourLimit': '同一手机号 1 小时内发送次数过多，请稍后再试',
+          'FailedOperation.PhoneNumberInBlacklist': '该手机号在黑名单中，无法发送',
+          'FailedOperation.PhoneNumberInvalid': '手机号无效，请检查后重试',
+          'FailedOperation.TemplateNotMatch': '短信模板未配置或未通过审核，请联系管理员',
+          'FailedOperation.SignatureNotMatch': '短信签名未配置或未通过审核，请联系管理员',
+          'UnauthorizedOperation.SmsSdkAppIdVerifyFail': '短信 SDKAppId 鉴权失败，请检查配置',
+          'InvalidParameterValue.TemplateParameter': '短信模板参数错误，请联系管理员',
+        };
+        const friendly = map[code] || `短信发送失败，请稍后重试（${code}）`;
+        throw new BadRequestException(friendly);
       }
       this.logger.log(`腾讯云 SMS 发送成功 phone=+86${phone} scene 已处理`);
     } catch (err: any) {

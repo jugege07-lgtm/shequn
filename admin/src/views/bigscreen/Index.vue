@@ -283,14 +283,13 @@ async function ensureChinaMap() {
 // ===== 数据加载 =====
 const statsData = reactive({
   overview: { userCount: 0, vipCount: 0, nonVipCount: 0, activityCount: 0, businessCount: 0, productCount: 0, orderCount: 0, todayOrders: 0, todayRevenue: 0 },
-  last7Days: [] as any[],
-  last7DaysUsers: [] as any[],
-  provinceDistribution: [] as any[],
-  userSource: [] as any[],
-  userActivity: [] as any[],
-  orderRevenueTrend: [] as any[],
-  vipDistribution: [] as any[],
-  activityTypeDistribution: [] as any[],
+  userGrowthTrend: [] as any[],     // 近 14 天用户增长（{date, count, total}）
+  userSource: [] as any[],          // 用户来源分布
+  userActivity: [] as any[],        // 用户活跃度（按 VIP 等级）
+  orderRevenueTrend: [] as any[],   // 近 14 天订单/营收
+  vipDistribution: [] as any[],     // VIP 等级分布
+  activityTypeDistribution: [] as any[],  // 活动类型分布
+  provinceDistribution: [] as any[],      // 省份用户分布
   productCategoryDistribution: [] as any[],
 })
 
@@ -320,22 +319,29 @@ function animateKPI(target: number, kpiIndex: number, duration = 800) {
 
 async function loadStats() {
   try {
-    const data: any = await request.get('/admin/dashboard')
+    // 调大屏专用接口（返回 overview + userGrowthTrend + orderRevenueTrend + ... 完整结构）
+    const data: any = await request.get('/admin/big-screen')
     if (!data) return
-    Object.assign(statsData.overview, data)
-    statsData.last7Days = data.last7Days || []
-    statsData.last7DaysUsers = data.last7DaysUsers || []
-    statsData.provinceDistribution = data.provinceDistribution || []
+
+    // 嵌套结构：{ overview: {...}, userGrowthTrend: [...], ... }
+    if (data.overview) Object.assign(statsData.overview, data.overview)
+    statsData.userGrowthTrend = data.userGrowthTrend || []
     statsData.userSource = data.userSource || []
     statsData.userActivity = data.userActivity || []
     statsData.orderRevenueTrend = data.orderRevenueTrend || []
     statsData.vipDistribution = data.vipDistribution || []
     statsData.activityTypeDistribution = data.activityTypeDistribution || []
+    statsData.provinceDistribution = data.provinceDistribution || []
+    statsData.productCategoryDistribution = data.productCategoryDistribution || []
 
     // 更新 KPI
     const newKpis = [
-      data.userCount || 0, data.todayOrders || 0, data.activityCount || 0,
-      data.businessCount || 0, data.vipCount || 0, data.nonVipCount || 0,
+      statsData.overview.userCount || 0,
+      statsData.overview.todayOrders || 0,
+      statsData.overview.activityCount || 0,
+      statsData.overview.businessCount || 0,
+      statsData.overview.vipCount || 0,
+      statsData.overview.nonVipCount || 0,
     ]
     newKpis.forEach((v, i) => {
       kpis[i].value = v
@@ -381,22 +387,45 @@ function renderAllCharts() {
 function renderUserGrowth() {
   const chart = getChart('userGrowth')
   if (!chart) return
+  const data: any[] = statsData.userGrowthTrend || []
   chart.setOption({
     tooltip: { ...techTooltip, trigger: 'axis' },
-    legend: { data: ['营收', '订单数'], textStyle: { color: techTextColor, fontSize: 11 }, top: 0, right: 10 },
+    legend: { data: ['新增用户', '累计用户'], textStyle: { color: techTextColor, fontSize: 11 }, top: 0, right: 10 },
     grid: { ...techGrid, top: 30 },
-    xAxis: { type: 'category', data: statsData.last7Days.map((d: any) => d.date), axisLine: techAxisLine, axisLabel: { color: techTextColor, fontSize: 10 } },
+    xAxis: { type: 'category', data: data.map((d: any) => d.date), axisLine: techAxisLine, axisLabel: { color: techTextColor, fontSize: 10 } },
     yAxis: [
-      { type: 'value', name: '营收(元)', axisLine: techAxisLine, axisLabel: { color: techTextColor, fontSize: 10 }, splitLine: techSplitLine },
-      { type: 'value', name: '订单数', axisLine: techAxisLine, axisLabel: { color: techTextColor, fontSize: 10 } },
+      { type: 'value', name: '新增', axisLine: techAxisLine, axisLabel: { color: techTextColor, fontSize: 10 }, splitLine: techSplitLine },
+      { type: 'value', name: '累计', axisLine: techAxisLine, axisLabel: { color: techTextColor, fontSize: 10 } },
     ],
     series: [
-      { name: '营收', type: 'line', smooth: true, yAxisIndex: 0, data: statsData.last7Days.map((d: any) => d.revenue || 0),
-        lineStyle: { color: '#409EFF', width: 2 }, itemStyle: { color: '#409EFF' },
-        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(64,158,255,0.3)' }, { offset: 1, color: 'rgba(64,158,255,0.02)' }]) },
+      {
+        name: '新增用户',
+        type: 'bar',
+        data: data.map((d: any) => d.count || 0),
+        barWidth: '40%',
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#00d4ff' },
+            { offset: 1, color: '#0066a8' },
+          ]),
+          borderRadius: [4, 4, 0, 0],
+        },
       },
-      { name: '订单数', type: 'line', smooth: true, yAxisIndex: 1, data: statsData.last7Days.map((d: any) => d.orders || 0),
-        lineStyle: { color: '#67C23A', width: 2, type: 'dashed' }, itemStyle: { color: '#67C23A' } },
+      {
+        name: '累计用户',
+        type: 'line',
+        yAxisIndex: 1,
+        smooth: true,
+        data: data.map((d: any) => d.total || 0),
+        lineStyle: { color: '#00ffd4', width: 2 },
+        itemStyle: { color: '#00ffd4' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(0,255,212,0.3)' },
+            { offset: 1, color: 'rgba(0,255,212,0.02)' },
+          ]),
+        },
+      },
     ],
   }, true)
 }

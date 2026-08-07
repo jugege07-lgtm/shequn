@@ -171,7 +171,9 @@ img[data-role="cover"] {
   max-width: 100% !important;
   height: auto !important;
   display: block !important;
-  object-fit: cover;
+  /* 改 cover→contain：完整显示图片，不裁切顶部/侧边的关键信息（标题、二维码定位点等） */
+  object-fit: contain;
+  object-position: center center;
 }
 
 /* 封面图容器（渐变背景/占位） */

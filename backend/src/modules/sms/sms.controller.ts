@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { SmsService } from './sms.service';
 import { SendCodeDto } from './dto/send-code.dto';
@@ -30,10 +30,8 @@ export class SmsController {
   @ApiOperation({ summary: '校验短信验证码（一次性，校验通过后立即失效）' })
   @ApiBody({ type: VerifyCodeDto })
   async verify(@Body() dto: VerifyCodeDto) {
-    const ok = this.smsService.verify(dto.phone, dto.code, dto.scene || 'login');
-    if (!ok) {
-      throw new BadRequestException('验证码错误、已过期或已使用');
-    }
+    // verify 失败时直接抛出 BadRequestException（消息区分已过期/已使用/不正确）
+    this.smsService.verify(dto.phone, dto.code, dto.scene || 'login');
     return { verified: true };
   }
 }

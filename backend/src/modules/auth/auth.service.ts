@@ -80,10 +80,8 @@ export class AuthService {
   // ========== 会员注册（同步创建用户与名片） ==========
   async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
     // 真实校验验证码（与发送时的 scene 一致：注册场景用 'register'）
-    const verified = this.smsService.verify(dto.phone, dto.code, 'register');
-    if (!verified) {
-      throw new BadRequestException('验证码错误或已失效，请重新获取');
-    }
+    // verify 失败时会直接抛出 BadRequestException（携带区分过期/已使用/不正确的友好提示）
+    this.smsService.verify(dto.phone, dto.code, 'register');
 
     // 检查手机号是否已注册（手机号在数据库中是 AES 加密存储的）
     const encryptedPhone = this.userService.encryptPhone(dto.phone);

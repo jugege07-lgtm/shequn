@@ -110,7 +110,7 @@ request.interceptors.response.use(
       return Promise.reject(new Error('Token 刷新失败'))
     }
 
-    console.error('Request error:', error.message)
+    // 401 已在下方单独处理，下面只处理 401 之外的状态码
     const status = error.response?.status
     const respData = error.response?.data
     let errorMsg = '网络错误，请检查连接'
@@ -135,13 +135,10 @@ request.interceptors.response.use(
       errorMsg = respData.message
     }
 
-    // 401 已在上方处理，其他状态码才显示 toast
-    if (status !== 401) {
-      showToast(errorMsg, 'none')
-    }
-
-    // 将错误消息挂载到 error 上，方便调用方读取
-    error.userMessage = errorMsg
+    // 用后端的友好消息覆盖 axios 默认的 "Request failed with status code xxx"
+    // 这样各页面 catch 里 `err.message` 就能直接拿到友好提示
+    ;(error as any).message = errorMsg
+    ;(error as any).userMessage = errorMsg
     return Promise.reject(error)
   }
 )

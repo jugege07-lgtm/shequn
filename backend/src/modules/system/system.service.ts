@@ -50,14 +50,43 @@ export class SystemService {
         this.prisma.user.count({ where: { vipLevel: { gt: 0 } } }),
       ]);
 
+    // 计算"今日"和"昨日"两个时间窗口的起止
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
     const [todayOrders, todayRevenue, pendingActivityCount, pendingBusinessCount] = await Promise.all([
       this.prisma.order.count({ where: { createdAt: { gte: today } } }),
       this.prisma.order.aggregate({ where: { createdAt: { gte: today }, status: 'paid' }, _sum: { payAmount: true } }),
       this.prisma.activity.count({ where: { status: 'pending' } }),
       this.prisma.business.count({ where: { status: 'pending' } }),
     ]);
+
+    // 昨日同期数据：用于计算"较昨日"增长率（trend %）
+    const [
+      yesterdayOrders,
+      yesterdayNewUsers,
+      todayNewUsers,
+      yesterdayNewActivities,
+      todayNewActivities,
+      yesterdayNewBusinesses,
+      todayNewBusinesses,
+    ] = await Promise.all([
+      this.prisma.order.count({ where: { createdAt: { gte: yesterday, lt: today } } }),
+      this.prisma.user.count({ where: { createdAt: { gte: yesterday, lt: today } } }),
+      this.prisma.user.count({ where: { createdAt: { gte: today } } }),
+      this.prisma.activity.count({ where: { createdAt: { gte: yesterday, lt: today } } }),
+      this.prisma.activity.count({ where: { createdAt: { gte: today } } }),
+      this.prisma.business.count({ where: { createdAt: { gte: yesterday, lt: today } } }),
+      this.prisma.business.count({ where: { createdAt: { gte: today } } }),
+    ]);
+
+    // 计算增长率（百分比，正负），昨日为 0 时：今日也为 0 → 0；今日>0 而昨日=0 → +100%
+    const calcTrend = (todayVal: number, yesterdayVal: number): number => {
+      if (yesterdayVal === 0) return todayVal === 0 ? 0 : 100;
+      return Number((((todayVal - yesterdayVal) / yesterdayVal) * 100).toFixed(1));
+    };
 
     // 近 7 天营收趋势
     const last7Days: { date: string; revenue: number; orders: number }[] = [];
@@ -103,6 +132,14 @@ export class SystemService {
       todayRevenue: todayRevenue._sum.payAmount || 0,
       pendingActivityCount,
       pendingBusinessCount,
+      // 增长率（较昨日同期，正数=增长，负数=下降）
+      userTrend: calcTrend(todayNewUsers, yesterdayNewUsers),
+      todayOrderTrend: calcTrend(todayOrders, yesterdayOrders),
+      activityTrend: calcTrend(todayNewActivities, yesterdayNewActivities),
+      businessTrend: calcTrend(todayNewBusinesses, yesterdayNewBusinesses),
+      // 昨日同期明细（供前端展示/调试）
+      yesterdayNewUsers,
+      yesterdayOrders,
       last7Days,
       last7DaysUsers,
     };

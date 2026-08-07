@@ -23,10 +23,6 @@
             <el-icon><DataAnalysis /></el-icon>
             <template #title>数据看板</template>
           </el-menu-item>
-          <el-menu-item index="/bigscreen">
-            <el-icon><Monitor /></el-icon>
-            <template #title>数据大屏</template>
-          </el-menu-item>
           <el-menu-item index="/users">
             <el-icon><User /></el-icon>
             <template #title>用户管理</template>
@@ -74,6 +70,10 @@
           <el-menu-item index="/points/logs">
             <el-icon><Document /></el-icon>
             <template #title>积分明细</template>
+          </el-menu-item>
+          <el-menu-item index="/bigscreen">
+            <el-icon><Monitor /></el-icon>
+            <template #title>数据大屏</template>
           </el-menu-item>
           <el-menu-item index="/settings">
             <el-icon><Setting /></el-icon>

@@ -33,7 +33,7 @@
         <div class="kpi-body">
           <div class="kpi-value">{{ formatNumber(stat.value) }}</div>
           <div class="kpi-label">{{ stat.label }}</div>
-          <div class="kpi-trend" v-if="stat.trend !== undefined">
+          <div class="kpi-trend" v-if="stat.trend !== null && stat.trend !== undefined">
             <el-icon :size="12" :color="stat.trend >= 0 ? '#10b981' : '#ef4444'">
               <CaretTop v-if="stat.trend >= 0" /><CaretBottom v-else />
             </el-icon>
@@ -221,6 +221,11 @@ const dashboardData = reactive<any>({
   userCount: 0, vipCount: 0, nonVipCount: 0, activityCount: 0,
   businessCount: 0, productCount: 0, orderCount: 0,
   todayOrders: 0, todayRevenue: 0, pendingActivityCount: 0, pendingBusinessCount: 0,
+  // 增长率（%）— 后端按"今日 vs 昨日同期"计算；为 null 时前端不显示
+  userTrend: null as number | null,
+  todayOrderTrend: null as number | null,
+  activityTrend: null as number | null,
+  businessTrend: null as number | null,
   last7Days: [] as { date: string; revenue: number; orders: number }[],
   last7DaysUsers: [] as { date: string; count: number }[],
 })
@@ -232,12 +237,12 @@ const todayStr = computed(() => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${weekdays[d.getDay()]}`
 })
 
-// 核心 KPI 卡片
+// 核心 KPI 卡片：trend 全部来自后端真实计算（今日 vs 昨日同期增长率）
 const kpiCards = computed(() => [
-  { label: '总用户数', value: dashboardData.userCount || 0, icon: User, theme: 'blue', trend: 8.5 },
-  { label: '今日订单', value: dashboardData.todayOrders || 0, icon: ShoppingCart, theme: 'green', trend: 12.3 },
-  { label: '活动数量', value: dashboardData.activityCount || 0, icon: Calendar, theme: 'amber', trend: -3.2 },
-  { label: '商机数量', value: dashboardData.businessCount || 0, icon: Connection, theme: 'purple', trend: 5.6 },
+  { label: '总用户数', value: dashboardData.userCount || 0, icon: User, theme: 'blue', trend: dashboardData.userTrend },
+  { label: '今日订单', value: dashboardData.todayOrders || 0, icon: ShoppingCart, theme: 'green', trend: dashboardData.todayOrderTrend },
+  { label: '活动数量', value: dashboardData.activityCount || 0, icon: Calendar, theme: 'amber', trend: dashboardData.activityTrend },
+  { label: '商机数量', value: dashboardData.businessCount || 0, icon: Connection, theme: 'purple', trend: dashboardData.businessTrend },
 ])
 
 // 次要指标
