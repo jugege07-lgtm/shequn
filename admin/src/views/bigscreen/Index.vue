@@ -1,37 +1,97 @@
 <template>
   <div class="big-screen-root" ref="rootRef">
-    <!-- 粒子背景层 -->
-    <canvas ref="particleCanvas" class="particle-bg"></canvas>
-
-    <!-- 缩放容器（基于 1920x1080 设计稿） -->
-    <div class="screen-container" :style="containerStyle">
-      <!-- 顶部标题栏 -->
-      <header class="screen-header">
-        <div class="header-left">
-          <div class="status-dot"></div>
-          <span class="header-text">系统运行正常</span>
-        </div>
-        <div class="header-center">
-          <div class="title-decoration left"></div>
-          <h1 class="screen-title">聚格软件 · 数据决策大屏</h1>
-          <div class="title-decoration right"></div>
-        </div>
-        <div class="header-right">
-          <button class="fullscreen-btn" @click="toggleFullscreen" :title="isFullscreen ? '退出全屏 (ESC)' : '进入全屏'">
-            <svg v-if="!isFullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>
+    <!-- 首次进入引导弹窗：mock 模式时提示切换到真实数据 -->
+  <transition name="guide-fade">
+    <div v-if="showGuide" class="guide-mask" @click.self="dismissGuide('mask')">
+      <div class="guide-dialog" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+        <div class="guide-corner tl"></div>
+        <div class="guide-corner tr"></div>
+        <div class="guide-corner bl"></div>
+        <div class="guide-corner br"></div>
+        <div class="guide-head">
+          <div class="guide-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
             </svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/>
-            </svg>
-            <span class="fullscreen-text">{{ isFullscreen ? '退出' : '全屏' }}</span>
-          </button>
-          <div class="clock-box">
-            <span class="clock-time">{{ currentTime.time }}</span>
-            <span class="clock-date">{{ currentTime.date }} {{ currentTime.weekday }}</span>
+          </div>
+          <h2 id="guideTitle">数据演示模式</h2>
+          <p class="guide-sub">当前展示为模拟增长数据，用于演示/预览效果</p>
+        </div>
+        <div class="guide-body">
+          <div class="guide-tip">
+            <span class="tip-dot"></span>
+            <span>点击 <b>左上角时间</b> 即可一键切换到 <b class="hl">真实业务数据</b> 源</span>
+          </div>
+          <div class="guide-tip">
+            <span class="tip-dot"></span>
+            <span>真实数据将展示用户、订单、营收、活动、商机等核心指标</span>
+          </div>
+          <div class="guide-tip">
+            <span class="tip-dot"></span>
+            <span>本次选择会被记忆，后续自动按上次模式展示</span>
           </div>
         </div>
-      </header>
+        <div class="guide-actions">
+          <button class="guide-btn ghost" @click="dismissGuide('keep')">继续预览演示</button>
+          <button class="guide-btn primary" @click="dismissGuide('switch')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
+            </svg>
+            切换到真实数据
+          </button>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- 粒子背景层 -->
+  <canvas ref="particleCanvas" class="particle-bg"></canvas>
+
+  <!-- 缩放容器（基于 1920x1080 设计稿） -->
+  <div class="screen-container" :style="containerStyle">
+    <!-- 顶部标题栏 -->
+    <header class="screen-header">
+      <div class="header-left">
+        <div class="status-dot"></div>
+        <span class="header-text">系统运行正常</span>
+      </div>
+      <div class="header-center">
+        <div class="title-decoration left"></div>
+        <h1 class="screen-title">聚格软件 · 数据决策大屏</h1>
+        <div class="title-decoration right"></div>
+      </div>
+      <div class="header-right">
+        <button class="fullscreen-btn" @click="toggleFullscreen" :title="isFullscreen ? '退出全屏 (ESC)' : '进入全屏'">
+          <svg v-if="!isFullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/>
+          </svg>
+          <span class="fullscreen-text">{{ isFullscreen ? '退出' : '全屏' }}</span>
+        </button>
+        <!-- 时间切换按钮：点击在 mock / real 之间切换 -->
+        <button
+          class="clock-box clock-btn"
+          :class="{ 'is-mock': dataSource === 'mock', 'is-real': dataSource === 'real' }"
+          :title="dataSource === 'mock' ? '当前为模拟数据，点击切换到真实数据' : '当前为真实数据，点击切换到模拟数据'"
+          @click="onClockBtnClick"
+        >
+          <span class="clock-source-tag" :class="dataSource">
+            <span class="src-dot"></span>
+            <span class="src-text">{{ dataSource === 'mock' ? '演示数据' : '实时数据' }}</span>
+          </span>
+          <span class="clock-time">{{ currentTime.time }}</span>
+          <span class="clock-date">{{ currentTime.date }} {{ currentTime.weekday }}</span>
+          <span class="clock-switch" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </header>
 
       <!-- 主体三栏布局 -->
       <main class="screen-main">
@@ -75,7 +135,7 @@
         <section class="col col-center">
           <!-- 核心指标卡 -->
           <div class="kpi-row">
-            <div class="kpi-card" v-for="(kpi, i) in kpiList" :key="kpi.label" :class="`kpi-${i}`" v-memo="[kpi.value]">
+            <div class="kpi-card" v-for="(kpi, i) in kpiList" :key="kpi.label" :class="`kpi-${i}`">
               <div class="kpi-icon">
                 <component :is="kpi.icon" />
               </div>
@@ -209,8 +269,9 @@
           <span class="footer-value">{{ nextRefreshCountdown }}s</span>
         </div>
         <div class="footer-section footer-status">
-          <span class="status-dot"></span>
-          <span>数据同步中</span>
+          <span class="status-dot" :class="{ mock: dataSource === 'mock' }"></span>
+          <span>{{ dataSource === 'mock' ? '模拟增长数据中' : '数据同步中' }}</span>
+          <span class="footer-mode-tag" :class="dataSource">{{ dataSource === 'mock' ? 'MOCK' : 'REAL' }}</span>
         </div>
         <div class="footer-section footer-version">v1.0.0 · Powered by 聚格软件</div>
       </footer>
@@ -229,7 +290,8 @@ const scale = ref(1)
 const isFullscreen = ref(false)
 const containerStyle = computed(() => ({
   transform: `scale(${scale.value})`,
-  transformOrigin: 'top left',
+  // 关键：从中心缩放，避免非 16:9 屏幕下顶部/底部被裁剪
+  transformOrigin: 'center center',
   width: '1920px',
   height: '1080px',
 }))
@@ -378,6 +440,91 @@ const lastRefreshTime = ref('--:--:--')
 const nextRefreshCountdown = ref(30)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 let countdownTimer: ReturnType<typeof setInterval> | null = null
+let mockTimer: ReturnType<typeof setInterval> | null = null
+let mockTickCount = 0  // mock 模式自增计数器，用于驱动曲线向上增长
+
+// ============ 数据源模式：mock / real ============
+// - mock: 前端生成递增的虚拟数据，用于演示/预览
+// - real: 调后端 /admin/big-screen 获取真实业务数据
+// 记忆到 localStorage，下次进入自动按上次选择
+const DATA_SOURCE_KEY = 'bigscreen_data_source'
+const GUIDE_DISMISSED_KEY = 'bigscreen_guide_dismissed'
+const dataSource = ref<'mock' | 'real'>('mock')
+const showGuide = ref(false)
+
+function loadDataSourcePref(): 'mock' | 'real' {
+  try {
+    const saved = localStorage.getItem(DATA_SOURCE_KEY)
+    if (saved === 'mock' || saved === 'real') return saved
+  } catch {}
+  return 'mock'
+}
+
+function saveDataSourcePref(v: 'mock' | 'real') {
+  try { localStorage.setItem(DATA_SOURCE_KEY, v) } catch {}
+}
+
+function loadGuidePref(): boolean {
+  try { return localStorage.getItem(GUIDE_DISMISSED_KEY) === '1' } catch { return false }
+}
+function saveGuidePref() {
+  try { localStorage.setItem(GUIDE_DISMISSED_KEY, '1') } catch {}
+}
+
+// 切换数据源（在 mock / real 之间切换）
+async function toggleDataSource() {
+  if (dataSource.value === 'mock') {
+    dataSource.value = 'real'
+  } else {
+    dataSource.value = 'mock'
+  }
+  saveDataSourcePref(dataSource.value)
+  // 重置图表签名，避免新旧数据签名一致导致 updateChartData 跳过
+  chartSignatures = {}
+  lastDataSignature = ''
+  // 重置 mock 增长计数器
+  mockTickCount = 0
+  // 立即刷新数据
+  await refreshData()
+  // 重新建立刷新定时器（real 用真实接口，mock 用本地递增）
+  resetRefreshTimer()
+}
+
+// 头部时钟按钮的 click 包装：避免 TS 把 MouseEvent 误当作参数
+function onClockBtnClick() {
+  toggleDataSource()
+}
+
+// 弹窗按钮
+function dismissGuide(action: 'switch' | 'keep' | 'mask') {
+  if (action === 'switch') {
+    // 用户主动选择切到真实数据
+    dataSource.value = 'real'
+    saveDataSourcePref('real')
+    chartSignatures = {}
+    lastDataSignature = ''
+    showGuide.value = false
+    saveGuidePref()
+    refreshData().then(() => resetRefreshTimer())
+  } else if (action === 'keep') {
+    // 用户想继续看演示数据，仅关闭弹窗并记忆
+    showGuide.value = false
+    saveGuidePref()
+  } else {
+    // 点击遮罩：等同于 keep
+    showGuide.value = false
+    saveGuidePref()
+  }
+}
+
+// 统一的"刷新数据"入口（real→后端，mock→本地生成）
+async function refreshData() {
+  if (dataSource.value === 'real') {
+    await loadStats()
+  } else {
+    applyMockData(true)
+  }
+}
 
 const kpiList = computed(() => {
   const o = statsData.value.overview || {}
@@ -737,14 +884,206 @@ function updateCarouselData() {
   }
 }
 
+// ============ Mock 数据生成器（演示/预览模式）============
+// 模拟"持续增长"的演示数据：每次 tick 微增，KPI/趋势/分布图均随时间递增
+// 数据结构与 /admin/big-screen 接口完全一致，前端消费逻辑无需分支判断
+const MOCK_BASE_DATE = Date.now()
+
+function genGrowthSeries(base: number, days: number, jitter = 0.18, growthPerDay = 0.04, tickBoost = 0) {
+  // 14 天趋势：每天 +4% 左右 + 噪声；叠加 tickBoost 让当前"还在涨"
+  const out: any[] = []
+  let total = base
+  for (let i = 0; i < days; i++) {
+    const t = i / (days - 1)
+    // 基础增量 + 轻微噪声 + tick 增长（让曲线"还在涨"）
+    const noise = 1 + (Math.sin(i * 1.7) + Math.cos(i * 0.9)) * jitter
+    const dayCount = Math.max(1, Math.round(base * 0.04 * noise * (1 + t * 0.6)))
+    // 尾部几天把 tick 增长叠加进 count
+    const tailBoost = i === days - 1 ? tickBoost : Math.round(tickBoost * (i / days) * 0.6)
+    out.push({ date: '', count: dayCount + tailBoost, total: 0 })
+    total += dayCount
+  }
+  // 累计
+  for (let i = 0; i < days; i++) {
+    out[i].total = Math.round((base * (1 + i * 0.06)) + out.slice(0, i + 1).reduce((s, x) => s + x.count, 0) * 0.5)
+  }
+  return out
+}
+
+function genDateLabels(days: number) {
+  const out: string[] = []
+  const d = new Date()
+  for (let i = days - 1; i >= 0; i--) {
+    const dd = new Date(d.getTime() - i * 86400000)
+    out.push(`${dd.getMonth() + 1}/${dd.getDate()}`)
+  }
+  return out
+}
+
+async function applyMockData(forceRender = false) {
+  mockTickCount += 1
+  const tickBoost = Math.min(40, mockTickCount * 2)  // 每次刷新时尾部增长一点
+  const days = 14
+  const dateLabels = genDateLabels(days)
+
+  // 1) 用户增长趋势（首日基数 + 累计递增）
+  const userGrowthRaw = genGrowthSeries(120, days, 0.22, 0.05, tickBoost)
+  const userGrowthTrend = userGrowthRaw.map((p, i) => ({ date: dateLabels[i], count: p.count, total: p.total }))
+
+  // 2) 用户来源分布（4 渠道，总数与总用户数对齐，演示值稳定）
+  const userSource = [
+    { name: '微信扫码', value: 4680 + tickBoost * 6 },
+    { name: '邀请注册', value: 3120 + tickBoost * 4 },
+    { name: '直接访问', value: 2150 + tickBoost * 3 },
+    { name: '社群分享', value: 1840 + tickBoost * 2 },
+  ]
+
+  // 3) 用户活跃度（按小时分布）
+  const userActivity = Array.from({ length: 12 }, (_, i) => {
+    const hour = i * 2
+    // 白天 8-22 点活跃更高
+    const base = hour >= 8 && hour <= 22 ? 320 : 90
+    return {
+      name: `${hour.toString().padStart(2, '0')}:00`,
+      value: Math.round(base + Math.sin(i * 0.7) * 60 + tickBoost * 1.2 + i * 6),
+    }
+  })
+
+  // 4) 订单营收趋势
+  const orderRevenueRaw = genGrowthSeries(85, days, 0.28, 0.06, tickBoost)
+  const orderRevenueTrend = orderRevenueRaw.map((p, i) => ({
+    date: dateLabels[i],
+    orders: p.count * 2,
+    revenue: Math.round(p.count * 86 + i * 120 + tickBoost * 18),
+  }))
+
+  // 5) VIP 等级分布
+  const vipDistribution = [
+    { name: '体验会员', value: 1820 + tickBoost * 4 },
+    { name: '月度会员', value: 1240 + tickBoost * 3 },
+    { name: '季度会员', value: 860 + tickBoost * 2 },
+    { name: '年度会员', value: 480 + tickBoost * 1 },
+    { name: '永久会员', value: 142 },
+  ]
+
+  // 6) 活动类型分布
+  const activityTypeDistribution = [
+    { name: '线上沙龙', value: 38 + Math.round(tickBoost * 0.4) },
+    { name: '线下聚会', value: 26 + Math.round(tickBoost * 0.3) },
+    { name: '资源对接', value: 22 },
+    { name: '项目路演', value: 18 },
+    { name: '行业培训', value: 14 },
+    { name: '其他', value: 9 },
+  ]
+
+  // 7) 全国省份分布（部分省份，用于地图）
+  const provinceDistribution = [
+    { name: '广东', value: 1280 + tickBoost * 5 },
+    { name: '北京', value: 980 + tickBoost * 4 },
+    { name: '上海', value: 920 + tickBoost * 4 },
+    { name: '浙江', value: 780 + tickBoost * 3 },
+    { name: '江苏', value: 720 + tickBoost * 3 },
+    { name: '四川', value: 580 + tickBoost * 2 },
+    { name: '湖北', value: 460 + tickBoost * 2 },
+    { name: '山东', value: 440 + tickBoost * 2 },
+    { name: '福建', value: 380 + tickBoost * 2 },
+    { name: '河南', value: 360 + tickBoost * 1 },
+    { name: '陕西', value: 320 + tickBoost * 1 },
+    { name: '湖南', value: 300 + tickBoost * 1 },
+    { name: '重庆', value: 280 },
+    { name: '辽宁', value: 240 },
+    { name: '安徽', value: 220 },
+  ]
+
+  // 8) 商品分类分布
+  const productCategoryDistribution = [
+    { name: '会员服务', value: 320 + Math.round(tickBoost * 1.2) },
+    { name: '活动门票', value: 240 + Math.round(tickBoost * 0.8) },
+    { name: '实体商品', value: 180 + Math.round(tickBoost * 0.6) },
+    { name: '咨询服务', value: 120 + Math.round(tickBoost * 0.4) },
+    { name: '课程培训', value: 90 + Math.round(tickBoost * 0.3) },
+    { name: '周边礼品', value: 60 + Math.round(tickBoost * 0.2) },
+  ]
+
+  // 9) 总览 KPI
+  const totalUsers = userGrowthTrend[userGrowthTrend.length - 1].total
+  const totalOrders = orderRevenueTrend.reduce((s, x) => s + x.orders, 0)
+  const totalRevenue = orderRevenueTrend.reduce((s, x) => s + x.revenue, 0)
+  const overview = {
+    userCount: totalUsers,
+    vipCount: 4542 + tickBoost * 8,
+    activityCount: 127 + Math.round(tickBoost * 0.2),
+    businessCount: 86 + Math.round(tickBoost * 0.1),
+    productCount: 234,
+    orderCount: totalOrders,
+    todayOrders: 86 + Math.round(tickBoost * 1.5),
+    todayRevenue: 12860 + Math.round(tickBoost * 220),
+  }
+
+  const data = {
+    overview,
+    userGrowthTrend,
+    userSource,
+    userActivity,
+    orderRevenueTrend,
+    vipDistribution,
+    activityTypeDistribution,
+    provinceDistribution,
+    productCategoryDistribution,
+  }
+
+  // 复用 loadStats 中相同的"合并 + 签名 + 重绘"管线
+  const newSig = getDataSignature(data)
+  const dataChanged = newSig !== lastDataSignature
+  lastDataSignature = newSig
+  lastRefreshTime.value = currentTime.time
+  nextRefreshCountdown.value = dataSource.value === 'mock' ? 3 : refreshInterval.value
+
+  if (dataChanged) {
+    if (isFirstRender) {
+      statsData.value = data
+    } else {
+      Object.keys(statsData.value).forEach(k => delete statsData.value[k])
+      Object.assign(statsData.value, data)
+    }
+    animateKpi()
+  }
+
+  // 首次渲染：初始化所有图表实例（mock 模式首屏必需，real 模式由 loadStats 负责）
+  if (isFirstRender) {
+    await nextTick()
+    await renderAllCharts()
+    isFirstRender = false
+  } else if (dataChanged) {
+    // 后续数据变化：走合并模式（不重建图表，只更新 series.data）
+    await nextTick()
+    updateChartData()
+  }
+  return data
+}
+
 function resetRefreshTimer() {
   if (refreshTimer) clearInterval(refreshTimer)
   if (countdownTimer) clearInterval(countdownTimer)
-  nextRefreshCountdown.value = refreshInterval.value
-  refreshTimer = setInterval(loadStats, refreshInterval.value * 1000)
-  countdownTimer = setInterval(() => {
-    if (nextRefreshCountdown.value > 0) nextRefreshCountdown.value--
-  }, 1000)
+  if (mockTimer) clearInterval(mockTimer)
+
+  if (dataSource.value === 'mock') {
+    // mock 模式：每 3 秒推进一格，曲线持续向上
+    nextRefreshCountdown.value = 3
+    mockTimer = setInterval(() => {
+      applyMockData(false)
+    }, 3000)
+    countdownTimer = setInterval(() => {
+      if (nextRefreshCountdown.value > 0) nextRefreshCountdown.value--
+    }, 1000)
+  } else {
+    // real 模式：按用户选择的间隔去拉接口
+    nextRefreshCountdown.value = refreshInterval.value
+    refreshTimer = setInterval(loadStats, refreshInterval.value * 1000)
+    countdownTimer = setInterval(() => {
+      if (nextRefreshCountdown.value > 0) nextRefreshCountdown.value--
+    }, 1000)
+  }
 }
 
 // 等待 DOM 容器有真实尺寸
@@ -1329,6 +1668,11 @@ function resizeParticleCanvas() {
 
 // ============ 生命周期 ============
 onMounted(async () => {
+  // 1. 恢复用户上次的数据源偏好（mock / real）
+  dataSource.value = loadDataSourcePref()
+
+  // 2. 首次加载：real 直接拉接口；mock 用本地生成（避免空等）
+  // 3. 弹窗：仅在 mock 模式 + 本次会话未关闭过弹窗时展示
   updateScale()
   updateClock()
   initParticles()
@@ -1340,9 +1684,15 @@ onMounted(async () => {
 
   await nextTick()
   await new Promise((resolve) => setTimeout(resolve, 100))
-  await loadStats()
+  await refreshData()
   resetRefreshTimer()
   resetCarouselTimer()
+
+  // mock 模式 + 用户未点过"继续预览"/"切换到真实数据" → 弹引导窗
+  if (dataSource.value === 'mock' && !loadGuidePref()) {
+    // 延时 300ms 弹出，避免和首次渲染抢资源
+    setTimeout(() => { showGuide.value = true }, 300)
+  }
 })
 
 onUnmounted(() => {
@@ -1350,6 +1700,7 @@ onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
   if (countdownTimer) clearInterval(countdownTimer)
   if (carouselTimer) clearInterval(carouselTimer)
+  if (mockTimer) clearInterval(mockTimer)
   if (particleAnimId) cancelAnimationFrame(particleAnimId)
   if (resizeRafId) cancelAnimationFrame(resizeRafId)
   // 清理 KPI 动画 RAF
@@ -1746,4 +2097,225 @@ onUnmounted(() => {
 .col-left .panel:nth-child(1), .col-right .panel:nth-child(1) { flex: 1.1; }
 .col-left .panel:nth-child(2), .col-right .panel:nth-child(2) { flex: 1; }
 .col-left .panel:nth-child(3), .col-right .panel:nth-child(3) { flex: 1; }
+
+/* ============ 时钟切换按钮（数据源切换）============ */
+.clock-box.clock-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 4px 12px 4px 32px;
+  margin-left: 8px;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  border-radius: 6px;
+  color: #00d4ff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  overflow: hidden;
+}
+.clock-box.clock-btn:hover {
+  background: rgba(0, 212, 255, 0.2);
+  border-color: #00d4ff;
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.45);
+}
+.clock-box.clock-btn:active { transform: scale(0.97); }
+.clock-box.clock-btn.is-mock {
+  background: rgba(255, 184, 77, 0.1);
+  border-color: rgba(255, 184, 77, 0.55);
+  color: #ffb84d;
+}
+.clock-box.clock-btn.is-mock:hover {
+  background: rgba(255, 184, 77, 0.22);
+  border-color: #ffb84d;
+  box-shadow: 0 0 14px rgba(255, 184, 77, 0.5);
+}
+.clock-box.clock-btn .clock-source-tag {
+  position: absolute;
+  left: 6px; top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+.clock-box.clock-btn .clock-source-tag.mock {
+  background: rgba(255, 184, 77, 0.2);
+  color: #ffb84d;
+  border: 1px solid rgba(255, 184, 77, 0.5);
+}
+.clock-box.clock-btn .clock-source-tag.real {
+  background: rgba(0, 255, 136, 0.18);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.55);
+}
+.clock-box.clock-btn .src-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.clock-box.clock-btn .clock-switch {
+  position: absolute;
+  right: 4px; bottom: 2px;
+  width: 14px; height: 14px;
+  opacity: 0.55;
+  transition: opacity 0.2s, transform 0.4s;
+}
+.clock-box.clock-btn:hover .clock-switch { opacity: 1; transform: rotate(180deg); }
+.clock-box.clock-btn .clock-switch svg { width: 100%; height: 100%; }
+
+/* ============ Footer 模式标签 ============ */
+.footer-mode-tag {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+.footer-mode-tag.mock {
+  background: rgba(255, 184, 77, 0.18);
+  color: #ffb84d;
+  border: 1px solid rgba(255, 184, 77, 0.5);
+}
+.footer-mode-tag.real {
+  background: rgba(0, 255, 136, 0.18);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.5);
+}
+.footer-status .status-dot.mock { background: #ffb84d; box-shadow: 0 0 8px #ffb84d; }
+
+/* ============ 引导弹窗 ============ */
+.guide-mask {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(2, 8, 22, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.guide-dialog {
+  position: relative;
+  width: 460px;
+  max-width: 90vw;
+  padding: 28px 30px 24px;
+  background: linear-gradient(135deg, rgba(10, 30, 60, 0.95) 0%, rgba(5, 18, 40, 0.98) 100%);
+  border: 1px solid rgba(0, 212, 255, 0.5);
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, 0.15),
+    0 0 40px rgba(0, 212, 255, 0.4),
+    inset 0 0 60px rgba(124, 92, 255, 0.08);
+  color: #eaf2ff;
+}
+.guide-corner {
+  position: absolute; width: 18px; height: 18px;
+  border: 2px solid #00d4ff;
+}
+.guide-corner.tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.guide-corner.tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+.guide-corner.bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+.guide-corner.br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+.guide-head {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  text-align: center; margin-bottom: 18px;
+}
+.guide-icon {
+  width: 52px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 184, 77, 0.12);
+  border: 1px solid rgba(255, 184, 77, 0.5);
+  color: #ffb84d;
+  box-shadow: 0 0 18px rgba(255, 184, 77, 0.35);
+  margin-bottom: 4px;
+}
+.guide-icon svg { width: 28px; height: 28px; }
+.guide-head h2 {
+  font-size: 22px; font-weight: 800; letter-spacing: 2px;
+  margin: 0;
+  background: linear-gradient(180deg, #fff 0%, #00d4ff 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.guide-sub { font-size: 12px; color: #8fb8d8; letter-spacing: 1px; margin: 0; }
+.guide-body {
+  background: rgba(0, 30, 60, 0.4);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: 4px;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 20px;
+}
+.guide-tip {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 13px; color: #cfdcef; line-height: 1.55;
+}
+.guide-tip .tip-dot {
+  flex-shrink: 0;
+  width: 6px; height: 6px;
+  margin-top: 8px;
+  background: #00d4ff; border-radius: 50%;
+  box-shadow: 0 0 6px #00d4ff;
+}
+.guide-tip b { color: #fff; font-weight: 700; }
+.guide-tip .hl {
+  color: #00ffd4; text-shadow: 0 0 6px rgba(0, 255, 212, 0.4);
+}
+.guide-actions {
+  display: flex; gap: 12px; justify-content: flex-end;
+}
+.guide-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.guide-btn.ghost {
+  background: transparent;
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  color: #8fb8d8;
+}
+.guide-btn.ghost:hover {
+  background: rgba(0, 212, 255, 0.1);
+  color: #fff;
+  border-color: #00d4ff;
+}
+.guide-btn.primary {
+  background: linear-gradient(135deg, #00d4ff 0%, #1565c0 100%);
+  border: 1px solid #00d4ff;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.45);
+}
+.guide-btn.primary:hover {
+  box-shadow: 0 0 22px rgba(0, 212, 255, 0.7);
+  transform: translateY(-1px);
+}
+.guide-btn.primary:active { transform: scale(0.97); }
+
+.guide-fade-enter-active, .guide-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.guide-fade-enter-active .guide-dialog,
+.guide-fade-leave-active .guide-dialog {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.guide-fade-enter-from, .guide-fade-leave-to { opacity: 0; }
+.guide-fade-enter-from .guide-dialog,
+.guide-fade-leave-to .guide-dialog {
+  transform: scale(0.92) translateY(10px);
+  opacity: 0;
+}
 </style>

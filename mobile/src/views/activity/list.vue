@@ -29,7 +29,8 @@
         <div v-if="activities.length === 0" class="empty-tip">暂无活动</div>
         <div class="activity-item" v-for="a in activities" :key="a.id" @click="$router.push('/activity/detail/' + a.id)">
           <div class="activity-cover">
-            <div class="activity-cover-bg" :style="{background: a.cover}"></div>
+            <img v-if="a.coverImage && !a.coverError" class="activity-cover-img" :src="a.coverImage" :alt="a.title" loading="lazy" @error="() => (a.coverError = true)" />
+            <div v-else class="activity-cover-bg" :style="{background: a.cover}"></div>
             <span class="status-tag" :class="a.statusClass">{{ a.statusText }}</span>
           </div>
           <div class="activity-content">
@@ -108,6 +109,8 @@ function mapActivity(item: any) {
   return {
     id: item.id,
     title: item.title,
+    coverImage: item.coverImage || '',
+    coverError: false,
     cover: item.coverImage ? `url(${item.coverImage})` : 'linear-gradient(135deg,#818cf8,#6366f1)',
     statusText: item.status === 'approved' ? '报名中' : item.status === 'pending' ? '待审核' : '已结束',
     statusClass: item.status === 'approved' ? '' : item.status === 'pending' ? '' : 'full',
@@ -165,11 +168,13 @@ onMounted(loadActivities)
   transition: transform 0.15s ease;
 }
 .activity-item:active { transform: scale(0.98); }
-.activity-cover { height: 140px; position: relative; overflow: hidden; }
+.activity-cover { width: 100%; position: relative; overflow: hidden; background: #f0f0f5; }
+.activity-cover-img { display: block; width: 100%; height: auto; }
 .activity-cover-bg {
-  width: 100%; height: 100%;
+  width: 100%; aspect-ratio: 16 / 9;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
 }
 .status-tag {
   position: absolute; top: 10px; left: 10px;

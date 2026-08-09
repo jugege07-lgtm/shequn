@@ -52,12 +52,36 @@ export class SystemService {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const yesterdayStart = new Date(today.getTime() - 24 * 3600 * 1000);
     const [todayOrders, todayRevenue, pendingActivityCount, pendingBusinessCount] = await Promise.all([
       this.prisma.order.count({ where: { createdAt: { gte: today } } }),
       this.prisma.order.aggregate({ where: { createdAt: { gte: today }, status: 'paid' }, _sum: { payAmount: true } }),
       this.prisma.activity.count({ where: { status: 'pending' } }),
       this.prisma.business.count({ where: { status: 'pending' } }),
     ]);
+
+    // 较昨日趋势：分别统计今日与昨日新增量，计算真实增长百分比
+    const [todayUsers, yesterdayUsers, todayActivities, yesterdayActivities, todayBusiness, yesterdayBusiness, yesterdayOrders] =
+      await Promise.all([
+        this.prisma.user.count({ where: { createdAt: { gte: today } } }),
+        this.prisma.user.count({ where: { createdAt: { gte: yesterdayStart, lt: today } } }),
+        this.prisma.activity.count({ where: { createdAt: { gte: today } } }),
+        this.prisma.activity.count({ where: { createdAt: { gte: yesterdayStart, lt: today } } }),
+        this.prisma.business.count({ where: { createdAt: { gte: today } } }),
+        this.prisma.business.count({ where: { createdAt: { gte: yesterdayStart, lt: today } } }),
+        this.prisma.order.count({ where: { createdAt: { gte: yesterdayStart, lt: today } } }),
+      ]);
+    // 昨日为 0 时：今日有增量则记为 100%，今日也为 0 则记为 0%
+    const calcTrend = (cur: number, prev: number) => {
+      if (prev === 0) return cur > 0 ? 100 : 0;
+      return Number(((cur - prev) / prev * 100).toFixed(1));
+    };
+    const trends = {
+      users: calcTrend(todayUsers, yesterdayUsers),
+      orders: calcTrend(todayOrders, yesterdayOrders),
+      activities: calcTrend(todayActivities, yesterdayActivities),
+      business: calcTrend(todayBusiness, yesterdayBusiness),
+    };
 
     // 近 7 天营收趋势
     const last7Days: { date: string; revenue: number; orders: number }[] = [];
@@ -103,6 +127,7 @@ export class SystemService {
       todayRevenue: todayRevenue._sum.payAmount || 0,
       pendingActivityCount,
       pendingBusinessCount,
+      trends,
       last7Days,
       last7DaysUsers,
     };
@@ -315,5 +340,116 @@ export class SystemService {
 
   async deleteVersion(id: number) {
     return this.prisma.appVersion.delete({ where: { id } });
+  }
+
+  // ========== 大屏：近期新增动态 ==========
+  /**
+   * 聚合最近 24h 内的新增数据（用户 / 活动 / 商机 / 订单 / 商品），
+   * 按 createdAt desc 合并后取前 N 条，用于大屏底部滚动播报。
+   * 每条形如：{ type, action, targetName, userName, amount?, createdAt }
+   */
+  async getRecentActivities(limit = 20) {
+    const since = dayjs().subtract(24, 'hour').toDate();
+
+    const [users, activities, businesses, orders, products] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { createdAt: { gte: since } },
+        orderBy: { createdAt: 'desc' },
+        take: 15,
+        select: { id: true, nickname: true, createdAt: true },
+      }),
+      this.prisma.activity.findMany({
+        where: { createdAt: { gte: since } },
+        orderBy: { createdAt: 'desc' },
+        take: 15,
+        select: { id: true, title: true, publisher: { select: { nickname: true } }, createdAt: true },
+      }),
+      this.prisma.business.findMany({
+        where: { createdAt: { gte: since } },
+        orderBy: { createdAt: 'desc' },
+        take: 15,
+        select: { id: true, title: true, publisher: { select: { nickname: true } }, createdAt: true },
+      }),
+      this.prisma.order.findMany({
+        where: { createdAt: { gte: since } },
+        orderBy: { createdAt: 'desc' },
+        take: 15,
+        select: {
+          id: true, orderNo: true, payAmount: true, status: true, orderType: true,
+          user: { select: { nickname: true } },
+          createdAt: true,
+        },
+      }),
+      this.prisma.product.findMany({
+        where: { createdAt: { gte: since } },
+        orderBy: { createdAt: 'desc' },
+        take: 15,
+        select: { id: true, name: true, createdAt: true },
+      }),
+    ]);
+
+    const events: {
+      type: string;
+      action: string;
+      targetName: string;
+      userName: string;
+      amount?: number;
+      createdAt: string;
+    }[] = [];
+
+    const safeName = (s: string | null | undefined) => (s && s.trim()) || '匿名用户';
+    const truncate = (s: string, n = 18) => (s.length > n ? s.slice(0, n) + '…' : s);
+
+    users.forEach((u) =>
+      events.push({
+        type: 'user',
+        action: '注册加入',
+        targetName: '社群',
+        userName: safeName(u.nickname),
+        createdAt: u.createdAt.toISOString(),
+      }),
+    );
+    activities.forEach((a) =>
+      events.push({
+        type: 'activity',
+        action: '发布了活动',
+        targetName: truncate(a.title),
+        userName: safeName(a.publisher?.nickname),
+        createdAt: a.createdAt.toISOString(),
+      }),
+    );
+    businesses.forEach((b) =>
+      events.push({
+        type: 'business',
+        action: '发布了商机',
+        targetName: truncate(b.title),
+        userName: safeName(b.publisher?.nickname),
+        createdAt: b.createdAt.toISOString(),
+      }),
+    );
+    orders.forEach((o) => {
+      const isPaid = o.status === 'paid' || o.status === 'completed' || o.status === 'shipped';
+      const typeLabel = o.orderType === 'activity' ? '活动报名' : o.orderType === 'business' ? '商机解锁' : '商品订单';
+      events.push({
+        type: 'order',
+        action: isPaid ? '完成下单' : '提交了',
+        targetName: typeLabel,
+        userName: safeName(o.user?.nickname),
+        amount: Number(o.payAmount) || 0,
+        createdAt: o.createdAt.toISOString(),
+      });
+    });
+    products.forEach((p) =>
+      events.push({
+        type: 'product',
+        action: '上架了商品',
+        targetName: truncate(p.name),
+        userName: '运营团队',
+        createdAt: p.createdAt.toISOString(),
+      }),
+    );
+
+    events.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    return events.slice(0, limit);
   }
 }

@@ -4,18 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
-
-// ===== 生产环境数据库迁移指南 =====
-// SQLite 不适合生产环境（并发写入、数据量增长场景性能极差）。
-// 上线前请按以下步骤切换为 PostgreSQL 或 MySQL：
-//
-// 1. 修改 provider 为 "postgresql" 或 "mysql"
-// 2. 修改 url 为对应的连接字符串
-// 3. 执行 npx prisma migrate dev
-// 4. 更新 backend/.env 中的 DATABASE_URL
 
 model User {
   id            Int               @id @default(autoincrement()) @map("id")
@@ -80,7 +71,7 @@ model Activity {
   id              Int              @id @default(autoincrement())
   title           String
   coverImage      String           @map("cover_image")
-  description     String
+  description     String           @db.Text
   images          String?          @default("[]")
   type            String           @map("type")
   price           Float            @default(0) @map("price")
@@ -141,7 +132,7 @@ model Business {
   id             Int              @id @default(autoincrement())
   title          String
   coverImage     String           @map("cover_image")
-  description    String
+  description    String           @db.Text
   categoryId     Int              @map("category_id")
   contactName    String           @map("contact_name")
   contactPhone   String           @default("") @map("contact_phone")
@@ -198,7 +189,7 @@ model Product {
   name        String
   coverImage  String          @map("cover_image")
   images      String?         @default("[]")
-  description String
+  description String          @db.Text
   categoryId  Int             @map("category_id")
   price       Float
   vipPrice    Float           @default(0) @map("vip_price")
@@ -308,7 +299,7 @@ model Refund {
   orderId      Int       @unique @map("order_id")
   userId       Int       @map("user_id")
   refundAmount Float     @map("refund_amount")
-  reason       String
+  reason       String    @db.Text
   images       String?   @default("[]")
   status       String    @default("pending")
   adminNote    String    @default("") @map("admin_note")
@@ -330,7 +321,7 @@ model VipPlan {
   originalPrice Float             @map("original_price")
   currentPrice  Float             @map("current_price")
   discountRate  Float             @default(1) @map("discount_rate")
-  description   String
+  description   String            @db.Text
   features      String            @default("[]")
   status        Int               @default(1)
   sortOrder     Int               @default(0) @map("sort_order")
@@ -363,7 +354,7 @@ model Message {
   userId    Int       @map("user_id")
   type      String
   title     String
-  content   String
+  content   String    @db.Text
   data      String?   @default("{}")
   isRead    Int       @default(0) @map("is_read")
   readAt    DateTime? @map("read_at")
@@ -378,7 +369,7 @@ model Message {
 model SystemConfig {
   id          Int      @id @default(autoincrement())
   key         String   @unique
-  value       String
+  value       String   @db.Text
   description String   @default("")
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
@@ -389,7 +380,7 @@ model SystemConfig {
 model Announcement {
   id        Int      @id @default(autoincrement())
   title     String
-  content   String
+  content   String   @db.Text
   type      String   @default("notice")
   status    Int      @default(1)
   sortOrder Int      @default(0) @map("sort_order")
@@ -422,7 +413,7 @@ model AppVersion {
   version     String
   versionCode Int      @map("version_code")
   title       String
-  content     String
+  content     String   @db.Text
   downloadUrl String   @default("") @map("download_url")
   forceUpdate Int      @default(0) @map("force_update")
   status      Int      @default(1)
@@ -450,21 +441,21 @@ model HomeSection {
 
 // ===== 优惠券模块 =====
 model Coupon {
-  id          Int            @id @default(autoincrement())
-  name        String         @map("name")
-  description String         @default("") @map("description")
-  type        String         @default("fixed")         // fixed=固定金额, percent=折扣
-  value       Float          @default(0)               // 金额或折扣率
-  minAmount   Float          @default(0)               // 最低消费门槛
-  totalQty    Int            @default(0)               @map("total_qty")    // 发行总量
-  claimedQty  Int            @default(0)               @map("claimed_qty")  // 已领取数
-  validDays   Int            @default(7)               @map("valid_days")   // 领取后有效天数
-  validFrom   DateTime?      @map("valid_from")   // 固定有效期开始
-  validTo     DateTime?      @map("valid_to")     // 固定有效期结束
-  status      Int            @default(1)               // 1=上架 0=下架
-  sortOrder   Int            @default(0)               @map("sort_order")
-  createdAt   DateTime       @default(now())           @map("created_at")
-  updatedAt   DateTime       @updatedAt                @map("updated_at")
+  id          Int          @id @default(autoincrement())
+  name        String       @map("name")
+  description String       @default("") @map("description")
+  type        String       @default("fixed") // fixed=固定金额, percent=折扣
+  value       Float        @default(0) // 金额或折扣率
+  minAmount   Float        @default(0) // 最低消费门槛
+  totalQty    Int          @default(0) @map("total_qty") // 发行总量
+  claimedQty  Int          @default(0) @map("claimed_qty") // 已领取数
+  validDays   Int          @default(7) @map("valid_days") // 领取后有效天数
+  validFrom   DateTime?    @map("valid_from") // 固定有效期开始
+  validTo     DateTime?    @map("valid_to") // 固定有效期结束
+  status      Int          @default(1) // 1=上架 0=下架
+  sortOrder   Int          @default(0) @map("sort_order")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
   userCoupons UserCoupon[]
 
   @@index([status])
@@ -472,18 +463,18 @@ model Coupon {
 }
 
 model UserCoupon {
-  id          Int      @id @default(autoincrement())
-  couponId    Int      @map("coupon_id")
-  userId      Int      @map("user_id")
-  status      String   @default("unused")   // unused=未使用, used=已使用, expired=已过期
-  orderNo     String?  @map("order_no")     // 使用的订单号
-  claimedAt   DateTime @default(now())      @map("claimed_at")   // 领取时间
-  usedAt      DateTime? @map("used_at")      // 使用时间
-  expiresAt   DateTime @default(now())      @map("expires_at")   // 过期时间
-  createdAt   DateTime @default(now())      @map("created_at")
-  updatedAt   DateTime @updatedAt           @map("updated_at")
-  coupon      Coupon   @relation(fields: [couponId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  id        Int       @id @default(autoincrement())
+  couponId  Int       @map("coupon_id")
+  userId    Int       @map("user_id")
+  status    String    @default("unused") // unused=未使用, used=已使用, expired=已过期
+  orderNo   String?   @map("order_no") // 使用的订单号
+  claimedAt DateTime  @default(now()) @map("claimed_at") // 领取时间
+  usedAt    DateTime? @map("used_at") // 使用时间
+  expiresAt DateTime  @default(now()) @map("expires_at") // 过期时间
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  coupon    Coupon    @relation(fields: [couponId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
 
   @@index([userId, status])
   @@index([couponId])
@@ -493,17 +484,17 @@ model UserCoupon {
 
 // ===== 积分模块 =====
 model PointRule {
-  id          Int      @id @default(autoincrement())
-  name        String   @default("")          // 规则名称
-  action      String   @default("")          // 动作标识: invite, vip, purchase, activity_signup, checkin, publish_business, unlock_business, card_view
-  ruleGroup   String   @default("default")   @map("rule_group") // 规则分组: default=默认, custom=自定义
-  priority    Int      @default(0)           // 优先级: 数值越大越先执行
-  points      Int      @default(0)           // 每次获得积分
-  maxPerDay   Int      @default(1)           @map("max_per_day")  // 每日上限
-  enabled     Int      @default(1)           // 1=启用 0=停用
-  sortOrder   Int      @default(0)           @map("sort_order")
-  createdAt   DateTime @default(now())       @map("created_at")
-  updatedAt   DateTime @updatedAt            @map("updated_at")
+  id        Int      @id @default(autoincrement())
+  name      String   @default("") // 规则名称
+  action    String   @default("") // 动作标识: invite, vip, purchase, activity_signup, checkin, publish_business, unlock_business, card_view
+  ruleGroup String   @default("default") @map("rule_group") // 规则分组: default=默认, custom=自定义
+  priority  Int      @default(0) // 优先级: 数值越大越先执行
+  points    Int      @default(0) // 每次获得积分
+  maxPerDay Int      @default(1) @map("max_per_day") // 每日上限
+  enabled   Int      @default(1) // 1=启用 0=停用
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([action])
   @@index([enabled])
@@ -515,10 +506,10 @@ model PointRule {
 model PointLog {
   id        Int      @id @default(autoincrement())
   userId    Int      @map("user_id")
-  action    String   @default("")    // 同 PointRule.action
-  points    Int      @default(0)     // 正=获取 负=消耗
-  balance   Int      @default(0)     @map("balance")  // 变动后余额
-  remark    String   @default("")    // 备注说明
+  action    String   @default("") // 同 PointRule.action
+  points    Int      @default(0) // 正=获取 负=消耗
+  balance   Int      @default(0) @map("balance") // 变动后余额
+  remark    String   @default("") // 备注说明
   createdAt DateTime @default(now()) @map("created_at")
   user      User     @relation(fields: [userId], references: [id])
 

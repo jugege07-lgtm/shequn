@@ -36,6 +36,15 @@ export class AdminController {
     return this.systemService.getBigScreenStats();
   }
 
+  /** 大屏底部滚动播报：最近 24h 内的新增数据（用户/活动/商机/订单/商品） */
+  @Get('recent-activities')
+  @ApiOperation({ summary: '大屏：近期新增动态（最近24h）' })
+  async getRecentActivities(@Query('limit') limit?: string) {
+    const n = Math.max(1, Math.min(50, parseInt(limit || '20', 10) || 20));
+    const data = await this.systemService.getRecentActivities(n);
+    return { code: 0, data };
+  }
+
   // ============== 系统配置 ==============
   @Get('configs')
   @ApiOperation({ summary: '获取所有配置' })
@@ -438,8 +447,8 @@ export class AdminController {
   // ============== 商品分类管理 ==============
   @Get('product-categories')
   @ApiOperation({ summary: '商品分类列表' })
-  async getProductCategories() {
-    return { code: 0, data: await this.adminService.getProductCategories() };
+  async getProductCategories(@Query('keyword') keyword?: string) {
+    return { code: 0, data: await this.adminService.getProductCategories(keyword) };
   }
 
   @Post('product-categories')

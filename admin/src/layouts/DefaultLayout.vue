@@ -23,10 +23,6 @@
             <el-icon><DataAnalysis /></el-icon>
             <template #title>数据看板</template>
           </el-menu-item>
-          <el-menu-item index="/bigscreen">
-            <el-icon><Monitor /></el-icon>
-            <template #title>数据大屏</template>
-          </el-menu-item>
           <el-menu-item index="/users">
             <el-icon><User /></el-icon>
             <template #title>用户管理</template>
@@ -65,7 +61,11 @@
           </el-menu-item>
           <el-menu-item index="/category-management">
             <el-icon><Notebook /></el-icon>
-            <template #title>分类管理</template>
+            <template #title>商机分类</template>
+          </el-menu-item>
+          <el-menu-item index="/product-category-management">
+            <el-icon><GoodsFilled /></el-icon>
+            <template #title>商品分类</template>
           </el-menu-item>
           <el-menu-item index="/points/rules">
             <el-icon><Coin /></el-icon>
@@ -74,6 +74,10 @@
           <el-menu-item index="/points/logs">
             <el-icon><Document /></el-icon>
             <template #title>积分明细</template>
+          </el-menu-item>
+          <el-menu-item index="/bigscreen">
+            <el-icon><Monitor /></el-icon>
+            <template #title>数据大屏</template>
           </el-menu-item>
           <el-menu-item index="/settings">
             <el-icon><Setting /></el-icon>
@@ -148,7 +152,8 @@ const breadcrumb = computed(() => {
     '/notifications': '消息管理',
     '/banners': 'Banner管理',
     '/coupons': '优惠券管理',
-    '/category-management': '分类管理',
+    '/category-management': '商机分类',
+    '/product-category-management': '商品分类',
     '/points/rules': '积分规则',
     '/points/logs': '积分明细',
     '/settings': '系统设置',

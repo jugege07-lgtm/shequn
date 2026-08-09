@@ -112,7 +112,23 @@
       <div class="activities-scroll">
         <div class="activity-card" v-for="a in activities" :key="a.id" @click="$router.push('/activity/detail/' + a.id)">
           <div class="activity-card-img">
-            <div class="cover" :style="{background: a.cover}">{{ a.emoji }}</div>
+            <!--
+              封面渲染策略（与 activity/list.vue 对齐）：
+              1) 优先用 <img> 加载真实封面图，失败时回退到带 emoji 的渐变占位
+              2) loading="lazy" 避免首屏一次性加载所有图
+              3) 使用 background-image 叠加（不是 background 简写），避免层被覆盖
+            -->
+            <img
+              v-if="a.coverImage && !a.coverError"
+              class="activity-card-cover-img"
+              :src="a.coverImage"
+              :alt="a.title"
+              loading="lazy"
+              @error="a.coverError = true"
+            />
+            <div v-else class="activity-card-cover-fallback" :style="a.coverFallbackStyle">
+              <span class="emoji">{{ a.emoji }}</span>
+            </div>
             <span class="status" :class="{ free: a.isFree }">{{ a.statusText }}</span>
           </div>
           <div class="activity-card-body">
@@ -270,20 +286,26 @@ function applyData(data: any) {
 
   // 转换活动数据
   if (data.activities?.length) {
-    activities.value = data.activities.map((a: any) => ({
-      id: a.id,
-      title: a.title,
-      cover: a.coverImage
-        ? `linear-gradient(135deg, #667eea 0%, #764ba2 100%), url(${a.coverImage})`
-        : `hsl(${a.id * 47 % 360}, 60%, 65%)`,
-      emoji: a.coverImage ? '' : ['🎉','🎯','🚀','💡','🔥','🌟'][a.id % 6],
-      isFree: a.price === 0,
-      statusText: a.status === 'approved' ? '报名中' : a.status,
-      date: formatDateStr(a.startTime),
-      location: a.location || '待定',
-      priceHtml: a.price === 0 ? '免费' : `<span>¥</span>${a.price}`,
-      signupCount: a.signupCount || 0,
-    }))
+    activities.value = data.activities.map((a: any) => {
+      // 封面图：保留原值用于 <img>，并预生成回退占位（纯色 + emoji）
+      // 关键：用 backgroundImage（叠加层）+ 纯色 baseColor，而不是 background 简写被 url 覆盖
+      const baseColor = `hsl(${(a.id * 47) % 360}, 60%, 65%)`
+      const emojiList = ['🎉', '🎯', '🚀', '💡', '🔥', '🌟']
+      return {
+        id: a.id,
+        title: a.title,
+        coverImage: a.coverImage || '',
+        coverError: false,  // <img> 加载失败时翻为 true，触发回退渲染
+        coverFallbackStyle: { background: baseColor },
+        emoji: emojiList[a.id % emojiList.length],
+        isFree: a.price === 0,
+        statusText: a.status === 'approved' ? '报名中' : a.status,
+        date: formatDateStr(a.startTime),
+        location: a.location || '待定',
+        priceHtml: a.price === 0 ? '免费' : `<span>¥</span>${a.price}`,
+        signupCount: a.signupCount || 0,
+      }
+    })
   }
 
   // 转换商机数据
@@ -471,11 +493,22 @@ onMounted(() => {
   cursor: pointer; transition: transform 0.15s ease;
 }
 .activity-card:active { transform: scale(0.97); }
-.activity-card-img { height: 110px; position: relative; overflow: hidden; }
-.activity-card-img .cover {
-  width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center; font-size: 48px;
+.activity-card-img { height: 110px; position: relative; overflow: hidden; background: #f0f0f5; }
+/* 真实封面图：object-fit: cover 保持比例并裁剪，宽度铺满 */
+.activity-card-cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
+/* 回退占位：纯色 + emoji 居中，与 list 页行为一致 */
+.activity-card-cover-fallback {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background-size: cover; background-position: center;
+}
+.activity-card-cover-fallback .emoji { font-size: 48px; line-height: 1; }
 .activity-card-img .status {
   position: absolute; top: 8px; left: 8px;
   font-size: 10px; font-weight: 700; color: #fff;

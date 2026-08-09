@@ -9,12 +9,13 @@ export class BusinessService {
     private pointService: PointService,
   ) {}
 
-  async getPublicBusinesses(params?: { page?: number; size?: number; status?: string }) {
+  async getPublicBusinesses(params?: { page?: number; size?: number; status?: string; categoryId?: string | number }) {
     const page = Number(params?.page) || 1;
     const size = Number(params?.size) || 20;
     const status = params?.status;
     const where: any = { status: 'approved' };
     if (status && status !== 'all') where.status = status;
+    if (params?.categoryId) where.categoryId = Number(params.categoryId);
 
     const [list, total] = await Promise.all([
       this.prisma.business.findMany({
@@ -22,7 +23,10 @@ export class BusinessService {
         skip: (page - 1) * size,
         take: size,
         orderBy: { createdAt: 'desc' },
-        include: { publisher: { select: { nickname: true, avatarUrl: true } } },
+        include: {
+          publisher: { select: { nickname: true, avatarUrl: true } },
+          category: { select: { id: true, name: true, code: true, icon: true } },
+        },
       }),
       this.prisma.business.count({ where }),
     ]);
@@ -33,7 +37,7 @@ export class BusinessService {
     return this.prisma.businessCategory.findMany({
       where: { status: 1 },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, name: true, sortOrder: true },
+      select: { id: true, name: true, code: true, icon: true, sortOrder: true },
     });
   }
 

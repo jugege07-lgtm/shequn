@@ -89,8 +89,14 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'category-management',
         name: 'CategoryManagement',
-        component: () => import('@/views/mall/CategoryManagement.vue'),
-        meta: { title: '分类管理', icon: 'Notebook' },
+        component: () => import('@/views/mall/BusinessCategoryManagement.vue'),
+        meta: { title: '商机分类', icon: 'Notebook', activeMenu: '/category-management' },
+      },
+      {
+        path: 'product-category-management',
+        name: 'ProductCategoryManagement',
+        component: () => import('@/views/mall/ProductCategoryManagement.vue'),
+        meta: { title: '商品分类', icon: 'GoodsFilled', activeMenu: '/category-management' },
       },
       {
         path: 'orders',

@@ -232,13 +232,16 @@ const todayStr = computed(() => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${weekdays[d.getDay()]}`
 })
 
-// 核心 KPI 卡片
-const kpiCards = computed(() => [
-  { label: '总用户数', value: dashboardData.userCount || 0, icon: User, theme: 'blue', trend: 8.5 },
-  { label: '今日订单', value: dashboardData.todayOrders || 0, icon: ShoppingCart, theme: 'green', trend: 12.3 },
-  { label: '活动数量', value: dashboardData.activityCount || 0, icon: Calendar, theme: 'amber', trend: -3.2 },
-  { label: '商机数量', value: dashboardData.businessCount || 0, icon: Connection, theme: 'purple', trend: 5.6 },
-])
+// 核心 KPI 卡片（trend 来自后端真实计算的较昨日增长率，缺失时兜底为 0 保持展示）
+const kpiCards = computed(() => {
+  const t = dashboardData.trends || {}
+  return [
+    { label: '总用户数', value: dashboardData.userCount || 0, icon: User, theme: 'blue', trend: t.users ?? 0 },
+    { label: '今日订单', value: dashboardData.todayOrders || 0, icon: ShoppingCart, theme: 'green', trend: t.orders ?? 0 },
+    { label: '活动数量', value: dashboardData.activityCount || 0, icon: Calendar, theme: 'amber', trend: t.activities ?? 0 },
+    { label: '商机数量', value: dashboardData.businessCount || 0, icon: Connection, theme: 'purple', trend: t.business ?? 0 },
+  ]
+})
 
 // 次要指标
 const subStats = computed(() => [

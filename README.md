@@ -1,5 +1,16 @@
 # 社群资源对接名片小程序
 
+> **当前版本：v2.0 — MySQL 数据库版本**
+>
+> 2.0 在 1.0 基础上完成以下关键升级：
+> - **数据库切换为 MySQL**（Prisma `provider = "mysql"`，已支持 `MySQL 5.7+ / 8.0`）
+> - 全新 **数据大屏**（公开接口 `GET /api/public/big-screen`、`GET /api/public/recent-activities`）
+> - 管理端 **商机分类 / 商品分类** 拆分管理
+> - 项目代码清理：移除冗余脚本、测试数据与早期 demo
+> - 移动端若干体验优化（封面回退、空态、错误拦截）
+>
+> 部署 MySQL 步骤详见本文档 [九、部署说明](#九部署说明精简)。
+
 > 本文档基于项目实际代码（`backend` / `admin` / `mobile`）与 `README_V2.md` 的功能描述整理，已同步修正代码中已变更或废弃的内容。
 
 ---
@@ -15,7 +26,7 @@
 | 小程序端 | **uni-app** (Vue 3 + TypeScript) | 编译为微信小程序，同时保留 H5 / history 路由 |
 | PC 管理后台 | **Vue 3 + Element Plus + Vite** | 通过 RESTful API 调用后端服务 |
 | 后端 | **NestJS** (Node.js 18+) | RESTful API，JWT 鉴权，模块化架构 |
-| 数据库 | **SQLite**（开发）/ **MySQL/PostgreSQL**（生产迁移） | Prisma ORM，默认 `file:./dev.db` |
+| 数据库 | **MySQL 5.7+ / 8.0**（v2.0 切换） | Prisma ORM，`.env` 中 `DATABASE_URL` 指向 MySQL |
 | 文件存储 | **本地磁盘** | 图片上传到 `backend/uploads`，返回完整 URL |
 | 支付 | **Mock 支付** | 未接入真实微信支付/支付宝，仅返回模拟调起参数 |
 | 缓存/Redis | **未接入业务** | `docker-compose.yml` 包含 Redis，但业务代码未调用 |
@@ -870,9 +881,9 @@ export async function uploadFile(file: File)
 
 ### 8.1 已变更/废弃
 
-| 项目 | README_V2 描述 | 当前代码 |
+| 项目 | README_V2 描述 | 当前代码（v2.0） |
 |---|---|---|
-| 数据库 | MySQL 8.0 | SQLite 开发，生产可迁移至 MySQL/PostgreSQL |
+| 数据库 | MySQL 8.0 | **MySQL 5.7+ / 8.0**（v2.0 已切换，schema.prisma `provider = "mysql"`） |
 | 缓存 | Redis | 未接入业务 |
 | 文件存储 | OSS | 本地上传 |
 | 支付 | 微信支付真实对接 | Mock 支付，无真实签名/回调 |

@@ -266,6 +266,10 @@ function showToast(msg: string) {
 .activity-cover-hero {
   height: 200px; position: relative; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
+  background-color: #f0f0f5;
+  background-size: contain !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
 }
 .cover-emoji { font-size: 80px; color: #fff; opacity: 0.8; }
 .cover-status {

@@ -22,7 +22,7 @@
     <!-- Empty State -->
     <div v-else-if="filteredBusinesses.length === 0 && !loading" class="empty-tip">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <p>暂无商机</p>
+      <p>{{ emptyText }}</p>
       <span v-if="searchKeyword">试试其他关键词</span>
     </div>
 
@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getBusinesses, getBusinessCategories } from '@/api'
 
@@ -77,6 +77,8 @@ const page = ref(1)
 const hasMore = ref(true)
 const totalPages = ref(1)
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+// 请求序号：用于丢弃过期的分类切换响应，避免并发竞态导致列表错乱
+let reqSeq = 0
 
 // 搜索去抖
 function debounceSearch() {
@@ -88,13 +90,9 @@ function debounceSearch() {
   }, 300)
 }
 
-// 过滤后的列表
+// 过滤后的列表（分类由后端过滤，此处仅做搜索过滤）
 const filteredBusinesses = computed(() => {
   let list = [...businesses.value]
-  // 分类过滤
-  if (activeCat.value) {
-    list = list.filter(b => String(b.categoryId) === activeCat.value)
-  }
   // 搜索过滤
   if (searchKeyword.value.trim()) {
     const kw = searchKeyword.value.toLowerCase()
@@ -105,6 +103,24 @@ const filteredBusinesses = computed(() => {
     )
   }
   return list
+})
+
+// 当前选中分类名称
+const activeCatName = computed(() => categories.value.find(c => String(c.id) === activeCat.value)?.name || '')
+
+// 空状态提示文案（区分搜索无结果 / 该分类无商机 / 全局无商机）
+const emptyText = computed(() => {
+  if (searchKeyword.value.trim()) return '未找到相关商机'
+  if (activeCat.value) return activeCatName.value ? `「${activeCatName.value}」分类暂无商机` : '该分类暂无商机'
+  return '暂无商机'
+})
+
+// 切换分类时重新加载对应分类下的商机
+watch(activeCat, () => {
+  page.value = 1
+  hasMore.value = true
+  businesses.value = []
+  loadBusinesses()
 })
 
 // 加载分类
@@ -119,10 +135,16 @@ async function loadCategories() {
 
 // 加载商机
 async function loadBusinesses() {
-  if (loading.value) return
+  const seq = ++reqSeq
   loading.value = true
   try {
-    const data = await getBusinesses({ page: page.value, size: 20, status: 'approved' })
+    const data = await getBusinesses({
+      page: page.value,
+      size: 20,
+      status: 'approved',
+      categoryId: activeCat.value || undefined,
+    })
+    if (seq !== reqSeq) return // 已有更新的请求，丢弃过期的响应
     if (data?.list) {
       const items = data.list.map((item: any) => normalizeItem(item))
       if (page.value === 1) {
@@ -134,9 +156,9 @@ async function loadBusinesses() {
       hasMore.value = page.value < totalPages.value
     }
   } catch {
-    if (page.value === 1) businesses.value = []
+    if (seq === reqSeq && page.value === 1) businesses.value = []
   } finally {
-    loading.value = false
+    if (seq === reqSeq) loading.value = false
   }
 }
 
@@ -153,15 +175,17 @@ function normalizeItem(item: any): any {
   const isFree = (item.unlockFee || 0) === 0
   const coverUrl = normalizeCoverUrl(item.coverImage)
   const desc = stripHtml(item.description || '')
+  const categoryName = item.category?.name || ''
   return {
     ...item,
     isFree,
+    categoryName,
     coverBg: coverUrl ? 'transparent' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
     coverImageUrl: coverUrl,
     sanitizedDesc: desc.length > 120 ? desc.slice(0, 120) + '...' : desc,
     publisher: item.publisher?.nickname || '未知',
     timeAgo: getTimeAgo(item.createdAt),
-    tagClass: getTagClass(item.categoryName),
+    tagClass: getTagClass(categoryName),
   }
 }
 

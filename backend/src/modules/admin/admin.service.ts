@@ -524,21 +524,79 @@ export class AdminService {
   }
 
   // ============== 商品分类管理 ==============
-  async getProductCategories() {
-    return this.prisma.productCategory.findMany({ orderBy: { sortOrder: 'asc' } });
+  async getProductCategories(keyword?: string) {
+    const where: any = {};
+    if (keyword) {
+      where.name = { contains: keyword };
+    }
+    return this.prisma.productCategory.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+      include: {
+        _count: { select: { products: true } },
+      },
+    });
+  }
+
+  async getProductCategoryDetail(id: number) {
+    return this.prisma.productCategory.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { products: true } },
+      },
+    });
   }
 
   async createProductCategory(data: any) {
-    return this.prisma.productCategory.create({ data });
+    // 校验名称唯一性
+    const existing = await this.prisma.productCategory.findFirst({
+      where: { name: data.name },
+    });
+    if (existing) {
+      throw new BadRequestException('商品分类名称已存在');
+    }
+    return this.prisma.productCategory.create({
+      data: {
+        name: data.name,
+        icon: data.icon || '',
+        sortOrder: Number(data.sortOrder) || 0,
+        status: Number(data.status) ?? 1,
+      },
+    });
   }
 
   async updateProductCategory(id: number, data: any) {
+    // 校验名称唯一性（排除自身）
+    if (data.name !== undefined) {
+      const existing = await this.prisma.productCategory.findFirst({
+        where: { name: data.name, id: { not: id } },
+      });
+      if (existing) {
+        throw new BadRequestException('商品分类名称已存在');
+      }
+    }
     const payload: any = { ...data };
     delete payload.id;
-    return this.prisma.productCategory.update({ where: { id }, data: payload });
+    delete payload.createdAt;
+    delete payload._count;
+    delete payload.products;
+    if (payload.sortOrder !== undefined) payload.sortOrder = Number(payload.sortOrder);
+    if (payload.status !== undefined) payload.status = Number(payload.status);
+    return this.prisma.productCategory.update({
+      where: { id },
+      data: payload,
+      include: {
+        _count: { select: { products: true } },
+      },
+    });
   }
 
   async deleteProductCategory(id: number) {
+    // 检查是否存在关联商品
+    const count = await this.prisma.product.count({ where: { categoryId: id } });
+    if (count > 0) {
+      throw new BadRequestException(`该分类下存在 ${count} 个商品，无法删除`);
+    }
     return this.prisma.productCategory.delete({ where: { id } });
   }
 
@@ -590,7 +648,7 @@ export class AdminService {
         code: data.code,
         icon: data.icon || '',
         sortOrder: Number(data.sortOrder) || 0,
-        status: Number(data.status) ?? 1,
+        status: Number(data.status) || 1,
       },
     });
   }

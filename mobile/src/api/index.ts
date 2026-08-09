@@ -122,7 +122,7 @@ export async function getMyActivities(params?: { page?: number; size?: number })
 
 // ==================== 商机接口 ====================
 
-export async function getBusinesses(params?: { page?: number; size?: number; status?: string }) {
+export async function getBusinesses(params?: { page?: number; size?: number; status?: string; categoryId?: string | number }) {
   return request.get('/api/public/businesses', { params })
 }
 
