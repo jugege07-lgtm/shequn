@@ -553,11 +553,11 @@ onMounted(() => {
   font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
   background: var(--color-primary-50); color: var(--color-primary);
 }
-.biz-tag.coop { background: #ecfdf5; color: #059669; }
+.biz-tag.coop { background: #e9eef5; color: #2c4a6e; }
 .biz-tag.demand { background: #fffbeb; color: #d97706; }
 .biz-tag.pink { background: #fce7f3; color: #db2777; }
 .biz-price { font-size: 15px; font-weight: 700; color: var(--color-primary); }
-.biz-price.free { color: #10b981; font-size: 12px; font-weight: 600; }
+.biz-price.free { color: #1a2f4e; font-size: 12px; font-weight: 600; }
 .biz-title {
   font-size: 14px; font-weight: 600; color: var(--color-text-primary);
   margin-bottom: 4px; line-height: 1.4;
@@ -578,7 +578,10 @@ onMounted(() => {
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 10px; font-weight: 700;
 }
-.biz-avatar.c2 { background: #10b981; }
+.biz-avatar.c2 {
+  background: linear-gradient(135deg, #274a6f, #1a2f4e);
+  color: #f5f7fa;
+}
 .biz-avatar.c3 { background: #f59e0b; }
 .biz-name { font-size: 12px; color: var(--color-text-tertiary); }
 .biz-views { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--color-text-tertiary); }
