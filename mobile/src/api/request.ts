@@ -24,12 +24,22 @@ function addRefreshSubscriber(cb: (token: string) => void) {
   refreshSubscribers.push(cb)
 }
 
+// 认证类公开接口：登录/注册/验证码/刷新等无需 token，这些接口返回 401 表示"业务认证失败"（如密码错误），
+// 不应触发 token 刷新的逻辑
+const PUBLIC_AUTH_PATHS = ['/api/auth/']
+
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    const url = config.url || ''
+    const isPublic = PUBLIC_AUTH_PATHS.some((p) => url.startsWith(p))
+    // 标记是否为公开接口，供响应拦截器区分 401 场景
+    ;(config as any)._public = isPublic
+    if (!isPublic) {
+      const token = localStorage.getItem('token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
     return config
   },
@@ -57,6 +67,17 @@ request.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config
+
+    // 认证类公开接口的 401（如"账号或密码错误"）不是 token 过期，直接透传错误信息，不触发刷新
+    if (error.response?.status === 401 && originalRequest?._public) {
+      const respData = error.response?.data
+      let msg = respData?.message
+      if (Array.isArray(msg)) msg = msg[0]
+      msg = msg || '请求失败'
+      error.message = msg
+      error.userMessage = msg
+      return Promise.reject(error)
+    }
 
     // 401 时尝试无感刷新 token
     if (error.response?.status === 401 && !originalRequest._retry) {

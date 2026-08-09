@@ -18,6 +18,7 @@ import { UploadModule } from './modules/upload/upload.module';
 import { CouponModule } from './modules/coupon/coupon.module';
 import { PointModule } from './modules/point/point.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { ConnectionModule } from './modules/connection/connection.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { PaymentModule } from './modules/payment/payment.module';
     CouponModule,
     PointModule,
     PaymentModule,
+    ConnectionModule,
   ],
 })
 export class AppModule {}

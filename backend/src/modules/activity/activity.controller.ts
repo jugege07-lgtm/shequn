@@ -16,6 +16,12 @@ export class ActivityController {
     return { code: 0, data: await this.activityService.getPublicActivities(query) };
   }
 
+  @Get('public/activity-types')
+  @ApiOperation({ summary: '获取活动分类列表（移动端与管理端共用）' })
+  async getActivityTypes() {
+    return { code: 0, data: this.activityService.getActivityTypes() };
+  }
+
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('activities/signed')

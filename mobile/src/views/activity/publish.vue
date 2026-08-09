@@ -16,19 +16,20 @@
         </div>
         <div class="form-group">
           <label class="form-label">活动封面</label>
-          <div class="cover-upload">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            <span>点击上传</span>
+          <div class="cover-upload" @click="triggerCoverUpload">
+            <img v-if="form.coverImage" :src="form.coverImage" class="cover-preview" />
+            <template v-else>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              <span>点击上传</span>
+            </template>
           </div>
+          <input ref="coverInput" type="file" accept="image/*" class="cover-file-input" @change="onCoverChange" />
         </div>
         <div class="form-group">
           <label class="form-label">活动类型</label>
           <select v-model="form.type" class="form-select">
             <option value="">请选择类型</option>
-            <option value="salon">沙龙</option>
-            <option value="workshop">工作坊</option>
-            <option value="conference">会议</option>
-            <option value="online">线上活动</option>
+            <option v-for="t in activityTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
           </select>
         </div>
         <div class="form-group">
@@ -60,26 +61,67 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { createActivity } from '@/api'
+import { createActivity, getActivityTypes, uploadFile } from '@/api'
 
 const router = useRouter()
 const form = ref({
-  title: '', type: '', startTime: '', location: '', maxPeople: '', price: '0', desc: '',
+  title: '', type: '', startTime: '', location: '', maxPeople: '', price: '0', desc: '', coverImage: '',
 })
 const submitting = ref(false)
+const activityTypes = ref<{ value: string; label: string }[]>([])
+const coverInput = ref<HTMLInputElement | null>(null)
+const uploading = ref(false)
+
+// 触发隐藏文件选择框
+function triggerCoverUpload() {
+  if (uploading.value) return
+  coverInput.value?.click()
+}
+
+// 选择封面文件后上传
+async function onCoverChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    alert('请选择图片文件')
+    input.value = ''
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    alert('图片大小不能超过 5MB')
+    input.value = ''
+    return
+  }
+  uploading.value = true
+  try {
+    const res: any = await uploadFile(file)
+    // 后端返回相对路径 /uploads/xxx，统一规范化为可访问地址
+    const url = (res?.url || res?.path || '').startsWith('/uploads/')
+      ? '/api' + (res?.url || res?.path)
+      : (res?.url || res?.path || '')
+    form.value.coverImage = url
+  } catch (err: any) {
+    alert(err?.message || '封面上传失败')
+  } finally {
+    uploading.value = false
+    input.value = ''
+  }
+}
 
 const handleSubmit = async () => {
   if (!form.value.title) { alert('请输入活动名称'); return }
   if (!form.value.type) { alert('请选择活动类型'); return }
+  if (!form.value.coverImage) { alert('请上传活动封面'); return }
   if (!form.value.startTime) { alert('请选择活动时间'); return }
   if (!form.value.location) { alert('请输入活动地点'); return }
   submitting.value = true
   try {
     await createActivity({
       title: form.value.title,
-      coverImage: '',
+      coverImage: form.value.coverImage,
       description: form.value.desc,
       type: form.value.type,
       price: Number(form.value.price) || 0,
@@ -96,6 +138,15 @@ const handleSubmit = async () => {
     submitting.value = false
   }
 }
+
+onMounted(async () => {
+  // 活动分类统一从后端获取，与管理端保持同一数据源
+  try {
+    activityTypes.value = (await getActivityTypes()) as any
+  } catch {
+    activityTypes.value = []
+  }
+})
 </script>
 
 <style scoped>
@@ -119,9 +170,14 @@ const handleSubmit = async () => {
   background: var(--color-primary-50);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   cursor: pointer; border: 2px dashed rgba(99,102,241,0.3);
+  overflow: hidden; position: relative;
 }
 .cover-upload svg { width: 32px; height: 32px; color: var(--color-primary); }
 .cover-upload span { font-size: 13px; color: var(--color-primary); }
+.cover-preview {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.cover-file-input { display: none; }
 
 .bottom-action {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);

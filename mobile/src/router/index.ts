@@ -34,6 +34,7 @@ const routes = [
   { path: '/vip/index', name: 'VipIndex', component: () => import('@/views/vip/index.vue'), meta: { requiresAuth: true } },
   { path: '/vip/pay', name: 'VipPay', component: () => import('@/views/vip/pay.vue'), meta: { requiresAuth: true } },
   { path: '/message/index', name: 'MessageIndex', component: () => import('@/views/message/index.vue'), meta: { requiresAuth: true } },
+  { path: '/dajia/index', name: 'DajiaRecommend', component: () => import('@/views/dajia/index.vue'), meta: { requiresAuth: true } },
   { path: '/coupon/index', name: 'CouponIndex', component: () => import('@/views/coupon/index.vue'), meta: { requiresAuth: true } },
   { path: '/coupon/claim', name: 'CouponClaim', component: () => import('@/views/coupon/claim.vue'), meta: { requiresAuth: true } },
   { path: '/points/index', name: 'PointsIndex', component: () => import('@/views/points/index.vue'), meta: { requiresAuth: true } },

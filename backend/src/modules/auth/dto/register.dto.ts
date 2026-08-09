@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsOptional, Matches, Length, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsInt, Matches, Length, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
@@ -54,4 +55,10 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   avatarUrl?: string;
+
+  @ApiProperty({ required: false, description: '推荐人用户 ID（扫码名片注册时携带）' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: '推荐人 ID 格式不正确' })
+  referrerId?: number;
 }

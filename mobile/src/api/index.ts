@@ -50,6 +50,7 @@ export async function register(data: {
   wechat?: string
   intro?: string
   avatarUrl?: string
+  referrerId?: number
 }) {
   return request.post('/api/auth/register', data)
 }
@@ -94,6 +95,10 @@ export async function getCardShare(id: number) {
 
 export async function getActivities(params?: { page?: number; size?: number; filter?: string }) {
   return request.get('/api/public/activities', { params })
+}
+
+export async function getActivityTypes() {
+  return request.get('/api/public/activity-types')
 }
 
 export async function getSignedActivities(params?: { page?: number; size?: number }) {
@@ -322,4 +327,30 @@ export async function uploadFile(file: File) {
   return request.post('/api/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })
+}
+
+// ==================== 大咖人脉接口 ====================
+
+export async function getDajiaConfig() {
+  return request.get('/api/public/connections/config')
+}
+
+export async function getDajiaRecommendations() {
+  return request.get('/api/connections/recommendations')
+}
+
+export async function requestConnection(targetId: number) {
+  return request.post('/api/connections/request', { targetId })
+}
+
+export async function getMyConnections() {
+  return request.get('/api/connections/my')
+}
+
+export async function getConnectionRequests() {
+  return request.get('/api/connections/requests')
+}
+
+export async function respondConnection(id: number, accept: boolean) {
+  return request.post(`/api/connections/${id}/respond`, { accept })
 }

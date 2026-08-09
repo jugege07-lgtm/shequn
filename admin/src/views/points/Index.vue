@@ -155,6 +155,7 @@ const form = reactive({
 const actionOptions = [
   { label: '注册', value: 'register' },
   { label: '邀请好友', value: 'invite' },
+  { label: '扫码名片注册', value: 'referral_register' },
   { label: '开通VIP', value: 'vip' },
   { label: '购买商品', value: 'purchase' },
   { label: '活动报名', value: 'activity_signup' },
@@ -167,6 +168,7 @@ const actionOptions = [
 const actionLabels: Record<string, string> = {
   register: '注册',
   invite: '邀请好友',
+  referral_register: '扫码名片注册',
   vip: '开通VIP',
   purchase: '购买商品',
   activity_signup: '活动报名',

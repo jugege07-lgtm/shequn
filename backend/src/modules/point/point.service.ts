@@ -10,6 +10,30 @@ interface RuleResult {
 
 @Injectable()
 export class PointService extends PrismaService {
+  /** 首次启动时初始化默认积分规则（仅当规则表为空时写入，避免覆盖管理端配置） */
+  async onModuleInit() {
+    await super.onModuleInit();
+    try {
+      const count = await this.pointRule.count();
+      if (count === 0) {
+        const defaults = [
+          { name: '注册奖励', action: 'register', points: 100, maxPerDay: 1, sortOrder: 1 },
+          { name: '扫码名片注册奖励', action: 'referral_register', points: 50, maxPerDay: 1, sortOrder: 2 },
+          { name: '成功邀请好友奖励', action: 'invite', points: 50, maxPerDay: 10, sortOrder: 3 },
+          { name: '活动报名奖励', action: 'activity_signup', points: 20, maxPerDay: 5, sortOrder: 4 },
+          { name: '发布商机奖励', action: 'publish_business', points: 20, maxPerDay: 5, sortOrder: 5 },
+          { name: '解锁商机奖励', action: 'unlock_business', points: 10, maxPerDay: 10, sortOrder: 6 },
+        ];
+        await this.pointRule.createMany({
+          data: defaults.map((r) => ({ ...r, ruleGroup: 'default', priority: 0, enabled: 1 })),
+        });
+        console.log('[PointService] 已初始化默认积分规则');
+      }
+    } catch (err) {
+      console.error('[PointService] 初始化默认积分规则失败:', err);
+    }
+  }
+
   // ===== 积分规则管理 =====
 
   /** 获取积分规则列表（管理端） */

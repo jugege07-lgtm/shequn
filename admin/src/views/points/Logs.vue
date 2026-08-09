@@ -87,6 +87,7 @@ const dateRange = ref<[string, string] | null>(null)
 const actionOptions = [
   { label: '注册', value: 'register' },
   { label: '邀请好友', value: 'invite' },
+  { label: '扫码名片注册', value: 'referral_register' },
   { label: '开通VIP', value: 'vip' },
   { label: '购买商品', value: 'purchase' },
   { label: '活动报名', value: 'activity_signup' },

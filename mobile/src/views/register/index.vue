@@ -25,6 +25,12 @@
         <p>连接人脉 · 共享商机 · 共同成长</p>
       </div>
 
+      <!-- 推荐人提示：由名片二维码扫码进入注册 -->
+      <div class="referral-banner" v-if="fromReferral">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>好友推荐注册 · 完成注册可获新人积分奖励</span>
+      </div>
+
       <!-- Registration Card -->
       <div class="reg-card">
         <!-- Step 1: Phone + Code -->
@@ -205,6 +211,18 @@ const showPrivacy = ref(false)
 const countdown = ref(0)
 const sending = ref(false)
 
+// 推荐人用户 ID：由名片二维码跳转时携带（?referrer=xxx）
+const referrerId = ref<number | null>(null)
+const fromReferral = computed(() => !!referrerId.value)
+
+onMounted(() => {
+  const raw = typeof route.query.referrer === 'string' ? route.query.referrer : ''
+  const n = raw ? Number(raw) : NaN
+  if (!Number.isNaN(n) && n > 0) {
+    referrerId.value = n
+  }
+})
+
 const str = computed(() => {
   const p = form.password
   if (!p) return 0
@@ -252,6 +270,7 @@ async function handleRegister() {
       nickname: form.nickname,
       company: form.company,
       position: form.position,
+      referrerId: referrerId.value || undefined,
     })
     // 通过 user store 统一管理凭证持久化
     userStore.setToken(res.accessToken, res.refreshToken)
@@ -333,6 +352,18 @@ async function handleRegister() {
   font-size: 12px; color: rgba(255,255,255,0.8);
   letter-spacing: 0.5px;
 }
+
+/* ===== Referral Banner ===== */
+.referral-banner {
+  margin: 0 24px 14px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 12px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  color: #fff; font-size: 13px; font-weight: 500;
+}
+.referral-banner svg { width: 18px; height: 18px; flex-shrink: 0; }
 
 /* ===== Registration Card ===== */
 .reg-card {

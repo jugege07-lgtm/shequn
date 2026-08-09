@@ -36,7 +36,7 @@
               <div class="card-position">{{ displayPosition }}</div>
             </div>
             <div class="card-avatar-wrap">
-              <img v-if="displayAvatar" :src="displayAvatar" class="card-avatar" alt="头像" />
+              <img v-if="displayAvatarSrc && !avatarError" :src="displayAvatarSrc" class="card-avatar" alt="头像" @error="onAvatarError" />
               <div v-else class="card-avatar-placeholder">{{ displayName.charAt(0) }}</div>
             </div>
           </div>
@@ -75,18 +75,47 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getMyCard, getCardShare } from '@/api'
+import { normalizeImageUrl } from '@/utils/image'
 import QRCode from 'qrcode'
 
 const route = useRoute()
 const loading = ref(true)
 const cardData = ref<any>({})
 const qrcodeBase64 = ref('')
+// 名片所有者用户 ID：作为二维码推荐人参数
+const ownerId = ref<number | null>(null)
 
 const displayName = computed(() => cardData.value.realName || '姓名')
 const displayPosition = computed(() => cardData.value.position || '职位')
 const displayPhone = computed(() => cardData.value.phone || '')
 const displayCompany = computed(() => cardData.value.company || '')
-const displayAvatar = computed(() => cardData.value.avatarUrl || '')
+
+// 头像：规范化后端返回的 /uploads/xxx 路径为可访问地址
+const displayAvatar = computed(() => normalizeImageUrl(cardData.value.avatarUrl))
+// 头像重试机制：加载失败时带时间戳参数强制刷新，最多重试 3 次后回退占位图
+const avatarError = ref(false)
+const avatarRetry = ref(0)
+const displayAvatarSrc = computed(() => {
+  if (!displayAvatar.value) return ''
+  if (avatarRetry.value > 0) {
+    const t = Date.now() + avatarRetry.value * 1000
+    return displayAvatar.value + (displayAvatar.value.includes('?') ? '&' : '?') + 'retry=' + t
+  }
+  return displayAvatar.value
+})
+function onAvatarError() {
+  if (avatarRetry.value < 3) {
+    avatarRetry.value++
+  } else {
+    avatarError.value = true
+  }
+}
+
+/** 生成带推荐人参数的注册页 URL（用户扫码后进入注册，注册时自动关联推荐人） */
+function buildRegisterShareUrl() {
+  const base = `${window.location.origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  return `${base}/register` + (ownerId.value ? `?referrer=${ownerId.value}` : '')
+}
 
 async function loadCard() {
   loading.value = true
@@ -103,12 +132,9 @@ async function loadCard() {
           phone: res.phone || '',
           avatarUrl: res.avatarUrl || '',
         }
-        // 优先使用后端返回的二维码，否则本地生成
-        if (res.qrcodeBase64) {
-          qrcodeBase64.value = res.qrcodeBase64
-        } else {
-          await generateLocalQr(res.shareUrl || window.location.href)
-        }
+        ownerId.value = res.user?.id || null
+        // 二维码始终指向带推荐人参数的注册页（扫码跳转注册并自动关联推荐人）
+        await generateLocalQr(buildRegisterShareUrl())
       }
     } else {
       // 查看自己的名片：只取名片数据，二维码前端本地生成
@@ -121,9 +147,8 @@ async function loadCard() {
           phone: cardRes.phone || '',
           avatarUrl: cardRes.avatarUrl || '',
         }
-        // 前端本地生成二维码（浏览器原生 Canvas，无需后端 canvas 依赖）
-        const shareId = cardRes.id || ''
-        await generateLocalQr(`${window.location.origin}/card/share/${shareId}`)
+        ownerId.value = cardRes.user?.id || null
+        await generateLocalQr(buildRegisterShareUrl())
       }
     }
   } catch (err: any) {
@@ -334,15 +359,16 @@ async function handleSave() {
 }
 
 async function handleShare() {
+  const shareUrl = buildRegisterShareUrl()
   try {
     if (navigator.share) {
       await navigator.share({
         title: `${displayName.value} 的名片`,
-        text: `点击查看 ${displayName.value} 的名片`,
-        url: cardData.value.shareUrl || window.location.href,
+        text: `点击注册加入 ${displayName.value} 的推荐，领取新人积分`,
+        url: shareUrl,
       })
     } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(cardData.value.shareUrl || window.location.href)
+      await navigator.clipboard.writeText(shareUrl)
       showToast('链接已复制')
     } else {
       showToast('暂不支持分享')

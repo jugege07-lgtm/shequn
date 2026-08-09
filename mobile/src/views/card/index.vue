@@ -79,18 +79,25 @@
         </div>
         <div class="connections-list" v-if="connections.length">
           <div class="connection-row" v-for="(conn, index) in connections" :key="index">
-            <div class="connection-avatar" :style="{ background: getAvatarColor(conn.name) }">{{ conn.name.charAt(0) }}</div>
+            <div class="connection-avatar" :style="{ background: getAvatarColor(conn.realName || conn.nickname || '人脉') }">
+              <img v-if="connAvatarUrl(conn)" :src="connAvatarUrl(conn)" class="avatar-img" alt="头像" />
+              <span v-else>{{ (conn.realName || conn.nickname || '人脉').charAt(0) }}</span>
+            </div>
             <div class="connection-info">
-              <div class="connection-name">{{ conn.name }}</div>
-              <div class="connection-title">{{ conn.title }}</div>
+              <div class="connection-name">{{ conn.realName || conn.nickname || '人脉' }}</div>
+              <div class="connection-title">{{ [conn.position, conn.company].filter(Boolean).join(' · ') || '行业人脉' }}</div>
             </div>
             <button class="connection-btn" @click="handleConnect(conn)">查看</button>
           </div>
         </div>
         <div class="empty-state" v-else>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          <span>暂无人脉，快去参加活动认识新朋友吧</span>
+          <span>暂无人脉，快去大咖人脉拓展好友吧</span>
         </div>
+        <button class="add-connection-btn" @click="handleAddConnection">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          增加人脉
+        </button>
       </div>
     </div>
   </div>
@@ -98,10 +105,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { getMyCard, getCurrentUser } from '@/api'
+import { useRouter } from 'vue-router'
+import { getMyCard, getCurrentUser, getMyConnections, getDajiaConfig } from '@/api'
 import { useUserStore } from '@/store/user'
 import { normalizeImageUrl } from '@/utils/image'
 
+const router = useRouter()
 const userStore = useUserStore()
 
 const card = ref<any>({})
@@ -109,6 +118,15 @@ const userInfo = ref<any>(null)
 const loading = ref(false)
 const connections = ref<any[]>([])
 const avatarError = ref(false)
+const dajiaMinVipLevel = ref(1)
+
+const dajiaVipOk = computed(() => {
+  const u = userInfo.value
+  if (!u) return false
+  if ((u.vipLevel || 0) < dajiaMinVipLevel.value) return false
+  if (u.vipExpireAt && new Date(u.vipExpireAt).getTime() < Date.now()) return false
+  return true
+})
 
 const displayName = computed(() => card.value.realName || userInfo.value?.nickname || userInfo.value?.realName || '姓名')
 const displayPosition = computed(() => card.value.position || '职位')
@@ -150,16 +168,31 @@ async function loadData() {
 
 async function loadConnections() {
   try {
-    // TODO: 替换为真实人脉接口
-    connections.value = [
-      { name: '李思雨', title: '品牌营销总监', company: '某互联网公司' },
-      { name: '王浩然', title: '技术合伙人', company: '某科技公司' },
-      { name: '陈雅婷', title: '创意设计师', company: '某设计公司' },
-      { name: '刘志强', title: '投资经理', company: '某投资机构' },
-      { name: '赵晓雯', title: '培训导师', company: '某教育公司' },
-    ]
+    const res: any = await getMyConnections()
+    connections.value = Array.isArray(res) ? res : res?.list || []
   } catch {
     connections.value = []
+  }
+}
+
+async function loadDajiaConfig() {
+  try {
+    const config = await getDajiaConfig()
+    dajiaMinVipLevel.value = config?.minVipLevel || 1
+  } catch {
+    // 忽略，使用默认级别
+  }
+}
+
+function connAvatarUrl(conn: any) {
+  return conn.avatarUrl ? normalizeImageUrl(conn.avatarUrl) : ''
+}
+
+function handleAddConnection() {
+  if (dajiaVipOk.value) {
+    router.push('/dajia/index')
+  } else {
+    showToast(`增加人脉为 VIP${dajiaMinVipLevel.value} 及以上会员专属，请先开通`)
   }
 }
 
@@ -183,6 +216,7 @@ function showToast(msg: string) {
 onMounted(() => {
   document.title = '我的名片'
   loadData()
+  loadDajiaConfig()
 })
 </script>
 
@@ -323,6 +357,19 @@ onMounted(() => {
 .connection-title { font-size: 12px; color: #6b7280; }
 .connection-btn { padding: 5px 14px; border-radius: 99px; border: 1px solid rgba(99,102,241,0.3); background: transparent; color: #6366f1; font-size: 12px; font-weight: 500; cursor: pointer; }
 .connection-btn:active { background: rgba(99,102,241,0.08); }
+.connection-avatar { overflow: hidden; }
+.connection-avatar .avatar-img { width: 100%; height: 100%; object-fit: cover; }
+
+.add-connection-btn {
+  width: 100%; margin-top: 16px;
+  padding: 12px 0; border-radius: 12px;
+  border: 1px dashed rgba(99,102,241,0.4); background: #fff;
+  color: #6366f1; font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.add-connection-btn:active { background: rgba(99,102,241,0.06); border-color: #6366f1; }
+.add-connection-btn svg { width: 16px; height: 16px; }
 
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; color: #9ca3af; }
 .empty-state svg { width: 40px; height: 40px; margin-bottom: 8px; }

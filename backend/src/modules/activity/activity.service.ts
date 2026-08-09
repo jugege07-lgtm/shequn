@@ -10,6 +10,20 @@ export class ActivityService {
     private pointService: PointService,
   ) {}
 
+  /** 活动分类统一来源：移动端与管理端共用同一份数据，保证前后端一致 */
+  getActivityTypes() {
+    return [
+      { value: '沙龙', label: '沙龙' },
+      { value: '路演', label: '路演' },
+      { value: '培训', label: '培训' },
+      { value: '展会', label: '展会' },
+      { value: '聚会', label: '聚会' },
+      { value: '工作坊', label: '工作坊' },
+      { value: '会议', label: '会议' },
+      { value: '线上活动', label: '线上活动' },
+    ];
+  }
+
   async getPublicActivities(params?: { page?: number; size?: number; filter?: string }) {
     const page = Number(params?.page) || 1;
     const size = Number(params?.size) || 20;

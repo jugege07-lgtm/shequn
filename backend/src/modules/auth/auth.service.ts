@@ -90,6 +90,15 @@ export class AuthService {
       throw new BadRequestException('该手机号已注册');
     }
 
+    // 校验推荐人是否存在（扫码名片注册时携带 referrerId）
+    let referrer: User | null = null;
+    if (dto.referrerId) {
+      referrer = await this.prisma.user.findUnique({ where: { id: dto.referrerId } });
+      if (!referrer) {
+        throw new BadRequestException('推荐人不存在');
+      }
+    }
+
     // 默认密码策略：前端传了就用前端的（≥6位），否则使用 123456
     const rawPassword = (dto.password && dto.password.length >= 6) ? dto.password : '123456';
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
@@ -101,6 +110,7 @@ export class AuthService {
         avatarUrl: dto.avatarUrl || '',
         role: 'user',
         password: hashedPassword,
+        referrerId: referrer ? referrer.id : undefined,
         card: {
           create: {
             realName: dto.realName,
@@ -117,6 +127,12 @@ export class AuthService {
 
     // 4. 发放注册积分
     try { await this.pointService.awardPoints(user.id, 'register', '注册奖励'); } catch {}
+
+    // 5. 扫码名片注册：为新用户发放扫码注册奖励，并为推荐人发放邀请奖励
+    if (referrer) {
+      try { await this.pointService.awardPoints(user.id, 'referral_register', '扫码名片注册奖励'); } catch {}
+      try { await this.pointService.awardPoints(referrer.id, 'invite', '成功邀请新用户奖励'); } catch {}
+    }
 
     const payload = this.generateJwtPayload(user);
     const accessToken = this.jwtService.sign(payload);

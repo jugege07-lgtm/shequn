@@ -24,6 +24,20 @@
             </el-form-item>
           </el-form>
         </el-tab-pane>
+        <el-tab-pane label="VIP权限" name="vip">
+          <el-form label-width="160px" style="max-width: 640px;" v-loading="vipLoading">
+            <el-alert type="warning" :closable="false" style="margin-bottom: 16px;">
+              <template #title>配置各项 VIP 功能所需的最低会员等级，低于该等级的用户无法使用对应功能。</template>
+            </el-alert>
+            <el-form-item label="大咖人脉最低VIP级别">
+              <el-input-number v-model="vipRule.dajiaMinVipLevel" :min="1" :max="10" style="width: 200px;" />
+              <span class="form-tip">用户需达到该 VIP 等级方可使用「大咖人脉」功能</span>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="saveVipRules" :loading="vipSaving">保存VIP权限配置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
         <el-tab-pane label="支付配置" name="payment">
           <el-form :model="payForm" label-width="150px" style="max-width: 720px;" v-loading="payLoading">
             <el-form-item label="支付渠道" prop="channel">
@@ -403,6 +417,39 @@ async function saveConfigs() {
   } finally { saving.value = false }
 }
 
+// ========== VIP权限配置 ==========
+const vipLoading = ref(false)
+const vipSaving = ref(false)
+const vipRule = reactive({ dajiaMinVipLevel: 1 })
+
+async function loadVipRules() {
+  vipLoading.value = true
+  try {
+    const res: any = await request.get('/admin/config/dajia_min_vip_level')
+    const val = Number(res?.value)
+    vipRule.dajiaMinVipLevel = Number.isFinite(val) && val > 0 ? val : 1
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载VIP权限配置失败')
+  } finally {
+    vipLoading.value = false
+  }
+}
+
+async function saveVipRules() {
+  vipSaving.value = true
+  try {
+    await request.put('/admin/config/dajia_min_vip_level', {
+      value: String(vipRule.dajiaMinVipLevel),
+      description: '大咖人脉功能所需最低 VIP 级别',
+    })
+    ElMessage.success('VIP权限配置保存成功')
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存失败')
+  } finally {
+    vipSaving.value = false
+  }
+}
+
 // ========== 支付配置 ==========
 const payLoading = ref(false)
 const paySaving = ref(false)
@@ -618,6 +665,7 @@ async function deleteVersion(id: number) {
 
 onMounted(() => {
   loadConfigs()
+  loadVipRules()
   loadPaymentConfig()
   loadAnnouncements()
   loadBanners()

@@ -2,13 +2,6 @@
   <div class="phone-frame profile-page">
     <!-- Header -->
     <div class="profile-header">
-      <div class="status-bar">
-        <span>9:41</span>
-        <div class="status-icons">
-          <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="8" width="3" height="4" rx="0.5" fill="#1e1b4b"/><rect x="4.5" y="5" width="3" height="7" rx="0.5" fill="#1e1b4b"/><rect x="9" y="2" width="3" height="10" rx="0.5" fill="#1e1b4b"/><rect x="13.5" y="0" width="2.5" height="12" rx="0.5" fill="#1e1b4b"/></svg>
-          <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M8 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="#1e1b4b" transform="translate(0,-2)"/><path d="M4.5 8.5C5.5 7.2 6.7 6.5 8 6.5s2.5.7 3.5 2" stroke="#1e1b4b" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg>
-        </div>
-      </div>
       <div class="header-title-row">
         <div class="header-title">个人中心</div>
         <div class="header-setting" @click="$router.push('/setting/index')">
@@ -51,19 +44,24 @@
         </div>
       </div>
 
-      <!-- Business Card Entry -->
-      <div class="card-entry" @click="$router.push('/card/index')">
-        <div class="card-entry-left">
-          <div class="mini-avatar" :style="{ background: avatarBg }">
-            <span>{{ displayName.charAt(0) }}</span>
+      <!-- Dajia Connections Entry -->
+      <div class="dajia-module" @click="handleDajiaClick">
+        <div class="dajia-module-left">
+          <div class="dajia-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           </div>
-          <div class="card-entry-info">
-            <div class="card-entry-title">我的名片</div>
-            <div class="card-entry-sub">查看/编辑电子名片 · 转发分享</div>
+          <div class="dajia-module-info">
+            <div class="dajia-module-title">大咖人脉</div>
+            <div class="dajia-module-sub" v-if="dajiaVipOk">结识行业大咖 · 交换联系方式</div>
+            <div class="dajia-module-sub" v-else>开通 VIP{{ dajiaMinVipLevel }} 解锁更多精彩</div>
           </div>
         </div>
-        <div class="card-entry-right">
-          <span>查看名片</span>
+        <div class="dajia-module-right">
+          <span class="dajia-vip-tag" v-if="dajiaVipOk">已开通</span>
+          <span class="dajia-vip-tag locked" v-else>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            VIP专属
+          </span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </div>
       </div>
@@ -140,7 +138,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, getMyActivities, getMyBusinesses } from '@/api'
+import { getCurrentUser, getMyActivities, getMyBusinesses, getDajiaConfig } from '@/api'
 import { useUserStore } from '@/store/user'
 import { normalizeImageUrl } from '@/utils/image'
 
@@ -151,6 +149,15 @@ const userInfo = ref<any>(userStore.userInfo || null)
 const loading = ref(false)
 const activities = ref<any[]>([])
 const avatarError = ref(false)
+const dajiaMinVipLevel = ref(1)
+
+const dajiaVipOk = computed(() => {
+  const u = userInfo.value
+  if (!u) return false
+  if ((u.vipLevel || 0) < dajiaMinVipLevel.value) return false
+  if (u.vipExpireAt && new Date(u.vipExpireAt).getTime() < Date.now()) return false
+  return true
+})
 
 const displayName = computed(() => userInfo.value?.nickname || userInfo.value?.realName || '用户')
 const displayAvatar = computed(() => normalizeImageUrl(userInfo.value?.avatarUrl))
@@ -202,6 +209,10 @@ function showToast(msg: string) {
 
 function renderIcon(name: string) {
   const icons: Record<string, any> = {
+    card: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('rect', { x: '2', y: '5', width: '20', height: '14', rx: '2' }),
+      h('line', { x1: '2', y1: '10', x2: '22', y2: '10' }),
+    ]),
     publishBusiness: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
       h('path', { d: 'M12 2L2 7l10 5 10-5-10-5z' }),
       h('path', { d: 'M2 17l10 5 10-5' }),
@@ -240,14 +251,14 @@ function renderIcon(name: string) {
 }
 
 const quickActions = computed(() => [
-  { label: '发布商机', icon: renderIcon('publishBusiness'), bg: '#ede9fe', color: '#6366f1', onClick: () => router.push('/business/publish') },
-  { label: '创建活动', icon: renderIcon('publishActivity'), bg: '#dbeafe', color: '#3b82f6', onClick: () => router.push('/activity/publish'), disabled: !isAdmin.value, disabledTip: '请联系管理员获取创建权限' },
-  { label: '邀请好友', icon: renderIcon('invite'), bg: '#fef3c7', color: '#f59e0b', onClick: () => router.push('/card/index') },
-  { label: '消息', icon: renderIcon('message'), bg: '#fce7f3', color: '#db2777', onClick: () => router.push('/message/index') },
-  { label: '订单', icon: renderIcon('order'), bg: '#d1fae5', color: '#10b981', onClick: () => router.push('/order/list') },
-  { label: '积分', icon: renderIcon('points'), bg: '#ede9fe', color: '#6366f1', onClick: () => router.push('/points/index') },
-  { label: '我的券', icon: renderIcon('coupon'), bg: '#dbeafe', color: '#3b82f6', onClick: () => router.push('/coupon/index') },
-  { label: '领券中心', icon: renderIcon('claim'), bg: '#fef3c7', color: '#f59e0b', onClick: () => router.push('/coupon/claim') },
+  { label: '我的名片', icon: renderIcon('card'), bg: '#ede9fe', color: '#6366f1', onClick: () => router.push('/card/index') },
+  { label: '发布商机', icon: renderIcon('publishBusiness'), bg: '#dbeafe', color: '#3b82f6', onClick: () => router.push('/business/publish') },
+  { label: '创建活动', icon: renderIcon('publishActivity'), bg: '#fef3c7', color: '#f59e0b', onClick: () => router.push('/activity/publish'), disabled: !isAdmin.value, disabledTip: '请联系管理员获取创建权限' },
+  { label: '邀请好友', icon: renderIcon('invite'), bg: '#fce7f3', color: '#db2777', onClick: () => router.push('/card/index') },
+  { label: '消息', icon: renderIcon('message'), bg: '#d1fae5', color: '#10b981', onClick: () => router.push('/message/index') },
+  { label: '订单', icon: renderIcon('order'), bg: '#ede9fe', color: '#6366f1', onClick: () => router.push('/order/list') },
+  { label: '积分', icon: renderIcon('points'), bg: '#dbeafe', color: '#3b82f6', onClick: () => router.push('/points/index') },
+  { label: '优惠券', icon: renderIcon('coupon'), bg: '#fef3c7', color: '#f59e0b', onClick: () => router.push('/coupon/index') },
 ])
 
 function showNoPermission(tip?: string) {
@@ -272,6 +283,23 @@ async function loadUser() {
     }
   } finally {
     loading.value = false
+  }
+}
+
+function handleDajiaClick() {
+  if (dajiaVipOk.value) {
+    router.push('/dajia/index')
+  } else {
+    showNoPermission(`大咖人脉为 VIP${dajiaMinVipLevel.value} 及以上会员专属，请先开通`)
+  }
+}
+
+async function loadDajiaConfig() {
+  try {
+    const config = await getDajiaConfig()
+    dajiaMinVipLevel.value = config?.minVipLevel || 1
+  } catch {
+    // 忽略，使用默认级别
   }
 }
 
@@ -323,6 +351,7 @@ onMounted(() => {
   document.title = '个人中心'
   loadUser()
   loadActivities()
+  loadDajiaConfig()
 })
 </script>
 
@@ -364,16 +393,6 @@ onMounted(() => {
   position: relative;
   z-index: 1;
 }
-.status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 14px;
-}
-.status-icons { display: flex; gap: 6px; }
-
 .header-title-row {
   position: relative;
   display: flex;
@@ -462,27 +481,39 @@ onMounted(() => {
 .stat-value { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: #6366f1; }
 .stat-label { font-size: 12px; color: #6b7280; }
 
-/* Card Entry */
-.card-entry {
+/* Dajia Module */
+.dajia-module {
   margin-bottom: 16px;
-  padding: 14px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  padding: 16px;
+  background: linear-gradient(135deg, #faf5ff 0%, #ffffff 60%);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(139,92,246,0.06);
   display: flex; align-items: center; justify-content: space-between;
   cursor: pointer; transition: transform 0.15s ease;
 }
-.card-entry:active { transform: scale(0.98); }
-.card-entry-left { display: flex; align-items: center; gap: 12px; }
-.mini-avatar {
-  width: 48px; height: 48px; border-radius: 12px;
+.dajia-module:active { transform: scale(0.98); }
+.dajia-module-left { display: flex; align-items: center; gap: 12px; }
+.dajia-logo {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; font-weight: 700; color: #6366f1;
+  color: #fff; flex-shrink: 0;
 }
-.card-entry-title { font-size: 15px; font-weight: 700; color: #1e1b4b; margin-bottom: 3px; }
-.card-entry-sub { font-size: 12px; color: #6b7280; }
-.card-entry-right { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #6366f1; font-weight: 500; }
-.card-entry-right svg { width: 16px; height: 16px; }
+.dajia-logo svg { width: 26px; height: 26px; }
+.dajia-module-info { min-width: 0; }
+.dajia-module-title { font-size: 16px; font-weight: 700; color: #1e1b4b; margin-bottom: 4px; }
+.dajia-module-sub { font-size: 12px; color: #6b7280; }
+.dajia-module-right { display: flex; align-items: center; gap: 8px; color: #8b5cf6; }
+.dajia-module-right > svg { width: 16px; height: 16px; flex-shrink: 0; }
+.dajia-vip-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 99px;
+  background: rgba(16,185,129,0.1); color: #10b981;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.dajia-vip-tag.locked { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.dajia-vip-tag svg { width: 12px; height: 12px; }
 
 /* Section Card */
 .section-card {

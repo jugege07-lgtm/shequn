@@ -77,16 +77,14 @@ else
 fi
 
 # -------- 5. 数据库迁移 --------
+# 本项目不使用 migration 文件，统一用 prisma db push 直接按 schema.prisma 同步数据库结构
 if [ "$SKIP_MIGRATE" = "true" ]; then
   warn "⚠️  跳过数据库迁移（SKIP_MIGRATE=true）"
 else
-  log "🗄️  执行数据库迁移..."
-  # 仅当 MySQL 健康时跑迁移
+  log "🗄️  同步数据库结构（prisma db push）..."
+  # 仅当 MySQL 健康时同步
   if docker compose ps mysql | grep -q "(healthy)"; then
-    docker compose run --rm backend npx prisma migrate deploy 2>&1 | tee -a "$DEPLOY_LOG" || {
-      warn "迁移失败，尝试 db push 同步 schema（仅首次部署）"
-      docker compose run --rm backend npx prisma db push --accept-data-loss 2>&1 | tee -a "$DEPLOY_LOG"
-    }
+    docker compose run --rm backend npx prisma db push --accept-data-loss 2>&1 | tee -a "$DEPLOY_LOG"
   else
     fail "MySQL 未就绪，放弃迁移。请检查 docker compose ps mysql"
   fi

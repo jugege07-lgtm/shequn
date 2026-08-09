@@ -34,11 +34,7 @@
             <el-col :span="12">
               <el-form-item label="活动类型" prop="type">
                 <el-select v-model="form.type" placeholder="请选择活动类型" style="width: 100%">
-                  <el-option label="沙龙" value="沙龙" />
-                  <el-option label="路演" value="路演" />
-                  <el-option label="培训" value="培训" />
-                  <el-option label="展会" value="展会" />
-                  <el-option label="聚会" value="聚会" />
+                  <el-option v-for="t in activityTypes" :key="t.value" :label="t.label" :value="t.value" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -174,6 +170,7 @@ const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const pageLoading = ref(false)
 const imageFileList = ref<any[]>([])
+const activityTypes = ref<{ value: string; label: string }[]>([])
 
 const editingId = computed(() => route.query.id ? Number(route.query.id) : null)
 const isEdit = computed(() => !!editingId.value)
@@ -318,7 +315,14 @@ async function handleSubmit() {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 活动分类统一从后端获取，与移动端保持同一数据源
+  try {
+    const data: any = await request.get('/public/activity-types')
+    activityTypes.value = Array.isArray(data) ? data : []
+  } catch {
+    activityTypes.value = []
+  }
   loadDetail()
 })
 </script>
