@@ -79,9 +79,9 @@ export class AuthService {
 
   // ========== 会员注册（同步创建用户与名片） ==========
   async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
-    // 校验验证码（此处简化，默认 1234 通过）
-    if (dto.code !== '1234') {
-      throw new BadRequestException('验证码错误');
+    // 真实校验短信验证码（由 SmsService 校验内存中的下发记录）
+    if (!this.smsService.verify(dto.phone, dto.code)) {
+      throw new BadRequestException('验证码错误或已过期');
     }
 
     // 检查手机号是否已注册
@@ -90,7 +90,9 @@ export class AuthService {
       throw new BadRequestException('该手机号已注册');
     }
 
-    const hashedPassword = await bcrypt.hash('123456', 10);
+    // 默认密码策略：前端传了就用前端的（≥6位），否则使用 123456
+    const rawPassword = (dto.password && dto.password.length >= 6) ? dto.password : '123456';
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
     const user = await this.prisma.user.create({
       data: {
         openid: `phone_${dto.phone}_${Date.now()}`,
