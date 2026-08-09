@@ -31,15 +31,17 @@ import { getSystemConfig } from '@/api/index'
 const loading = ref(true)
 const contentHtml = ref('')
 
-// 开发环境后端上传基础 URL；生产环境通过构建注入或替换此处
-const UPLOAD_BASE = (import.meta.env.VITE_UPLOAD_BASE_URL as string) || 'http://localhost:3000'
-
-/** 将富文本中的相对上传路径补全为绝对 URL，确保图片可正常显示 */
+/**
+ * 将富文本内容中的图片地址规范化为同域名可访问的相对路径：
+ * - /uploads/xxx              → /api/uploads/xxx（生产环境经 Caddy 转发到后端静态服务）
+ * - http://localhost:3000/... → /api/...（清洗历史脏数据）
+ * - 完整 https/http 域名地址保持原样
+ */
 function normalizeImageUrls(html: string): string {
   if (!html) return ''
-  return html.replace(/(src=['"])(\/uploads\/[^'"]+)(['"])/g, (_, prefix, path, suffix) => {
-    return `${prefix}${UPLOAD_BASE}${path}${suffix}`
-  })
+  return html
+    .replace(/(src=["'])(\/uploads\/[^"']+)(["'])/g, (_, p, path, s) => `${p}/api${path}${s}`)
+    .replace(/(src=["'])http:\/\/localhost:\d+(\/[^"']+)(["'])/g, (_, p, path, s) => `${p}${path}${s}`)
 }
 
 async function loadAboutUs() {

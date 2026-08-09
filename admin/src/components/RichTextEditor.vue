@@ -23,6 +23,7 @@ import '@wangeditor/editor/dist/css/style.css'
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import request from '@/api/request'
+import { compressImage, MAX_BYTES } from '@/utils/imageCompress'
 
 interface Props {
   modelValue?: string
@@ -72,26 +73,34 @@ const editorConfig: any = {
   MENU_CONF: {},
 }
 
-// 自定义图片上传：走后端 /api/upload 接口
+// 自定义图片上传：先压缩大图，再走后端 /api/upload 接口
 editorConfig.MENU_CONF['uploadImage'] = {
   // 自定义上传
   async customUpload(file: File, insertFn: (url: string, alt?: string, href?: string) => void) {
-    const formData = new FormData()
-    formData.append('file', file)
     try {
+      // 大图自动压缩：最长边 > 2000px 或体积 > 1.5MB 时压缩，减小上传体积、加快加载
+      let uploadFile = file
+      if (file.type.startsWith('image/') && file.size > MAX_BYTES) {
+        try {
+          uploadFile = await compressImage(file)
+          if (uploadFile !== file) {
+            console.log(`[RichTextEditor] 图片已压缩: ${file.name} (${(file.size / 1024).toFixed(0)}KB → ${(uploadFile.size / 1024).toFixed(0)}KB)`)
+          }
+        } catch (e) {
+          console.warn('[RichTextEditor] 图片压缩失败，使用原图:', e)
+          uploadFile = file
+        }
+      }
+      const formData = new FormData()
+      formData.append('file', uploadFile)
       const res: any = await request.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       // 后端返回 { url: '/uploads/xxx.jpg', originalName: 'xxx.jpg' }
-      // 前端通过 Vite 代理 /api -> http://localhost:3000 访问后端静态文件
-      // 因此图片 URL 需要加上 /api 前缀
+      // 统一补全为 /api/uploads/xxx，经 Vite 代理 / Caddy 转发到后端静态服务
       let fullUrl = res.url
-      if (fullUrl && !fullUrl.startsWith('http')) {
-        fullUrl = '/api' + fullUrl
-      }
-      // 确保 URL 格式正确
-      if (fullUrl && !fullUrl.startsWith('http') && !fullUrl.startsWith('/api')) {
-        fullUrl = '/api' + fullUrl
+      if (fullUrl && fullUrl.startsWith('/uploads/')) {
+        fullUrl = fullUrl.replace('/uploads/', '/api/uploads/')
       }
       insertFn(fullUrl, res.originalName || file.name, fullUrl)
     } catch (err: any) {

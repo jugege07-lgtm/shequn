@@ -269,6 +269,7 @@
 import { ref, reactive, onMounted, shallowRef, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '@/api/request'
+import { compressImage, MAX_BYTES } from '@/utils/imageCompress'
 import '@wangeditor/editor/dist/css/style.css'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import type { IDomEditor, IEditorConfig } from '@wangeditor/editor'
@@ -284,8 +285,6 @@ const aboutSaving = ref(false)
 const aboutContent = ref('<p>欢迎使用聚格软件社群小程序！</p>')
 const editorRef = shallowRef<IDomEditor | null>(null)
 
-const API_BASE = 'http://localhost:3000'
-
 const toolbarConfig = {
   excludeKeys: ['fullScreen'],
 }
@@ -294,32 +293,38 @@ const editorConfig: Partial<IEditorConfig> = {
   placeholder: '请输入关于我们的介绍内容...',
   MENU_CONF: {
     uploadImage: {
-      server: '/api/upload',
-      fieldName: 'file',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('admin_token') || ''}`,
-      },
-      /** 自定义插入图片：兼容后端统一响应包装 { code, message, data } */
-      customInsert(res: any, insertFn: (url: string, alt?: string, href?: string) => void) {
-        const payload = res?.data ?? res
-        let url = payload?.url || payload?.data?.url || payload
-        if (!url || typeof url !== 'string') {
-          ElMessage.error('图片上传失败：未返回图片地址')
-          return
+      /** 自定义上传：先压缩大图，再走 /api/upload 接口，统一补全为 /api/uploads/xxx */
+      async customUpload(file: File, insertFn: (url: string, alt?: string, href?: string) => void) {
+        try {
+          let uploadFile = file
+          if (file.type.startsWith('image/') && file.size > MAX_BYTES) {
+            try {
+              uploadFile = await compressImage(file)
+            } catch (e) {
+              console.warn('[AboutUs] 图片压缩失败，使用原图:', e)
+              uploadFile = file
+            }
+          }
+          const formData = new FormData()
+          formData.append('file', uploadFile)
+          const res: any = await request.post('/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          })
+          let url = res?.url
+          if (!url || typeof url !== 'string') {
+            ElMessage.error('图片上传失败：未返回图片地址')
+            return
+          }
+          // 后端返回相对路径 /uploads/xxx，统一补全为同域名的 /api/uploads/xxx，
+          // 生产环境经 Caddy 转发到后端静态服务，确保富文本编辑器预览和移动端都能正常显示
+          if (url.startsWith('/uploads/')) {
+            url = url.replace('/uploads/', '/api/uploads/')
+          }
+          insertFn(url, '关于我们图片', url)
+        } catch (err: any) {
+          const msg = err?.response?.data?.message || err?.message || '图片上传失败'
+          ElMessage.error(msg)
         }
-        // 相对路径自动补全为绝对 URL，确保在富文本编辑器预览和移动端都能正常显示
-        if (url.startsWith('/')) {
-          url = `${API_BASE}${url}`
-        }
-        insertFn(url, '关于我们图片', url)
-      },
-      onFailed(file: File, res: any) {
-        const msg = res?.message || res?.data?.message || `图片上传失败: ${file.name}`
-        ElMessage.error(msg)
-      },
-      onError(file: File, err: any) {
-        const msg = err?.message || err?.response?.data?.message || `图片上传出错: ${file.name}`
-        ElMessage.error(msg)
       },
     },
   },

@@ -78,16 +78,20 @@
           :title="dataSource === 'mock' ? '当前为模拟数据，点击切换到真实数据' : '当前为真实数据，点击切换到模拟数据'"
           @click="onClockBtnClick"
         >
-          <span class="clock-source-tag" :class="dataSource">
-            <span class="src-dot"></span>
-            <span class="src-text">{{ dataSource === 'mock' ? '演示数据' : '实时数据' }}</span>
+          <span class="clock-top">
+            <span class="clock-source-tag" :class="dataSource">
+              <span class="src-dot"></span>
+              <span class="src-text">{{ dataSource === 'mock' ? '演示数据' : '实时数据' }}</span>
+            </span>
+            <span class="clock-time">{{ currentTime.time }}</span>
           </span>
-          <span class="clock-time">{{ currentTime.time }}</span>
-          <span class="clock-date">{{ currentTime.date }} {{ currentTime.weekday }}</span>
-          <span class="clock-switch" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
-            </svg>
+          <span class="clock-bottom">
+            <span class="clock-date">{{ currentTime.date }} {{ currentTime.weekday }}</span>
+            <span class="clock-switch" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>
+              </svg>
+            </span>
           </span>
         </button>
       </div>
@@ -838,7 +842,7 @@ function updateChartData() {
     mapChart?.setOption({
       ...updateOpt,
       visualMap: { max: maxVal },
-      series: [{ data: provinceData.map((p: any) => ({ name: p.name, value: p.value })) }],
+      series: [{ data: provinceData.map((p: any) => ({ name: normalizeProvinceName(p.name), value: p.value })) }],
     })
   }
 
@@ -1402,26 +1406,58 @@ function renderActivityTypeChart() {
 // 中国地图 GeoJSON 缓存（避免每次刷新都重新 fetch）
 let chinaMapLoaded = false
 let chinaMapLoading: Promise<boolean> | null = null
+// 省份名称归一化查找表：短名(广东) → GeoJSON 全名(广东省)
+let provinceNameLookup: Record<string, string> = {}
+
+function buildProvinceLookup(features: any[]) {
+  provinceNameLookup = {}
+  for (const f of features) {
+    const full = f.properties?.name
+    if (!full) continue
+    provinceNameLookup[full] = full
+    // 去掉 省/市/自治区/特别行政区 等后缀，建立短名映射
+    const short = full.replace(/省|市|自治区|特别行政区|壮族|回族|维吾尔|自治/g, '')
+    provinceNameLookup[short] = full
+  }
+}
+
+function normalizeProvinceName(name?: string): string {
+  if (!name) return name + ''
+  if (provinceNameLookup[name]) return provinceNameLookup[name]
+  const hit = Object.keys(provinceNameLookup).find(k => name.includes(k) || k.includes(name))
+  return hit ? provinceNameLookup[hit] : name
+}
 
 async function ensureChinaMap(): Promise<boolean> {
   if (chinaMapLoaded) return true
   if (chinaMapLoading) return chinaMapLoading
   chinaMapLoading = (async () => {
     try {
-      const resp = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
-      const json = await resp.json()
+      // 优先使用本地打包的 GeoJSON（避免生产环境外网 CDN 不可达导致地图空白）
+      // 本地文件位于 public/maps/china.json，构建后通过 BASE_URL 访问
+      const base = import.meta.env.BASE_URL || '/'
+      let resp = await fetch(`${base}maps/china.json`)
+      let json
+      if (resp.ok) {
+        json = await resp.json()
+      } else {
+        // 兜底：外部 CDN
+        resp = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+        json = await resp.json()
+      }
       // 移除南海诸岛，主图不再展示南海区域（右下角已有方形标注框）
       if (json.features) {
         json.features = json.features.filter((f: any) => {
           const name = f.properties?.name || ''
           return name !== '南海诸岛'
         })
+        buildProvinceLookup(json.features)
       }
       echarts.registerMap('china', json)
       chinaMapLoaded = true
       return true
-    } catch {
-      console.warn('无法加载中国地图 GeoJSON，地图展示为空')
+    } catch (e) {
+      console.warn('无法加载中国地图 GeoJSON，地图展示为空', e)
       return false
     } finally {
       chinaMapLoading = null
@@ -1444,7 +1480,7 @@ async function renderMapChart() {
   const provinceData = statsData.value.provinceDistribution || []
   const maxVal = Math.max(...provinceData.map((p: any) => p.value), 1)
 
-  const data = provinceData.map((p: any) => ({ name: p.name, value: p.value }))
+  const data = provinceData.map((p: any) => ({ name: normalizeProvinceName(p.name), value: p.value }))
 
   // 使用合并模式更新（notMerge: false），仅更新 series.data 和 visualMap，避免整图重绘闪烁
   mapChart.setOption({
@@ -1509,7 +1545,9 @@ async function renderMapChart() {
 
 function handleMapClick(params: any) {
   if (params.name) {
-    const province = statsData.value.provinceDistribution?.find((p: any) => p.name === params.name)
+    const province = statsData.value.provinceDistribution?.find(
+      (p: any) => p.name === params.name || normalizeProvinceName(p.name) === params.name,
+    )
     if (province) {
       currentProvince.value = params.name
       currentProvinceData.users = province.value
@@ -1773,9 +1811,10 @@ onUnmounted(() => {
   background: linear-gradient(90deg, transparent, #00d4ff, transparent);
   transform: translateX(-50%);
 }
-.header-left, .header-right { display: flex; align-items: center; gap: 12px; width: 280px; }
+.header-left, .header-right { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.header-left { justify-content: flex-start; }
 .header-right { justify-content: flex-end; }
-.header-center { display: flex; align-items: center; gap: 20px; }
+.header-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 20px; min-width: 0; }
 .header-text { color: #8fb8d8; font-size: 13px; }
 .fullscreen-btn {
   display: flex;
@@ -2103,9 +2142,9 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 2px;
-  padding: 4px 12px 4px 32px;
+  padding: 6px 12px;
   margin-left: 8px;
   background: rgba(0, 212, 255, 0.08);
   border: 1px solid rgba(0, 212, 255, 0.35);
@@ -2132,10 +2171,21 @@ onUnmounted(() => {
   border-color: #ffb84d;
   box-shadow: 0 0 14px rgba(255, 184, 77, 0.5);
 }
+/* 顶部行：数据源标签 + 时间 */
+.clock-box.clock-btn .clock-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* 底部行：日期 + 切换图标 */
+.clock-box.clock-btn .clock-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .clock-box.clock-btn .clock-source-tag {
-  position: absolute;
-  left: 6px; top: 50%;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2144,6 +2194,7 @@ onUnmounted(() => {
   font-family: 'Consolas', 'Monaco', monospace;
   border-radius: 999px;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 .clock-box.clock-btn .clock-source-tag.mock {
   background: rgba(255, 184, 77, 0.2);
@@ -2163,9 +2214,9 @@ onUnmounted(() => {
   animation: pulse 1.4s ease-in-out infinite;
 }
 .clock-box.clock-btn .clock-switch {
-  position: absolute;
-  right: 4px; bottom: 2px;
-  width: 14px; height: 14px;
+  display: inline-flex;
+  align-items: center;
+  width: 13px; height: 13px;
   opacity: 0.55;
   transition: opacity 0.2s, transform 0.4s;
 }
