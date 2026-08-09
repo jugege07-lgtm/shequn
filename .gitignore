@@ -73,3 +73,8 @@ mobile/.env*
 # IDE / 本地计划
 .zcode/
 .workbuddy/
+
+# Deploy 本地日志/状态文件（服务器端生成，勿入仓库）
+deploy/logs/
+deploy/.deploy.lock
+deploy/.env
