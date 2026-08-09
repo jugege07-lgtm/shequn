@@ -2,6 +2,8 @@ import axios from 'axios'
 import router from '@/router'
 import { useUserStore } from '@/store/user'
 
+// 生产环境部署在子路径 /h5/ 下，所有 API 路径已显式以 /api 开头，
+// 因此 baseURL 必须为空字符串，否则 axios 会拼成 /api/api/... 导致 404
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 const request = axios.create({

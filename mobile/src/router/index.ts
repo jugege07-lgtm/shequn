@@ -41,7 +41,8 @@ const routes = [
   { path: '/setting/index', name: 'SettingIndex', component: () => import('@/views/setting/index.vue'), meta: { requiresAuth: true } },
 ]
 
-const router = createRouter({ history: createWebHistory(), routes })
+// 部署在子路径 /h5/ 下，history 模式必须显式指定 base，否则刷新或 push 会跳到根域导致 404
+const router = createRouter({ history: createWebHistory(import.meta.env.BASE_URL || '/h5/'), routes })
 
 // 全局前置守卫：实现持久化登录与自动跳转
 // - 未登录访问受保护页 → 跳转到 /login（保留 redirect 查询参数，便于登录后回跳）

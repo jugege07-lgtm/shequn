@@ -2,7 +2,9 @@ import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 
-axios.defaults.baseURL = '/api'
+// 管理后台：API 路径已显式以 /api 开头，baseURL 必须为空字符串，
+// 避免 axios 拼成 /api/api/... 触发后端 404
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || ''
 
 // 防止重复错误提示
 let lastErrorTime = 0

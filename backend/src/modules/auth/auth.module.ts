@@ -8,12 +8,14 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { CardModule } from '../card/card.module';
 import { PointModule } from '../point/point.module';
+import { SmsModule } from '../sms/sms.module';
 
 @Module({
   imports: [
     UserModule,
     CardModule,
     PointModule,
+    SmsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

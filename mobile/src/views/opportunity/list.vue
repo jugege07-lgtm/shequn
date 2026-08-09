@@ -23,19 +23,45 @@
       <div class="search-bar">
         <div class="search-container">
           <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input type="text" class="search-input" placeholder="搜索商机、项目、合作方..." />
+          <input
+            v-model="searchKeyword"
+            type="search"
+            class="search-input"
+            placeholder="搜索商机、项目、合作方..."
+            @input="debounceSearch"
+          />
         </div>
       </div>
 
-      <!-- Quick Filter -->
+      <!-- Quick Filter：分类来自后端，与管理端商机分类管理完全同步 -->
       <div class="quick-filter">
-        <div class="filter-chip active" v-for="(chip, i) in filters" :key="i" :class="{ active: activeFilter === i }" @click="activeFilter = i">{{ chip }}</div>
+        <div
+          class="filter-chip"
+          :class="{ active: activeCat === '' }"
+          @click="switchCategory('')"
+        >全部</div>
+        <div
+          class="filter-chip"
+          v-for="c in categories"
+          :key="c.id"
+          :class="{ active: activeCat === String(c.id) }"
+          @click="switchCategory(String(c.id))"
+        >{{ c.name }}</div>
       </div>
 
       <!-- Opportunity List -->
       <div class="opportunity-list" v-loading="loading">
-        <div v-if="opportunities.length === 0" class="empty-tip">暂无商机</div>
-        <div class="opportunity-item" v-for="o in opportunities" :key="o.id" @click="$router.push('/business/detail/' + o.id)">
+        <!-- 初次加载时显示骨架 -->
+        <div v-if="loading && filteredOpportunities.length === 0" class="loading-tip">
+          <span class="loading-spinner"></span>
+          <span>正在加载商机...</span>
+        </div>
+        <!-- 无数据时按场景给出不同提示 -->
+        <div v-else-if="filteredOpportunities.length === 0" class="empty-tip">
+          <p>{{ emptyText }}</p>
+          <span v-if="searchKeyword.trim()" class="empty-sub">试试其他关键词</span>
+        </div>
+        <div class="opportunity-item" v-for="o in filteredOpportunities" :key="o.id" @click="$router.push('/business/detail/' + o.id)">
           <div class="opportunity-header">
             <div>
               <div class="opportunity-title">{{ o.title }}</div>
@@ -73,6 +99,14 @@
             </div>
           </div>
         </div>
+
+        <!-- 加载更多 / 加载完毕提示 -->
+        <div v-if="hasMore && filteredOpportunities.length > 0 && !searchKeyword.trim()" class="load-more">
+          <button class="load-more-btn" :disabled="loading" @click="loadMore">
+            {{ loading ? '加载中...' : '加载更多' }}
+          </button>
+        </div>
+        <div v-else-if="!hasMore && filteredOpportunities.length > 0 && !searchKeyword.trim()" class="load-end">已经到底了～</div>
       </div>
     </div>
 
@@ -103,50 +137,173 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { formatPriceHtml, stripHtml } from '@/utils/sanitize'
-import { getBusinesses } from '@/api'
+import { getBusinesses, getBusinessCategories } from '@/api'
 
-const filters = ['全部', '急寻合作', '项目对接', '资源置换', '投资需求', '技术合作', '供应链', '人才招聘']
-const activeFilter = ref(0)
+// 商机分类（来自后端 /api/public/business-categories，与管理端商机分类管理共享同一张表）
+const categories = ref<any[]>([])
+// 当前选中的分类 id：'' 表示「全部」，其余为后端返回的分类 id（字符串便于与 activeCat 绑定做严格相等比较）
+const activeCat = ref('')
 const opportunities = ref<any[]>([])
 const loading = ref(false)
+const searchKeyword = ref('')
 
-async function loadOpportunities() {
-  loading.value = true
+// 分页
+const page = ref(1)
+const hasMore = ref(true)
+const totalPages = ref(1)
+
+// 请求序号：用于丢弃过期响应，避免快速切换分类时并发竞态导致列表错乱
+let reqSeq = 0
+
+// 当前分类中文名（用于"该分类暂无商机"等空态文案）
+const activeCatName = computed(
+  () => categories.value.find(c => String(c.id) === activeCat.value)?.name || ''
+)
+
+// 展示列表：分类由后端过滤，搜索由前端在内存中过滤
+const filteredOpportunities = computed(() => {
+  const kw = searchKeyword.value.trim().toLowerCase()
+  if (!kw) return opportunities.value
+  return opportunities.value.filter(o =>
+    (o.title || '').toLowerCase().includes(kw) ||
+    (o.categoryName || '').toLowerCase().includes(kw) ||
+    (o.sanitizedDesc || '').toLowerCase().includes(kw)
+  )
+})
+
+// 区分搜索无结果 / 分类无商机 / 全局无商机，给出更友好的空态文案
+const emptyText = computed(() => {
+  if (searchKeyword.value.trim() && filteredOpportunities.value.length === 0) return '未找到相关商机'
+  if (activeCat.value) return activeCatName.value ? `「${activeCatName.value}」分类暂无商机` : '该分类暂无商机'
+  return '暂无商机'
+})
+
+// 点击分类：立即刷新（视觉上由 :class 绑定负责）
+function switchCategory(id: string) {
+  if (activeCat.value === id) return // 重复点击同一分类不再触发请求
+  activeCat.value = id
+}
+
+// 切换分类时重新加载对应分类下的商机
+watch(activeCat, () => {
+  page.value = 1
+  hasMore.value = true
+  opportunities.value = []
+  loadBusinesses()
+})
+
+// 搜索去抖：避免每次按键都触发请求
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+function debounceSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    hasMore.value = true
+    loadBusinesses()
+  }, 300)
+}
+
+// 加载分类（数据源与管理端 BusinessCategoryManagement.vue 一致）
+async function loadCategories() {
   try {
-    const data = await getBusinesses({ page: 1, size: 20 })
-    if (data?.list) {
-      opportunities.value = data.list.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        urgency: '中',
-        urgencyClass: '',
-        desc: item.description || '',
-        sanitizedDesc: stripHtml(item.description || ''),
-        location: '待定',
-        date: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '待定',
-        price: item.unlockFee || 0,
-        isFree: item.unlockFee === 0,
-        views: '0',
-      }))
-    }
-  } catch (err: any) {
-    console.error('加载商机失败:', err)
-    opportunities.value = getMockOpportunities()
-  } finally {
-    loading.value = false
+    const data = await getBusinessCategories()
+    if (Array.isArray(data)) categories.value = data
+  } catch {
+    categories.value = []
   }
 }
 
-function getMockOpportunities() {
-  return [
-    { id: 1, title: '急寻跨境电商供应链合作伙伴 · 月需求 10 万件', urgency: '急', urgencyClass: 'urgent', desc: '我们是一家跨境电商公司，主营家居用品和电子产品', sanitizedDesc: '我们是一家跨境电商公司，主营家居用品和电子产品', location: '深圳 · 跨境贸易', date: '7月15日发布', validity: '有效期 30天', priceHtml: '预算 <span>¥</span>50-100万', connects: '23人', views: '1.2k' },
-    { id: 2, title: 'AI 智能客服系统技术合作 · 寻求算法工程师', urgency: '高', urgencyClass: 'high', desc: '我们是一家 SaaS 公司，正在开发新一代 AI 智能客服系统', sanitizedDesc: '我们是一家 SaaS 公司，正在开发新一代 AI 智能客服系统', location: '杭州 · 人工智能', date: '7月14日发布', validity: '长期有效', priceHtml: '预算 <span>¥</span>20-50万', connects: '18人', views: '856' },
-  ]
+// 加载商机列表
+async function loadBusinesses() {
+  const seq = ++reqSeq
+  loading.value = true
+  try {
+    const data = await getBusinesses({
+      page: page.value,
+      size: 20,
+      status: 'approved',
+      categoryId: activeCat.value || undefined,
+    })
+    if (seq !== reqSeq) return // 有更新的请求，过期响应直接丢弃
+    if (data?.list) {
+      const items = data.list.map((item: any) => normalizeItem(item))
+      if (page.value === 1) {
+        opportunities.value = items
+      } else {
+        opportunities.value = [...opportunities.value, ...items]
+      }
+      totalPages.value = Math.ceil((data.total || 0) / 20)
+      hasMore.value = page.value < totalPages.value
+    }
+  } catch (err: any) {
+    // 出错时只清空当前结果，不再回退到假数据；空态文案会引导用户
+    if (seq === reqSeq && page.value === 1) opportunities.value = []
+  } finally {
+    if (seq === reqSeq) loading.value = false
+  }
 }
 
-onMounted(loadOpportunities)
+// 归一化后端返回的商机字段，补全卡片需要的展示字段
+function normalizeItem(item: any): any {
+  const isFree = (item.unlockFee || 0) === 0
+  const coverUrl = normalizeCoverUrl(item.coverImage)
+  const desc = stripHtml(item.description || '')
+  const categoryName = item.category?.name || ''
+  return {
+    ...item,
+    isFree,
+    price: item.unlockFee || 0,
+    desc,
+    sanitizedDesc: desc.length > 120 ? desc.slice(0, 120) + '...' : desc,
+    categoryName,
+    coverUrl,
+    publisher: item.publisher?.nickname || '未知',
+    date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : '待定',
+    timeAgo: getTimeAgo(item.createdAt),
+    urgency: '中',
+    urgencyClass: '',
+    location: '待定',
+    validity: '长期有效',
+    connects: String(item.currentUnlocks ?? 0),
+    views: '0',
+  }
+}
+
+function normalizeCoverUrl(url: string): string {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  if (url.startsWith('/api/')) return url
+  return '/api' + url
+}
+
+function getTimeAgo(dateStr: string): string {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr).getTime()
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
+  return new Date(dateStr).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+}
+
+// 加载更多
+function loadMore() {
+  if (loading.value) return
+  if (page.value < totalPages.value) {
+    page.value++
+    loadBusinesses()
+  }
+}
+
+onMounted(() => {
+  loadCategories()
+  loadBusinesses()
+})
+
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
 </script>
 
 <style scoped>
@@ -197,4 +354,48 @@ onMounted(loadOpportunities)
 .opportunity-stats { display: flex; align-items: center; gap: 8px; }
 .stat-item { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--color-text-tertiary); }
 .stat-item svg { width: 12px; height: 12px; color: var(--color-text-tertiary); }
+
+/* ===== 加载状态 / 加载更多 ===== */
+.loading-tip {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 40px 0; color: var(--color-text-tertiary); font-size: 13px;
+}
+.loading-spinner {
+  display: inline-block; width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--color-primary-50);
+  border-top-color: var(--color-primary);
+  animation: opportunity-spin 0.8s linear infinite;
+}
+@keyframes opportunity-spin { to { transform: rotate(360deg); } }
+
+.empty-sub {
+  display: block; margin-top: 6px; font-size: 12px; color: var(--color-text-tertiary);
+}
+.empty-tip p { font-size: 14px; color: var(--color-text-secondary); }
+
+.load-more {
+  display: flex; justify-content: center; padding: 16px 0 8px;
+}
+.load-more-btn {
+  padding: 9px 28px; border-radius: 999px;
+  border: 1px solid var(--color-primary); background: #fff;
+  color: var(--color-primary); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.load-more-btn:active:not(:disabled) { background: var(--color-primary); color: #fff; }
+.load-more-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.load-end {
+  text-align: center; padding: 16px 0 8px;
+  font-size: 12px; color: var(--color-text-tertiary);
+}
+
+/* 给筛选芯片在列表重载时一个轻微渐变，避免一闪而过 */
+.quick-filter .filter-chip { transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease; }
+.quick-filter .filter-chip:active { transform: scale(0.94); }
+.quick-filter .filter-chip.active { animation: chip-pulse 0.25s ease-out; }
+@keyframes chip-pulse {
+  0% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
 </style>

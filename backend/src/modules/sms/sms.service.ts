@@ -27,6 +27,8 @@ export class SmsService {
   private readonly store = new Map<string, CodeEntry>();
   private readonly CODE_TTL_MS = 5 * 60 * 1000; // 5 分钟
   private readonly RESEND_INTERVAL_MS = 60 * 1000; // 60 秒防刷
+  /** 模板中 {2} 提示用户填写验证码的剩余有效分钟数（与 CODE_TTL_MS 对应） */
+  private readonly EXPIRE_MINUTES = 5;
 
   /**
    * 发送验证码到指定手机号
@@ -83,6 +85,7 @@ export class SmsService {
   private isConfigured(): boolean {
     return !!(
       process.env.SMS_SDK_APP_ID &&
+      process.env.SMS_APP_KEY &&
       process.env.SMS_SECRET_ID &&
       process.env.SMS_SECRET_KEY &&
       process.env.SMS_SIGN_NAME &&
@@ -138,8 +141,9 @@ export class SmsService {
       SmsSdkAppId: process.env.SMS_SDK_APP_ID!,
       SignName: process.env.SMS_SIGN_NAME!,
       TemplateId: process.env.SMS_TEMPLATE_ID!,
-      // 模板参数顺序需与腾讯云后台模板一致，这里约定第一个参数为验证码
-      TemplateParamSet: [code],
+      // 模板参数顺序需与腾讯云后台模板一致：
+      // {1} 验证码，{2} 有效分钟数
+      TemplateParamSet: [code, String(this.EXPIRE_MINUTES)],
     };
 
     try {

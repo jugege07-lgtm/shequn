@@ -9,6 +9,7 @@ import { RegisterDto } from './dto/register.dto';
 import { PhonePasswordLoginDto } from './dto/phone-password-login.dto';
 import { User } from '@prisma/client';
 import { PointService } from '../point/point.service';
+import { SmsService } from '../sms/sms.service';
 
 const WX_LOGIN_URL = 'https://api.weixin.qq.com/sns/jscode2session';
 
@@ -21,6 +22,7 @@ export class AuthService {
     private userService: UserService,
     private prisma: PrismaService,
     private pointService: PointService,
+    private smsService: SmsService,
   ) {}
 
   // ========== Admin 登录 ==========
@@ -158,10 +160,21 @@ export class AuthService {
     };
   }
 
-  // ========== 发送验证码（Demo/mock） ==========
+  // ========== 发送短信验证码 ==========
   async sendCode(phone: string) {
-    // 实际项目中应接入短信服务商；此处固定验证码 1234，便于演示
-    return { success: true, message: '验证码已发送', phone };
+    // 基础校验
+    if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+      throw new BadRequestException('手机号格式不正确');
+    }
+    // 真实下发（生产环境由 SmsService 调用腾讯云 SMS；未配置则在控制台打印验证码用于联调）
+    const result = await this.smsService.sendCode(phone);
+    return {
+      success: true,
+      message: '验证码已发送',
+      phone,
+      // 仅在未配置腾讯云 SMS 的非生产环境返回，便于联调
+      devCode: result.devCode,
+    };
   }
 
   // ========== 微信登录 ==========
