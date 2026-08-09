@@ -20,6 +20,12 @@ export class ContentController {
     return this.contentService.getAnnouncements();
   }
 
+  @Get('public/search')
+  @ApiOperation({ summary: '全局搜索：活动 / 商机 / 商品（公开）' })
+  async search(@Query('keyword') keyword?: string) {
+    return this.contentService.search(keyword || '');
+  }
+
   @Get('public/banners')
   @ApiOperation({ summary: '获取Banner列表（公开）' })
   async getPublicBanners(@Query('position') position?: string) {

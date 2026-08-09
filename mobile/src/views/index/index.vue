@@ -8,27 +8,13 @@
         <div class="shape s3"></div>
       </div>
       <div class="top-overlay">
-        <div class="status-bar">
-          <span>9:41</span>
-          <div class="status-icons">
-            <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
-              <rect x="0" y="8" width="3" height="4" rx="0.5" fill="#fff"/>
-              <rect x="4.5" y="5" width="3" height="7" rx="0.5" fill="#fff"/>
-              <rect x="9" y="2" width="3" height="10" rx="0.5" fill="#fff"/>
-              <rect x="13.5" y="0" width="2.5" height="12" rx="0.5" fill="#fff"/>
-            </svg>
-            <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
-              <path d="M8 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="#fff" transform="translate(0,-2)"/>
-              <path d="M4.5 8.5C5.5 7.2 6.7 6.5 8 6.5s2.5.7 3.5 2" stroke="#fff" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-            </svg>
-          </div>
-        </div>
-        <div class="search-bar">
+        <div class="search-bar" @click="openSearch">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
             <circle cx="11" cy="11" r="8"/>
             <path d="M21 21l-4.35-4.35"/>
           </svg>
           <input type="text" placeholder="搜索活动、商机、商品" readonly />
+          <span class="search-btn">搜索</span>
         </div>
       </div>
       <div class="banner-overlay">
@@ -81,12 +67,14 @@
       </div>
 
       <!-- Announcement -->
-      <div class="announcement-bar">
+      <div class="announcement-bar" @click="goAnnouncement">
         <span class="ann-tag">公告</span>
-        <div class="ann-scroll">
-          <span class="ann-text" v-if="announcements.length">{{ announcements[0].title }}</span>
-          <span class="ann-text" v-else>欢迎加入聚格软件，连接优质资源，成就商业梦想！</span>
+        <div class="ann-scroll" v-if="annList.length">
+          <div class="ann-track" :style="{ transform: `translateY(${-annIndex * 100}%)` }">
+            <span class="ann-text" v-for="(a, i) in annList" :key="i">{{ a.title }}</span>
+          </div>
         </div>
+        <span class="ann-text" v-else>欢迎加入聚格软件，连接优质资源，成就商业梦想！</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round">
           <path d="M9 18l6-6-6-6"/>
         </svg>
@@ -192,6 +180,78 @@
       </div>
     </div>
 
+    <!-- Search Overlay -->
+    <div class="search-overlay" v-if="searchActive">
+      <div class="search-overlay-header">
+        <span class="search-back" @click="closeSearch">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </span>
+        <div class="search-overlay-input">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input
+            ref="searchInputRef"
+            v-model="searchKeyword"
+            @keyup.enter="handleSearch"
+            placeholder="搜索活动、商机、商品"
+          />
+          <span v-if="searchKeyword" class="search-clear" @click="clearSearch">✕</span>
+        </div>
+        <span class="search-action" @click="handleSearch">搜索</span>
+      </div>
+
+      <div class="search-overlay-body">
+        <div v-if="searchLoading" class="search-state">搜索中...</div>
+
+        <template v-else-if="searchDone">
+          <div v-if="hasResults" class="search-results">
+            <div class="search-section" v-if="searchResults.activities?.length">
+              <div class="search-section-title">活动</div>
+              <div class="search-item" v-for="a in searchResults.activities" :key="'a' + a.id" @click="goActivity(a.id)">
+                <img v-if="normalizeImageUrl(a.coverImage)" :src="normalizeImageUrl(a.coverImage)" class="search-item-img" alt=""/>
+                <div v-else class="search-item-img search-item-img-fallback">🎉</div>
+                <div class="search-item-info">
+                  <div class="search-item-title">{{ a.title }}</div>
+                  <div class="search-item-meta" v-if="a.location">{{ a.location }}</div>
+                  <div class="search-item-price" :class="{ free: a.price === 0 }">{{ a.price === 0 ? '免费' : '¥' + a.price }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="search-section" v-if="searchResults.businesses?.length">
+              <div class="search-section-title">商机</div>
+              <div class="search-item" v-for="b in searchResults.businesses" :key="'b' + b.id" @click="goBusiness(b.id)">
+                <div class="search-item-info">
+                  <div class="search-item-title">{{ b.title }}</div>
+                  <div class="search-item-meta" v-if="b.description">{{ stripHtml(b.description) }}</div>
+                  <div class="search-item-price" :class="{ free: b.unlockFee === 0 }">{{ b.unlockFee === 0 ? '免费解锁' : '¥' + b.unlockFee }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="search-section" v-if="searchResults.products?.length">
+              <div class="search-section-title">商品</div>
+              <div class="search-item" v-for="p in searchResults.products" :key="'p' + p.id" @click="goProduct(p.id)">
+                <img v-if="normalizeImageUrl(p.coverImage)" :src="normalizeImageUrl(p.coverImage)" class="search-item-img" alt=""/>
+                <div v-else class="search-item-img search-item-img-fallback">🛍️</div>
+                <div class="search-item-info">
+                  <div class="search-item-title">{{ p.name }}</div>
+                  <div class="search-item-price" :class="{ free: p.price === 0 }">{{ p.price === 0 ? '免费' : '¥' + p.price }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="search-state">未找到相关结果</div>
+        </template>
+
+        <div v-else class="search-state">输入关键词，搜索活动、商机与商品</div>
+      </div>
+    </div>
+
     <!-- TabBar -->
     <div class="tabbar">
       <div class="tab active">
@@ -229,19 +289,122 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { getHomepageData, checkAppVersion } from '@/api/index'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { getHomepageData, checkAppVersion, getAnnouncements, globalSearch } from '@/api/index'
 import { setCache, getCache } from '@/utils/cache'
 import { stripHtml } from '@/utils/sanitize'
+import { normalizeImageUrl } from '@/utils/image'
 
+const router = useRouter()
 const CACHE_KEY = 'homepage_data'
 
 const activities = ref<any[]>([])
 const businesses = ref<any[]>([])
 const announcements = ref<{ title: string; content: string }[]>([])
+// 多公告轮播
+const annList = computed(() => announcements.value)
+const annIndex = ref(0)
+let annTimer: ReturnType<typeof setInterval> | null = null
+let annRefreshTimer: ReturnType<typeof setInterval> | null = null
+
 const bannerText = ref('2026 社群商业资源峰会')
 const bannerSubtitle = ref('7月15日 · 深圳国际会展中心 · 限额500人')
 const loading = ref(false)
+
+// ===== 搜索 =====
+const searchActive = ref(false)
+const searchKeyword = ref('')
+const searchResults = ref<{ activities: any[]; businesses: any[]; products: any[] }>({ activities: [], businesses: [], products: [] })
+const searchLoading = ref(false)
+const searchDone = ref(false)
+const searchInputRef = ref<HTMLInputElement | null>(null)
+const hasResults = computed(() =>
+  searchResults.value.activities?.length ||
+  searchResults.value.businesses?.length ||
+  searchResults.value.products?.length
+)
+
+function openSearch() {
+  searchActive.value = true
+  searchDone.value = false
+  searchResults.value = { activities: [], businesses: [], products: [] }
+  nextTick(() => searchInputRef.value?.focus())
+}
+
+function closeSearch() {
+  searchActive.value = false
+  searchKeyword.value = ''
+  searchDone.value = false
+  searchResults.value = { activities: [], businesses: [], products: [] }
+}
+
+function clearSearch() {
+  searchKeyword.value = ''
+  searchDone.value = false
+  searchResults.value = { activities: [], businesses: [], products: [] }
+  searchInputRef.value?.focus()
+}
+
+async function handleSearch() {
+  const kw = (searchKeyword.value || '').trim()
+  if (!kw) return
+  if (!searchActive.value) {
+    openSearch()
+    return
+  }
+  searchLoading.value = true
+  searchDone.value = false
+  try {
+    const data = await globalSearch(kw)
+    searchResults.value = {
+      activities: data?.activities || [],
+      businesses: data?.businesses || [],
+      products: data?.products || [],
+    }
+    searchDone.value = true
+  } catch (err: any) {
+    console.error('搜索失败:', err)
+    searchResults.value = { activities: [], businesses: [], products: [] }
+    searchDone.value = true
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+function goActivity(id: number) { closeSearch(); router.push(`/activity/detail/${id}`) }
+function goBusiness(id: number) { closeSearch(); router.push(`/business/detail/${id}`) }
+function goProduct(id: number) { closeSearch(); router.push(`/mall/detail/${id}`) }
+
+function goAnnouncement() {
+  if (!announcements.value.length) return
+  const first = announcements.value[annIndex.value]
+  if (first?.url) window.open(first.url, '_blank')
+}
+
+// ===== 公告定时拉取 + 轮播 =====
+async function loadAnnouncements() {
+  try {
+    const data = await getAnnouncements()
+    if (Array.isArray(data) && data.length) {
+      announcements.value = data
+    }
+  } catch (err) {
+    console.error('公告加载失败:', err)
+  }
+}
+
+function startAnnTicker() {
+  stopAnnTicker()
+  annTimer = setInterval(() => {
+    const len = announcements.value.length
+    if (len > 1) annIndex.value = (annIndex.value + 1) % len
+  }, 3500)
+}
+
+function stopAnnTicker() {
+  if (annTimer) { clearInterval(annTimer); annTimer = null }
+}
 
 async function loadHomepage() {
   // 优先使用缓存
@@ -361,6 +524,15 @@ async function checkVersion() {
 onMounted(() => {
   loadHomepage()
   checkVersion()
+  loadAnnouncements()
+  startAnnTicker()
+  // 定时拉取公告（每 60 秒），保持最新
+  annRefreshTimer = setInterval(loadAnnouncements, 60 * 1000)
+})
+
+onBeforeUnmount(() => {
+  stopAnnTicker()
+  if (annRefreshTimer) { clearInterval(annRefreshTimer); annRefreshTimer = null }
 })
 </script>
 
@@ -381,23 +553,24 @@ onMounted(() => {
 .banner-bg-shapes .shape.s3 { width: 80px; height: 80px; top: 40px; left: 80px; }
 
 .top-overlay { position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
-.status-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 20px 6px; font-size: 14px; font-weight: 600; color: #fff;
-}
-.status-icons { display: flex; align-items: center; gap: 6px; }
 .search-bar {
-  margin: 0 16px; background: rgba(255,255,255,0.2);
+  margin: 14px 16px 0;
+  background: rgba(255,255,255,0.2);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-radius: 10px; display: flex; align-items: center;
   padding: 10px 14px; gap: 8px;
   border: 1px solid rgba(255,255,255,0.3);
+  cursor: pointer;
 }
 .search-bar input {
   border: none; outline: none; background: transparent;
   font-size: 14px; color: #fff; width: 100%; font-family: var(--font);
 }
 .search-bar input::placeholder { color: rgba(255,255,255,0.7); }
+.search-btn {
+  flex-shrink: 0; font-size: 13px; font-weight: 600; color: #fff;
+  background: rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 99px;
+}
 
 .banner-overlay {
   position: absolute; bottom: 0; left: 0; right: 0;
@@ -441,10 +614,15 @@ onMounted(() => {
   flex-shrink: 0; background: var(--color-primary); color: #fff;
   font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
 }
-.ann-scroll { flex: 1; overflow: hidden; }
+.ann-scroll { flex: 1; overflow: hidden; height: 20px; position: relative; }
+.ann-track {
+  display: flex; flex-direction: column;
+  transition: transform 0.5s ease;
+}
 .ann-text {
-  display: inline-block; font-size: 13px; color: var(--color-text-secondary);
-  white-space: nowrap;
+  flex-shrink: 0; height: 20px; line-height: 20px;
+  font-size: 13px; color: var(--color-text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 /* ===== VIP Banner ===== */
@@ -617,4 +795,73 @@ onMounted(() => {
 .tab span { font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px; transition: color 0.2s; }
 .tab.active svg { color: var(--color-primary); }
 .tab.active span { color: var(--color-primary); font-weight: 600; }
+
+/* ===== Search Overlay ===== */
+.search-overlay {
+  position: fixed; top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px; z-index: 300;
+  background: #f7f7fb; display: flex; flex-direction: column;
+}
+.search-overlay-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; background: #fff;
+  border-bottom: 0.5px solid rgba(60,60,67,0.1);
+}
+.search-back {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; color: var(--color-text-primary); cursor: pointer;
+}
+.search-overlay-input {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  background: #f2f3f7; border-radius: 10px; padding: 8px 12px;
+}
+.search-overlay-input input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-size: 14px; color: var(--color-text-primary); font-family: var(--font);
+}
+.search-clear {
+  width: 18px; height: 18px; border-radius: 50%; background: #d1d5db;
+  color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.search-action {
+  font-size: 14px; font-weight: 600; color: var(--color-primary); cursor: pointer;
+  padding: 0 4px;
+}
+.search-overlay-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.search-state {
+  padding: 60px 20px; text-align: center; color: var(--color-text-tertiary); font-size: 14px;
+}
+.search-results { padding: 4px 14px 24px; }
+.search-section { margin-top: 16px; }
+.search-section-title {
+  font-size: 13px; font-weight: 700; color: var(--color-text-secondary);
+  margin-bottom: 8px; padding-left: 2px;
+}
+.search-item {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04); cursor: pointer;
+}
+.search-item-img {
+  width: 56px; height: 56px; border-radius: 8px; object-fit: cover;
+  background: #f0f0f5; flex-shrink: 0;
+}
+.search-item-img-fallback {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; color: #a1a1aa;
+}
+.search-item-info { flex: 1; min-width: 0; }
+.search-item-title {
+  font-size: 14px; font-weight: 600; color: var(--color-text-primary);
+  line-height: 1.4; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.search-item-meta {
+  font-size: 12px; color: var(--color-text-tertiary); line-height: 1.4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.search-item-price {
+  font-size: 14px; font-weight: 700; color: var(--color-primary); align-self: flex-start;
+}
+.search-item-price.free { color: #10b981; font-size: 12px; font-weight: 600; }
 </style>

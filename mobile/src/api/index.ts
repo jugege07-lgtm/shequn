@@ -10,6 +10,10 @@ export async function getAnnouncements() {
   return request.get('/api/public/announcements')
 }
 
+export async function globalSearch(keyword: string) {
+  return request.get('/api/public/search', { params: { keyword } })
+}
+
 export async function getBanners(position?: string) {
   return request.get('/api/public/banners', { params: { position } })
 }

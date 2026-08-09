@@ -144,4 +144,51 @@ export class ContentService {
 
     return { banners, announcements, sections, activities, businesses: businessesWithCategory };
   }
+
+  // ========== Global search (activities / businesses / products) ==========
+  async search(keyword: string) {
+    const kw = (keyword || '').trim();
+    if (!kw) return { keyword: '', activities: [], businesses: [], products: [] };
+
+    const contains = { contains: kw };
+    const [activities, businesses, products] = await Promise.all([
+      this.prisma.activity.findMany({
+        where: {
+          status: 'approved',
+          OR: [{ title: contains }, { description: contains }, { location: contains }],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, title: true, coverImage: true, price: true,
+          startTime: true, location: true, status: true,
+        },
+      }),
+      this.prisma.business.findMany({
+        where: {
+          status: 'approved',
+          OR: [{ title: contains }, { description: contains }],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, title: true, coverImage: true, description: true,
+          categoryId: true, unlockFee: true, status: true,
+        },
+      }),
+      this.prisma.product.findMany({
+        where: {
+          status: 1,
+          OR: [{ name: contains }, { description: contains }],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, name: true, coverImage: true, price: true, vipPrice: true, status: true,
+        },
+      }),
+    ]);
+
+    return { keyword: kw, activities, businesses, products };
+  }
 }
