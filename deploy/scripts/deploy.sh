@@ -28,6 +28,40 @@ log()  { echo -e "${GREEN}[$(date +%H:%M:%S)]${NC} $*" | tee -a "$DEPLOY_LOG"; }
 warn() { echo -e "${YELLOW}[$(date +%H:%M:%S)]${NC} $*" | tee -a "$DEPLOY_LOG" >&2; }
 fail() { echo -e "${RED}[$(date +%H:%M:%S)] FAIL${NC} $*" | tee -a "$DEPLOY_LOG" >&2; exit 1; }
 
+# -------- 依赖安装（带磁盘检查 + 自动重试 + npm install 回退）--------
+# 修复：npm ci 偶发失败（网络/磁盘/缓存）导致部署中断、前端 dist 被清空的问题
+install_deps() {
+  local dir="$1"
+  cd "$PROJECT_DIR/$dir"
+
+  # 磁盘空间检查（<1GB 时清理 npm 缓存）
+  local avail
+  avail=$(df -Pk . 2>/dev/null | awk 'NR==2{print $4}')
+  if [ -n "$avail" ] && [ "$avail" -lt 1048576 ]; then
+    warn "[$dir] 磁盘可用空间不足 ${avail}KB (<1GB)，清理 npm 缓存..."
+    npm cache clean --force 2>/dev/null || true
+  fi
+
+  for attempt in 1 2 3; do
+    log "[$dir] 安装依赖（第 $attempt 次）..."
+    if npm ci --no-audit --no-fund 2>&1 | tee -a "$DEPLOY_LOG"; then
+      if [ "${PIPESTATUS[0]}" = "0" ]; then
+        log "[$dir] 依赖安装成功"
+        return 0
+      fi
+    fi
+    warn "[$dir] npm ci 第 $attempt 次失败，3s 后重试..."
+    sleep 3
+  done
+
+  # 连续失败后回退到 npm install（更宽容 lock 文件差异）
+  warn "[$dir] npm ci 连续失败，回退 npm install..."
+  if ! npm install --no-audit --no-fund 2>&1 | tee -a "$DEPLOY_LOG"; then
+    fail "[$dir] 依赖安装彻底失败，请查看 $DEPLOY_LOG 与服务器日志"
+  fi
+  log "[$dir] 依赖安装成功（npm install）"
+}
+
 # -------- 前置检查 --------
 [ -d "$PROJECT_DIR" ]        || fail "项目目录不存在: $PROJECT_DIR"
 [ -f "$SRC_TAR" ]            || fail "源码包不存在: $SRC_TAR (请先由 GitHub Actions 上传)"
@@ -80,7 +114,7 @@ log "当前版本: $CURRENT_SHA"
 # -------- 2. 部署后端 --------
 log "--- 后端 ---"
 cd "$PROJECT_DIR/backend"
-npm ci --no-audit --no-fund 2>&1 | tail -2
+install_deps backend
 npx prisma generate 2>&1 | tail -1
 
 # 数据库结构同步（本项目用 prisma db push，不用 migration 文件）
@@ -110,14 +144,14 @@ pm2 restart shequn-backend 2>&1 | tail -3
 # -------- 3. 部署管理端 --------
 log "--- 管理端 ---"
 cd "$PROJECT_DIR/admin"
-npm ci --no-audit --no-fund 2>&1 | tail -2
+install_deps admin
 npm run build 2>&1 | tail -3
 log "管理端构建完成 → admin/dist"
 
 # -------- 4. 部署移动端 --------
 log "--- 移动端 ---"
 cd "$PROJECT_DIR/mobile"
-npm ci --no-audit --no-fund 2>&1 | tail -2
+install_deps mobile
 npm run build 2>&1 | tail -3
 log "移动端构建完成 → mobile/dist  (Caddy 自动读取)"
 
