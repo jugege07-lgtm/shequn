@@ -74,12 +74,16 @@ else
   npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -3
 fi
 
-# 补齐全量商机种子封面图（若服务器 uploads 缺失则由仓库 seed-assets 补充）
-if [ -d "$PROJECT_DIR/backend/seed-assets/business-covers" ]; then
-  mkdir -p "$PROJECT_DIR/backend/uploads"
-  cp -f "$PROJECT_DIR"/backend/seed-assets/business-covers/*.jpg "$PROJECT_DIR/backend/uploads/" 2>/dev/null || true
-  log "已同步商机种子封面图 → backend/uploads"
-fi
+# 补齐全量种子图（若服务器 uploads 缺失则由仓库 seed-assets 补充）
+# 商机封面 / 商城商品图 / 活动图，统一同步到 backend/uploads
+SEED_DIRS="business-covers product-covers activity-covers"
+for dir in $SEED_DIRS; do
+  if [ -d "$PROJECT_DIR/backend/seed-assets/$dir" ]; then
+    mkdir -p "$PROJECT_DIR/backend/uploads"
+    cp -f "$PROJECT_DIR"/backend/seed-assets/$dir/*.jpg "$PROJECT_DIR/backend/uploads/" 2>/dev/null || true
+    log "已同步种子图 → backend/uploads ($dir)"
+  fi
+done
 
 log "构建后端..."
 npm run build 2>&1 | tail -3
