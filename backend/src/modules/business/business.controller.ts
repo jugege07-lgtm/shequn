@@ -54,6 +54,14 @@ export class BusinessController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @Get('businesses/free-unlock/stats')
+  @ApiOperation({ summary: '获取当前用户免费商机解锁月度统计' })
+  async getFreeUnlockStats(@CurrentUser() user: any) {
+    return { code: 0, data: await this.businessService.getFreeUnlockStats(user.userId) };
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Get('businesses/my')
   @ApiOperation({ summary: '获取我的商机' })
   async getMyBusinesses(@CurrentUser() user: any, @Query() query: any) {

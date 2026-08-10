@@ -38,22 +38,22 @@
             </el-form-item>
           </el-form>
 
-          <el-divider content-position="left">免费商机解锁次数</el-divider>
+          <el-divider content-position="left">每月免费商机解锁次数</el-divider>
           <el-alert type="info" :closable="false" style="margin-bottom: 16px;">
-            <template #title>限制同一用户可免费解锁（解锁费用为 0）的商机数量。普通会员与各 VIP 等级可分别设置，达到上限后需付费解锁或升级会员。</template>
+            <template #title>限制同一用户每月可免费解锁（解锁费用为 0）的商机数量，每月 1 号自动重置。普通会员与各 VIP 等级可分别设置，达到上限后需付费解锁或升级会员。</template>
           </el-alert>
           <el-form label-width="160px" style="max-width: 640px;" v-loading="unlockCfgLoading">
-            <el-form-item label="普通会员解锁次数">
+            <el-form-item label="普通会员每月次数">
               <el-input-number v-model.number="unlockCfg.default" :min="0" :max="1000" style="width: 200px;" />
-              <span class="form-tip">非 VIP 用户可免费解锁的商机次数，0 表示禁止免费解锁</span>
+              <span class="form-tip">非 VIP 用户每月可免费解锁的商机次数，0 表示禁止免费解锁</span>
             </el-form-item>
             <el-form-item
               v-for="lv in vipLevels"
               :key="lv"
-              :label="`VIP ${lv} 级解锁次数`"
+              :label="`VIP ${lv} 级每月次数`"
             >
               <el-input-number v-model.number="unlockCfg.vip[lv]" :min="0" :max="1000" style="width: 200px;" />
-              <span class="form-tip">VIP {{ lv }} 级用户可免费解锁的商机次数，0 表示禁止免费解锁</span>
+              <span class="form-tip">VIP {{ lv }} 级用户每月可免费解锁的商机次数，0 表示禁止免费解锁</span>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="saveUnlockCfg" :loading="unlockCfgSaving">保存解锁次数配置</el-button>
@@ -587,7 +587,7 @@ async function loadUnlockCfg() {
 async function saveUnlockCfg() {
   unlockCfgSaving.value = true
   try {
-    const payload = { value: JSON.stringify({ default: unlockCfg.default, vip: unlockCfg.vip }), description: '免费商机解锁次数配置（普通会员与各VIP等级差异化）' }
+    const payload = { value: JSON.stringify({ default: unlockCfg.default, vip: unlockCfg.vip }), description: '每月免费商机解锁次数配置（按月重置，普通会员与各VIP等级差异化）' }
     await request.put('/admin/config/business_free_unlock', payload)
     ElMessage.success('解锁次数配置保存成功')
   } catch (err: any) {

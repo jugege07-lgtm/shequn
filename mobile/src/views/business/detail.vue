@@ -86,6 +86,19 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <span>解锁后可查看完整联系方式</span>
           </div>
+          <!-- 免费解锁次数提示（仅免费商机显示） -->
+          <div v-if="isFreeBiz && freeUnlock" class="free-unlock-tip">
+            <span class="tip-icon">🎁</span>
+            <span class="tip-text">
+              本月免费解锁剩余 <strong>{{ freeUnlock.remaining }}</strong> / {{ freeUnlock.total }} 次
+            </span>
+            <router-link v-if="freeUnlock.remaining <= 0" to="/vip/index" class="upgrade-link">升级VIP</router-link>
+          </div>
+          <!-- 免费次数耗尽，提示升级VIP -->
+          <div v-if="isFreeBiz && freeUnlock && freeUnlock.remaining <= 0" class="vip-upgrade-banner">
+            <span>本月免费解锁次数已用完</span>
+            <router-link to="/vip/index" class="upgrade-btn">立即升级VIP</router-link>
+          </div>
         </template>
       </div>
 
@@ -98,9 +111,26 @@
 
     <!-- 底部解锁按钮 -->
     <div class="bottom-action" v-if="!isUnlocked">
-      <button class="unlock-btn" :disabled="unlocking" @click="handleUnlock">
+      <div v-if="isFreeBiz && freeUnlock && freeUnlock.remaining > 0" class="price-info-free">
+        <span class="free-label">免费解锁</span>
+        <span class="free-sub">本月剩余 {{ freeUnlock.remaining }} 次</span>
+      </div>
+      <div v-else-if="isFreeBiz && freeUnlock && freeUnlock.remaining <= 0" class="price-info-exhausted">
+        <span class="exhausted-label">免费次数已用完</span>
+        <router-link to="/vip" class="exhausted-upgrade">升级VIP解锁更多</router-link>
+      </div>
+      <div v-else-if="!isFreeBiz" class="price-info-paid">
+        <span class="paid-price" v-html="business.priceHtml"></span>
+        <span class="paid-label">解锁费用</span>
+      </div>
+      <button
+        class="unlock-btn"
+        :class="{ 'btn-free': isFreeBiz && freeUnlock && freeUnlock.remaining > 0, 'btn-exhausted': isFreeBiz && freeUnlock && freeUnlock.remaining <= 0 }"
+        :disabled="unlocking || (isFreeBiz && freeUnlock && freeUnlock.remaining <= 0)"
+        @click="handleUnlock"
+      >
         <svg v-if="!unlocking" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span>{{ unlocking ? '解锁中...' : '解锁联系方式' }}</span>
+        <span>{{ unlockBtnText }}</span>
       </button>
     </div>
 
@@ -117,7 +147,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getBusinessDetail, unlockBusiness, getBusinessUnlockStatus } from '@/api'
+import { getBusinessDetail, unlockBusiness, getBusinessUnlockStatus, getFreeUnlockStats } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
 import { useUserStore } from '@/store/user'
@@ -165,11 +195,13 @@ interface BusinessInfo {
 
 const rawBusiness = ref<BusinessInfo | null>(null)
 const unlocking = ref(false)
-const unlockStatus = ref<{ isUnlocked: boolean; feePaid: number; orderNo: string | null }>({
+const unlockStatus = ref<{ isUnlocked: boolean; feePaid: number; orderNo: string | null; freeUnlock?: any }>({
   isUnlocked: false,
   feePaid: 0,
   orderNo: null,
 })
+// 免费解锁月度统计
+const freeUnlock = ref<{ total: number; used: number; remaining: number; isVip: boolean; vipLevel: number } | null>(null)
 
 // 封面图 URL（统一规范化：绝对 /uploads/ 地址转成 /api/uploads/ 相对路径，避免手机端 localhost 失败）
 const coverImageUrl = computed(() => normalizeImageUrl(rawBusiness.value?.coverImage))
@@ -193,11 +225,26 @@ const isUnlocked = computed(() => {
   if (!b) return false
   // 后端已确认解锁
   if (unlockStatus.value.isUnlocked) return true
-  // 免费商机视为已解锁
-  if (b.unlockFee === 0) return true
-  // 已解锁次数达到上限
+  // 已解锁次数达到上限（所有人可见）
   if (b.maxUnlocks > 0 && b.currentUnlocks >= b.maxUnlocks) return true
   return false
+})
+
+// 是否为免费商机
+const isFreeBiz = computed(() => {
+  const b = rawBusiness.value
+  return !!b && b.unlockFee === 0
+})
+
+// 解锁按钮文案
+const unlockBtnText = computed(() => {
+  if (unlocking.value) return '解锁中...'
+  if (!userStore.isLoggedIn) return '登录后查看联系方式'
+  if (isFreeBiz.value && freeUnlock.value) {
+    if (freeUnlock.value.remaining > 0) return '免费解锁'
+    return '升级VIP解锁更多'
+  }
+  return '立即解锁'
 })
 
 const tagClassMap: Record<string, string> = {
@@ -298,6 +345,9 @@ async function loadUnlockStatus() {
       feePaid: data?.feePaid ?? 0,
       orderNo: data?.orderNo || null,
     }
+    if (data?.freeUnlock) {
+      freeUnlock.value = data.freeUnlock
+    }
   } catch (err: any) {
     console.error('获取解锁状态失败:', err)
   }
@@ -317,6 +367,16 @@ onMounted(async () => {
 
 const handleUnlock = async () => {
   if (!rawBusiness.value || unlocking.value || isUnlocked.value) return
+  // 未登录时跳转登录页
+  if (!userStore.isLoggedIn) {
+    router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`)
+    return
+  }
+  // 免费次数耗尽时，点击跳转到VIP页
+  if (isFreeBiz.value && freeUnlock.value && freeUnlock.value.remaining <= 0) {
+    router.push('/vip/index')
+    return
+  }
   unlocking.value = true
   try {
     const result = await unlockBusiness(rawBusiness.value.id)
@@ -329,7 +389,14 @@ const handleUnlock = async () => {
     if (rawBusiness.value) {
       rawBusiness.value.currentUnlocks++
     }
-    showToast('解锁成功！')
+    // 刷新免费解锁统计并提示剩余次数
+    if (isFreeBiz.value) {
+      await loadUnlockStatus()
+      const remaining = freeUnlock.value?.remaining ?? 0
+      showToast(`解锁成功！本月剩余免费解锁 ${remaining} 次`)
+    } else {
+      showToast('解锁成功！')
+    }
   } catch (err: any) {
     const msg = err?.response?.data?.message || err?.message || '解锁失败，请重试'
     showToast(msg)
@@ -464,4 +531,66 @@ function showToast(msg: string) {
 .unlock-btn:active:not(:disabled) { transform: scale(0.98); background: var(--color-primary-dark); }
 .unlock-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .unlock-btn svg { flex-shrink: 0; }
+.unlock-btn.btn-free { background: #10b981; }
+.unlock-btn.btn-free:active:not(:disabled) { background: #059669; }
+.unlock-btn.btn-exhausted { background: #9ca3af; }
+
+/* 价格信息区 */
+.price-info-free,
+.price-info-exhausted,
+.price-info-paid {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.free-label {
+  font-size: 20px; font-weight: 700; color: #10b981;
+}
+.free-sub {
+  font-size: 13px; color: #6b7280;
+}
+.exhausted-label {
+  font-size: 14px; color: #6b7280;
+}
+.exhausted-upgrade {
+  font-size: 13px; color: var(--color-primary); font-weight: 600;
+  text-decoration: none;
+}
+.paid-price {
+  font-size: 22px; font-weight: 700; color: #ef4444;
+}
+.paid-label {
+  font-size: 13px; color: #6b7280;
+}
+
+/* 免费解锁提示 */
+.free-unlock-tip {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 12px; padding: 10px 14px;
+  background: #ecfdf5; border-radius: 8px;
+  font-size: 13px; color: #065f46;
+}
+.free-unlock-tip .tip-icon { font-size: 16px; }
+.free-unlock-tip .tip-text strong { color: #059669; font-weight: 700; }
+.free-unlock-tip .upgrade-link {
+  margin-left: auto;
+  color: #059669; font-weight: 600; text-decoration: none;
+  padding: 4px 10px; border: 1px solid #059669; border-radius: 12px;
+  font-size: 12px;
+}
+
+/* VIP升级横幅 */
+.vip-upgrade-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px; padding: 12px 14px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 8px;
+  font-size: 13px; color: #92400e;
+  font-weight: 600;
+}
+.vip-upgrade-banner .upgrade-btn {
+  padding: 6px 14px;
+  background: #d97706; color: #fff;
+  border-radius: 16px; font-size: 12px;
+  text-decoration: none;
+}
 </style>

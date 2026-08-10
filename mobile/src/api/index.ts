@@ -155,6 +155,10 @@ export async function getBusinessUnlockStatus(id: number) {
   return request.get(`/api/businesses/${id}/unlock-status`)
 }
 
+export async function getFreeUnlockStats() {
+  return request.get('/api/businesses/free-unlock/stats')
+}
+
 export async function getMyBusinesses(params?: { page?: number; size?: number }) {
   return request.get('/api/businesses/my', { params })
 }

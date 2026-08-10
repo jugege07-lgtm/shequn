@@ -83,13 +83,22 @@ export class BusinessService {
   }
 
   async getUnlockStatus(businessId: number, userId: number) {
-    const unlock = await this.prisma.businessUnlock.findFirst({
-      where: { businessId, userId },
-    });
+    const [unlock, business] = await Promise.all([
+      this.prisma.businessUnlock.findFirst({
+        where: { businessId, userId },
+      }),
+      this.prisma.business.findUnique({ where: { id: businessId } }),
+    ]);
+    // 免费商机：有解锁记录即为已解锁
+    // 付费商机：需 feePaid > 0 才算已解锁（避免待支付订单误判）
+    const isFree = !business?.unlockFee || business.unlockFee <= 0;
+    const isUnlocked = !!unlock && (unlock.feePaid > 0 || isFree);
+    const freeStats = await this.getFreeUnlockStats(userId);
     return {
-      isUnlocked: !!unlock && unlock.feePaid > 0,
+      isUnlocked,
       feePaid: unlock?.feePaid ?? 0,
       orderNo: unlock?.orderNo ?? null,
+      freeUnlock: freeStats,
     };
   }
 
@@ -118,7 +127,7 @@ export class BusinessService {
 
     // 免费商机直接解锁
     if (!business.unlockFee || business.unlockFee <= 0) {
-      // 校验免费商机解锁次数上限（普通会员 / 各VIP等级差异化）
+      // 校验免费商机解锁次数上限（按月重置，普通会员 / 各VIP等级差异化）
       await this.checkFreeUnlockLimit(userId);
 
       const orderNo = `BIZ_FREE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -142,7 +151,8 @@ export class BusinessService {
         console.error('解锁商机积分发放失败:', err);
       }
 
-      return { unlock, needPay: false };
+      const freeUnlock = await this.getFreeUnlockStats(userId);
+      return { unlock, needPay: false, freeUnlock };
     }
 
     // 收费商机：创建待支付订单 + 待解锁记录
@@ -175,17 +185,29 @@ export class BusinessService {
   }
 
   /**
-   * 校验用户免费商机解锁次数上限。
-   * 配置读取系统配置 business_free_unlock：{"default":3,"vip":{"1":5,"2":8}}
-   * - default：普通（非 VIP）会员可解锁的免费商机次数
-   * - vip：各 VIP 等级对应的免费商机解锁次数（未配置的等级回退到 default）
+   * 获取当前月的起止时间（自然月，1号0点 ~ 下月1号0点）
    */
-  private async checkFreeUnlockLimit(userId: number) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('用户不存在');
+  private getMonthRange(now = new Date()): { start: Date; end: Date } {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return { start, end };
+  }
 
+  /**
+   * 获取用户免费商机解锁月度统计。
+   * 返回 total（本月总额度）、used（已用次数）、remaining（剩余次数）、isVip、vipLevel。
+   */
+  async getFreeUnlockStats(userId: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { total: 0, used: 0, remaining: 0, isVip: false, vipLevel: 0 };
+
+    const { start, end } = this.getMonthRange();
     const used = await this.prisma.businessUnlock.count({
-      where: { userId, business: { unlockFee: { lte: 0 } } },
+      where: {
+        userId,
+        feePaid: 0,
+        createdAt: { gte: start, lt: end },
+      },
     });
 
     let cfg: { default: number; vip: Record<string, number> } = { default: 3, vip: {} };
@@ -198,12 +220,31 @@ export class BusinessService {
 
     const now = new Date();
     const isVip = user.vipLevel > 0 && !!user.vipExpireAt && user.vipExpireAt > now;
-    const limit = isVip
+    const vipLevel = isVip ? user.vipLevel : 0;
+    const total = isVip
       ? (cfg.vip?.[String(user.vipLevel)] ?? cfg.default)
       : cfg.default;
+    const remaining = Math.max(0, total - used);
 
-    if (used >= limit) {
-      throw new ForbiddenException('您的免费商机解锁次数已达上限，可升级会员或解锁付费商机');
+    return { total, used, remaining, isVip, vipLevel };
+  }
+
+  /**
+   * 校验用户免费商机解锁次数上限（按月重置）。
+   * 配置读取系统配置 business_free_unlock：{"default":3,"vip":{"1":5,"2":8}}
+   * - default：普通（非 VIP）会员每月可解锁的免费商机次数
+   * - vip：各 VIP 等级每月对应的免费商机解锁次数（未配置的等级回退到 default）
+   */
+  private async checkFreeUnlockLimit(userId: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('用户不存在');
+
+    const stats = await this.getFreeUnlockStats(userId);
+
+    if (stats.used >= stats.total) {
+      throw new ForbiddenException(
+        `本月免费商机解锁次数已用完（${stats.used}/${stats.total}次），升级VIP可获得更多免费解锁次数`,
+      );
     }
   }
 
