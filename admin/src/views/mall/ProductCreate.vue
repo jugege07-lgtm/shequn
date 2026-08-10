@@ -93,23 +93,6 @@
           </el-form-item>
         </div>
 
-        <!-- 商品详情（富文本） -->
-        <div class="form-section">
-          <div class="section-title">
-            <span class="title-bar"></span>
-            商品详情
-          </div>
-          <el-form-item label="详情描述" prop="description" label-width="0">
-            <div class="rich-editor-wrapper">
-              <RichTextEditor
-                v-model="form.description"
-                height="500px"
-                placeholder="请输入商品详情内容,支持文字排版、图片插入、加粗、斜体、链接、列表等富文本操作..."
-              />
-            </div>
-          </el-form-item>
-        </div>
-
         <!-- 积分购买配置 -->
         <div class="form-section">
           <div class="section-title">
@@ -223,6 +206,23 @@
               </el-row>
             </template>
           </div>
+        </div>
+
+        <!-- 商品详情（富文本） -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="title-bar"></span>
+            商品详情
+          </div>
+          <el-form-item label="详情描述" prop="description" label-width="0">
+            <div class="rich-editor-wrapper">
+              <RichTextEditor
+                v-model="form.description"
+                height="500px"
+                placeholder="请输入商品详情内容,支持文字排版、图片插入、加粗、斜体、链接、列表等富文本操作..."
+              />
+            </div>
+          </el-form-item>
         </div>
 
         <!-- 上架设置 -->

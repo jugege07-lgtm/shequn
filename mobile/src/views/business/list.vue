@@ -266,29 +266,24 @@ onUnmounted(() => {
 
 /* ===== Hero Card (title + search) ===== */
 .hero-card {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border-radius: 20px;
-  padding: 20px 18px 16px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 18px;
+  padding: 18px 16px 14px;
   margin-bottom: 12px;
-  box-shadow: 0 10px 26px rgba(99,102,241,0.28);
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 6px 24px rgba(99,102,241,0.10), 0 1px 4px rgba(0,0,0,0.04);
   position: relative;
   overflow: hidden;
 }
 .hero-card::before {
   content: '';
   position: absolute;
-  top: -46px; right: -30px;
-  width: 130px; height: 130px;
+  top: -60px; right: -40px;
+  width: 150px; height: 150px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.12);
-}
-.hero-card::after {
-  content: '';
-  position: absolute;
-  bottom: -38px; left: -20px;
-  width: 90px; height: 90px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.08);
+  background: radial-gradient(circle, rgba(99,102,241,0.10), transparent 70%);
 }
 .hero-title-row {
   display: flex;
@@ -298,34 +293,41 @@ onUnmounted(() => {
   position: relative; z-index: 1;
 }
 .hero-title-row h2 {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 800;
-  color: #fff;
   letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 .hero-sub {
   font-size: 12px;
-  color: rgba(255,255,255,0.85);
+  color: var(--color-text-tertiary);
   font-weight: 500;
 }
 .search-box {
-  background: rgba(255,255,255,0.16);
-  border-radius: 14px;
+  background: rgba(99,102,241,0.06);
+  border-radius: 12px;
   padding: 10px 14px;
   position: relative; z-index: 1;
-  border: 1px solid rgba(255,255,255,0.22);
-  backdrop-filter: blur(4px);
+  border: 1px solid rgba(99,102,241,0.12);
+  transition: border-color 0.2s, background 0.2s;
+}
+.search-box:focus-within {
+  border-color: rgba(99,102,241,0.35);
+  background: rgba(99,102,241,0.08);
 }
 .search-box input {
   width: 100%;
   border: none;
   background: transparent;
   font-size: 14px;
-  color: #fff;
+  color: var(--color-text-primary);
   outline: none;
 }
 .search-box input::placeholder {
-  color: rgba(255,255,255,0.7);
+  color: var(--color-text-tertiary);
 }
 .search-box input::-webkit-search-cancel-button {
   -webkit-appearance: none;

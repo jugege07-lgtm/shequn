@@ -1,20 +1,5 @@
 <template>
   <div class="phone-frame">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-left">
-        <div class="back-btn" @click="$router.push('/')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </div>
-        <span class="header-title">会员商城</span>
-      </div>
-      <div class="header-right">
-        <div class="header-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        </div>
-      </div>
-    </div>
-
     <div class="main-scroll">
       <!-- Banner -->
       <div class="mall-banner">

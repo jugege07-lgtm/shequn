@@ -1,32 +1,16 @@
 <template>
   <div class="phone-frame">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-left">
-        <div class="back-btn" @click="$router.push('/')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        </div>
-        <span class="header-title">商机大厅</span>
-      </div>
-      <div class="header-right">
-        <div class="header-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        </div>
-        <div class="header-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-        </div>
-      </div>
-    </div>
-
     <div class="main-scroll">
-      <!-- Search Bar -->
-      <div class="search-bar">
-        <div class="search-container">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <!-- Hero Card (title + search) -->
+      <div class="hero-card">
+        <div class="hero-title-row">
+          <h2>商机大厅</h2>
+          <span class="hero-sub">发现优质商机 · 对接资源</span>
+        </div>
+        <div class="search-box">
           <input
             v-model="searchKeyword"
             type="search"
-            class="search-input"
             placeholder="搜索商机、项目、合作方..."
             @input="debounceSearch"
           />
@@ -108,6 +92,11 @@
         </div>
         <div v-else-if="!hasMore && filteredOpportunities.length > 0 && !searchKeyword.trim()" class="load-end">已经到底了～</div>
       </div>
+    </div>
+
+    <!-- Floating Publish Button -->
+    <div class="fab" @click="$router.push('/business/publish')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
     </div>
 
     <!-- TabBar -->
@@ -397,5 +386,98 @@ onUnmounted(() => {
 @keyframes chip-pulse {
   0% { transform: scale(0.96); }
   100% { transform: scale(1); }
+}
+
+/* ===== Hero Card (title + search) ===== */
+.hero-card {
+  background: linear-gradient(135deg, #6d7cf6 0%, #8b5cf6 55%, #a78bfa 100%);
+  border-radius: 18px;
+  padding: 18px 16px 14px;
+  margin: 12px 16px 0;
+  box-shadow: 0 10px 28px rgba(99,102,241,0.32), 0 2px 6px rgba(0,0,0,0.06);
+  position: relative;
+  overflow: hidden;
+}
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -40px;
+  width: 150px; height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.22), transparent 70%);
+}
+.hero-card::after {
+  content: '';
+  position: absolute;
+  bottom: -38px; left: -20px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.14), transparent 70%);
+}
+.hero-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  position: relative; z-index: 1;
+}
+.hero-title-row h2 {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+.hero-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+}
+.search-box {
+  background: rgba(255,255,255,0.18);
+  border-radius: 12px;
+  padding: 10px 14px;
+  position: relative; z-index: 1;
+  border: 1px solid rgba(255,255,255,0.28);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  transition: background 0.2s, border-color 0.2s;
+}
+.search-box:focus-within {
+  background: rgba(255,255,255,0.26);
+  border-color: rgba(255,255,255,0.45);
+}
+.search-box input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #fff;
+  outline: none;
+}
+.search-box input::placeholder {
+  color: rgba(255,255,255,0.75);
+}
+
+/* ===== Floating Action Button ===== */
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.45), 0 2px 6px rgba(0,0,0,0.12);
+  cursor: pointer;
+  z-index: 210;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.fab svg { width: 26px; height: 26px; }
+.fab:active {
+  transform: scale(0.92);
+  box-shadow: 0 4px 12px rgba(99,102,241,0.35);
 }
 </style>
