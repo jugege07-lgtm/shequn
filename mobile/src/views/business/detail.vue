@@ -8,7 +8,7 @@
         <span class="header-title">商机详情</span>
       </div>
       <div class="header-right">
-        <div class="header-icon">
+        <div class="header-icon" @click="openShare">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </div>
       </div>
@@ -103,6 +103,14 @@
         <span>{{ unlocking ? '解锁中...' : '解锁联系方式' }}</span>
       </button>
     </div>
+
+    <!-- 分享面板 -->
+    <ShareSheet
+      v-model="shareOpen"
+      :share="shareContent"
+      :referrer-id="userStore.userInfo?.id"
+      :referrer-name="userStore.userInfo?.nickname || userStore.userInfo?.realName"
+    />
   </div>
 </template>
 
@@ -112,9 +120,31 @@ import { useRoute, useRouter } from 'vue-router'
 import { getBusinessDetail, unlockBusiness, getBusinessUnlockStatus } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
+import { useUserStore } from '@/store/user'
+import ShareSheet from '@/components/ShareSheet.vue'
+import type { ShareContent } from '@/utils/share'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
+
+// ===== 分享 =====
+const shareOpen = ref(false)
+const shareContent = ref<ShareContent | null>(null)
+function openShare() {
+  const b = rawBusiness.value
+  if (!b) return
+  shareContent.value = {
+    type: 'business',
+    title: b.title || '',
+    desc: '优质商机分享，把握商机从现在开始！',
+    image: b.coverImage,
+    meta: [business.value.publisher, business.value.date].filter(Boolean),
+    price: business.value.priceHtml,
+    path: `/business/detail/${b.id}`,
+  }
+  shareOpen.value = true
+}
 
 interface BusinessInfo {
   id: number

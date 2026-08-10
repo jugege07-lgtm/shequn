@@ -5,6 +5,11 @@
         <div class="back-btn" @click="$router.back()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></div>
         <span class="header-title">商品详情</span>
       </div>
+      <div class="header-right">
+        <div class="header-icon" @click="openShare">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </div>
+      </div>
     </div>
     <div class="main-scroll" v-loading="loading">
       <div class="product-cover" v-if="product.coverImage">
@@ -93,6 +98,14 @@
       <!-- 普通购买入口（非纯积分时显示） -->
       <button v-else class="buy-btn" @click="handleBuy">立即购买</button>
     </div>
+
+    <!-- 分享面板 -->
+    <ShareSheet
+      v-model="shareOpen"
+      :share="shareContent"
+      :referrer-id="userStore.userInfo?.id"
+      :referrer-name="userStore.userInfo?.nickname || userStore.userInfo?.realName"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -100,15 +113,38 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProduct, addToCart } from '@/api'
 import { useCartStore } from '@/store/cart'
+import { useUserStore } from '@/store/user'
+import ShareSheet from '@/components/ShareSheet.vue'
+import type { ShareContent } from '@/utils/share'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
+const userStore = useUserStore()
 const product = ref<any>({})
 const loading = ref(true)
 const adding = ref(false)
 const pointsBuying = ref(false)
 const quantity = ref(1)
+
+// ===== 分享 =====
+const shareOpen = ref(false)
+const shareContent = ref<ShareContent | null>(null)
+function openShare() {
+  const p = product.value
+  if (!p?.name) return
+  const price = Number(p.price) || 0
+  shareContent.value = {
+    type: 'product',
+    title: p.name || '',
+    desc: '精选好物推荐，快来抢购吧！',
+    image: p.coverImage,
+    meta: [],
+    price: price === 0 ? '免费' : `¥${price}`,
+    path: `/mall/detail/${p.id}`,
+  }
+  shareOpen.value = true
+}
 
 // ===== 积分购买配置派生 =====
 /** 每件所需积分（纯积分模式） */

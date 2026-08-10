@@ -305,6 +305,20 @@ async function sendRegCode() {
   }
 }
 
+// 提取推荐人 ID：优先取 route.query.referrer，其次从 redirect（如 /activity/detail/3?referrer=5）中解析
+function extractReferrerId(): number | undefined {
+  const read = (raw: unknown): number | undefined => {
+    if (typeof raw !== 'string') return undefined
+    const n = Number(raw)
+    return Number.isInteger(n) && n > 0 ? n : undefined
+  }
+  const direct = read(route.query.referrer)
+  if (direct) return direct
+  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+  const m = redirect.match(/[?&]referrer=(\d+)/)
+  return m ? read(m[1]) : undefined
+}
+
 async function handleRegister() {
   if (!validateRegForm()) return
   regLoading.value = true
@@ -316,6 +330,7 @@ async function handleRegister() {
       nickname: regForm.nickname,
       company: regForm.company,
       position: regForm.position,
+      referrerId: extractReferrerId(),
     })
     // 通过 user store 统一管理凭证持久化
     userStore.setToken(res.accessToken, res.refreshToken)

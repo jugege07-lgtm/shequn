@@ -102,6 +102,14 @@
         {{ signupBtnText }}
       </button>
     </div>
+
+    <!-- 分享面板 -->
+    <ShareSheet
+      v-model="shareOpen"
+      :share="shareContent"
+      :referrer-id="userStore.userInfo?.id"
+      :referrer-name="userStore.userInfo?.nickname || userStore.userInfo?.realName"
+    />
   </div>
 </template>
 
@@ -111,9 +119,32 @@ import { useRoute, useRouter } from 'vue-router'
 import { getActivityDetail, signupActivity, getActivitySignupStatus } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
+import { useUserStore } from '@/store/user'
+import ShareSheet from '@/components/ShareSheet.vue'
+import type { ShareContent } from '@/utils/share'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
+
+// ===== 分享 =====
+const shareOpen = ref(false)
+const shareContent = ref<ShareContent | null>(null)
+function shareActivity() {
+  const a = rawActivity.value
+  if (!a) return
+  const u = userStore.userInfo
+  shareContent.value = {
+    type: 'activity',
+    title: a.title || '',
+    desc: '优质活动推荐，快来看看吧！',
+    image: a.coverImage,
+    meta: [activity.value.date, activity.value.location].filter(Boolean),
+    price: activity.value.priceHtml,
+    path: `/activity/detail/${a.id}`,
+  }
+  shareOpen.value = true
+}
 
 // ===== 主图自适应 =====
 const coverImgEl = ref<HTMLImageElement | null>(null)
@@ -329,10 +360,6 @@ function goBack() {
   } else {
     router.replace('/activity/list')
   }
-}
-
-function shareActivity() {
-  showToast('分享功能开发中')
 }
 
 // 打开系统地图并定位到活动地点（兼容 iOS / Android 双平台）

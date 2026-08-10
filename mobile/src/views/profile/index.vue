@@ -12,9 +12,12 @@
     <div class="main-scroll" v-loading="loading">
       <!-- Member Card -->
       <div class="member-card">
-        <div class="mc-mesh mc-mesh-1"></div>
-        <div class="mc-mesh mc-mesh-2"></div>
-        <div class="mc-glow"></div>
+        <!-- 与首页 banner 一致的漂浮白色圆点 -->
+        <div class="mc-shapes">
+          <div class="mc-shape s1"></div>
+          <div class="mc-shape s2"></div>
+          <div class="mc-shape s3"></div>
+        </div>
 
         <div class="mc-top">
           <div class="mc-avatar" :style="{ background: avatarBg }">
@@ -36,11 +39,12 @@
           </div>
         </div>
 
-        <div class="mc-divider"></div>
-
-        <div class="mc-bottom">
-          <div class="mc-bottom-label">会员ID</div>
-          <div class="mc-id">{{ memberId }}</div>
+        <!-- 底部渐变遮罩——呼应首页 banner-overlay -->
+        <div class="mc-overlay">
+          <div class="mc-bottom">
+            <div class="mc-bottom-label">会员ID</div>
+            <div class="mc-id">{{ memberId }}</div>
+          </div>
         </div>
       </div>
 
@@ -460,36 +464,25 @@ onMounted(() => {
   z-index: 1;
 }
 
-/* Member Card */
+/* Member Card — 上部分与首页 banner 呼应，右下角过渡到香槟金 */
 .member-card {
   position: relative;
   overflow: hidden;
   height: 200px;
   margin-bottom: 16px;
-  padding: 22px 20px 18px;
+  padding: 22px 20px 16px;
   border-radius: 20px;
-  background: linear-gradient(150deg, #f6f1ec 0%, #faf7f2 45%, #f3ece4 100%);
-  box-shadow: 0 10px 30px rgba(90, 60, 30, 0.10), inset 0 1px 0 rgba(255,255,255,0.7);
-  border: 1px solid rgba(212,175,122,0.22);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 32%, #a78bfa 52%, #e8e4f6 78%, #ffffff 100%);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.18);
+  border: 1px solid rgba(255,255,255,0.25);
   display: flex; flex-direction: column; justify-content: space-between;
 }
-.mc-mesh {
-  position: absolute; border-radius: 50%;
-  filter: blur(1px);
-}
-.mc-mesh-1 {
-  width: 220px; height: 220px; top: -90px; right: -60px;
-  background: radial-gradient(circle, rgba(212,175,122,0.28) 0%, rgba(212,175,122,0) 70%);
-}
-.mc-mesh-2 {
-  width: 160px; height: 160px; bottom: -70px; left: -50px;
-  background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0) 70%);
-}
-.mc-glow {
-  position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, transparent, #d4af7a, transparent);
-  opacity: 0.8;
-}
+/* 与首页 banner 一致的漂浮白色圆点 */
+.mc-shapes { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.mc-shape { position: absolute; border-radius: 50%; background: #fff; }
+.mc-shape.s1 { width: 200px; height: 200px; top: -60px; right: -40px; opacity: 0.15; }
+.mc-shape.s2 { width: 140px; height: 140px; bottom: -30px; left: -20px; opacity: 0.15; }
+.mc-shape.s3 { width: 80px; height: 80px; top: 44px; left: 92px; opacity: 0.15; }
 .mc-top {
   position: relative; z-index: 1;
   display: flex; align-items: center; gap: 14px;
@@ -497,25 +490,27 @@ onMounted(() => {
 .mc-avatar {
   width: 64px; height: 64px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 28px; font-weight: 700; color: #8a6d3b;
-  border: 2px solid rgba(212,175,122,0.6); overflow: hidden;
-  background: #ede9fe; flex-shrink: 0;
+  font-size: 28px; font-weight: 700; color: #7c3aed;
+  border: 2px solid rgba(255,255,255,0.6); overflow: hidden;
+  background: #ffffff; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
 }
 .avatar-img { width: 100%; height: 100%; object-fit: cover; }
 .mc-meta { flex: 1; min-width: 0; }
-.mc-name { font-size: 21px; font-weight: 800; color: #2b2320; letter-spacing: -0.3px; margin-bottom: 8px; }
+.mc-name { font-size: 21px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; margin-bottom: 8px; }
 .mc-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .mc-vip {
-  font-size: 11px; font-weight: 700; color: #8a6d3b;
+  font-size: 11px; font-weight: 700; color: #4f46e5;
   padding: 3px 10px; border-radius: 99px;
-  background: linear-gradient(135deg, #f0e2c8, #e7d3ac);
-  border: 1px solid rgba(212,175,122,0.5);
+  background: #ffffff;
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
 }
 .mc-tag {
-  font-size: 11px; font-weight: 600; color: #6b7280;
+  font-size: 11px; font-weight: 600; color: #ffffff;
   padding: 3px 10px; border-radius: 99px;
-  background: rgba(255,255,255,0.6);
-  border: 1px solid rgba(120,90,40,0.12);
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
 }
 .mc-top-right {
   display: flex; flex-direction: column; align-items: center;
@@ -525,35 +520,37 @@ onMounted(() => {
   width: 30px; height: 30px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: #8a6d3b; cursor: pointer;
-  background: rgba(255,255,255,0.6);
-  border: 1px solid rgba(212,175,122,0.35);
+  color: #ffffff; cursor: pointer;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
   transition: all 0.2s ease;
 }
 .mc-menu-btn:active {
-  background: rgba(212,175,122,0.25);
+  background: rgba(255,255,255,0.35);
   transform: scale(0.92);
 }
 .mc-menu-btn svg { width: 16px; height: 16px; }
 .mc-brand {
   font-size: 11px; font-weight: 700; letter-spacing: 2px;
-  color: rgba(139,92,246,0.5); writing-mode: vertical-rl;
+  color: rgba(255,255,255,0.75); writing-mode: vertical-rl;
   text-transform: uppercase; display: flex; align-items: center;
 }
-.mc-divider {
-  position: relative; z-index: 1;
-  height: 1px; margin: 4px 0;
-  background: linear-gradient(90deg, rgba(212,175,122,0.4), rgba(255,255,255,0));
+/* 底部渐变遮罩——呼应首页 banner-overlay（弱化，贴合白色右下角） */
+.mc-overlay {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 30px 20px 16px;
+  border-radius: 0 0 20px 20px;
+  background: linear-gradient(to top, rgba(99,102,241,0.1) 0%, transparent 100%);
 }
 .mc-bottom {
   position: relative; z-index: 1;
   display: flex; align-items: baseline; gap: 12px;
 }
-.mc-bottom-label { font-size: 12px; color: #8a6d3b; font-weight: 600; letter-spacing: 1px; }
+.mc-bottom-label { font-size: 12px; color: rgba(79,70,229,0.75); font-weight: 600; letter-spacing: 1px; }
 .mc-id {
   font-family: 'Courier New', monospace;
   font-size: 18px; font-weight: 600; letter-spacing: 1px;
-  color: #9ca3af;
+  color: #4338ca;
 }
 
 /* Data Cards */
