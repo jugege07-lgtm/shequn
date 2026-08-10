@@ -139,12 +139,20 @@ async function main() {
 
   console.log(`  使用发布者: ${adminUser.nickname || adminUser.realName || `用户${adminUser.id}`} (ID: ${adminUser.id})`);
 
-  // 3. 直接创建 8 条商机记录（追加模式）
-  console.log(`  当前已有商机数据，追加创建 ${businesses.length} 条新记录...`);
+  // 3. 幂等创建 8 条商机记录（按标题判断，已存在则跳过，可重复执行）
+  console.log(`  开始同步 ${businesses.length} 条商机记录（幂等）...`);
 
   // 4. 创建商机记录
+  let created = 0;
+  let skipped = 0;
   for (const biz of businesses) {
     const categoryId = categoryMap[biz.categoryCode];
+    const exists = await prisma.business.findFirst({ where: { title: biz.title } });
+    if (exists) {
+      console.log(`  - 跳过（已存在）: ${biz.title}`);
+      skipped++;
+      continue;
+    }
     await prisma.business.create({
       data: {
         title: biz.title,
@@ -163,11 +171,11 @@ async function main() {
     });
     const feeLabel = biz.unlockFee === 0 ? '免费' : `¥${biz.unlockFee}`;
     console.log(`  ✓ 创建商机: ${biz.title} (${feeLabel})`);
+    created++;
   }
 
-  console.log(`\n成功创建 ${businesses.length} 条商机记录！`);
-  console.log(`  免费商机: ${businesses.filter(b => b.unlockFee === 0).length} 条`);
-  console.log(`  付费商机: ${businesses.filter(b => b.unlockFee > 0).length} 条`);
+  console.log(`\n本次新增 ${created} 条，跳过 ${skipped} 条。`);
+  console.log(`  免费商机: ${businesses.filter(b => b.unlockFee === 0).length} 条，付费商机: ${businesses.filter(b => b.unlockFee > 0).length} 条`);
 }
 
 main()

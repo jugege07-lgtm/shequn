@@ -171,6 +171,15 @@ for i in 1 2 3 4 5; do
   fi
 done
 
+# -------- 5.5 商机种子数据（幂等，同步到线上数据库）--------
+log "同步商机种子数据..."
+cd "$PROJECT_DIR/backend"
+if npx ts-node prisma/seed-businesses.ts 2>&1 | tee -a "$DEPLOY_LOG"; then
+  log "✅ 商机种子数据同步完成"
+else
+  warn "商机种子数据同步失败（不影响主流程，可后续手动重试）"
+fi
+
 # -------- 6. 清理临时文件 --------
 rm -f "$SRC_TAR"
 log "已清理临时源码包"
