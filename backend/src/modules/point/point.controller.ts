@@ -38,7 +38,7 @@ export class PointController {
   // ===== 管理端接口（需要 admin 角色）=====
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Get('admin/point-rules')
   @ApiOperation({ summary: '获取所有积分规则' })
   async getAllRules(@Query() query: any) {
@@ -47,7 +47,7 @@ export class PointController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Get('admin/point-rules/all')
   @ApiOperation({ summary: '获取所有积分规则（不分页，用于下拉选择）' })
   async getAllRulesFlat() {
@@ -56,7 +56,7 @@ export class PointController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Post('admin/point-rules')
   @ApiOperation({ summary: '创建积分规则' })
   async createRule(@Body() data: any) {
@@ -65,7 +65,7 @@ export class PointController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Put('admin/point-rules/:id')
   @ApiOperation({ summary: '更新积分规则' })
   async updateRule(@Param('id') id: string, @Body() data: any) {
@@ -74,7 +74,7 @@ export class PointController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Delete('admin/point-rules/:id')
   @ApiOperation({ summary: '删除积分规则' })
   async deleteRule(@Param('id') id: string) {
@@ -84,7 +84,7 @@ export class PointController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Put('admin/point-rules/sort-orders')
   @ApiOperation({ summary: '批量更新排序权重（拖拽排序）' })
   async updateSortOrders(@Body('updates') updates: { id: number; sortOrder: number }[]) {
@@ -93,7 +93,7 @@ export class PointController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Put('admin/point-rules/priorities')
   @ApiOperation({ summary: '批量更新优先级（拖拽排序）' })
   async updatePriorities(@Body('updates') updates: { id: number; priority: number }[]) {
@@ -102,7 +102,7 @@ export class PointController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Get('admin/point-logs')
   @ApiOperation({ summary: '获取所有积分明细' })
   async getAllLogs(@Query() query: any) {
@@ -111,7 +111,7 @@ export class PointController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Put('admin/points/adjust')
   @ApiOperation({ summary: '手动调整用户积分' })
   async adjustPoints(@Body('userId') userId: number, @Body('points') points: number, @Body('remark') remark: string) {

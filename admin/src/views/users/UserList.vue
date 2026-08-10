@@ -19,7 +19,7 @@
         </el-table-column>
         <el-table-column prop="nickname" label="昵称" width="150" />
         <el-table-column label="手机号" width="150">
-          <template #default="{ row }">{{ row.phone ? '***' + row.phone.slice(-4) : '-' }}</template>
+          <template #default="{ row }">{{ row.phone || '-' }}</template>
         </el-table-column>
         <el-table-column label="角色" width="180">
           <template #default="{ row }">
@@ -263,7 +263,7 @@
           <el-avatar :size="40" :src="roleTargetUser?.avatarUrl" />
           <div>
             <div class="role-target-name">{{ roleTargetUser?.nickname || `用户 #${roleTargetUser?.id}` }}</div>
-            <div class="role-target-phone">{{ roleTargetUser?.phone ? '***' + roleTargetUser.phone.slice(-4) : '' }}</div>
+            <div class="role-target-phone">{{ roleTargetUser?.phone || '' }}</div>
           </div>
         </div>
 
@@ -640,7 +640,7 @@ async function deleteUser(id: number) {
 
 function openPasswordDialog(row: any) {
   passwordForm.userId = row.id
-  passwordForm.userLabel = `${row.nickname || ''}（${row.phone ? '***' + row.phone.slice(-4) : row.id}）`
+  passwordForm.userLabel = `${row.nickname || ''}（${row.phone || row.id}）`
   passwordForm.password = ''
   passwordForm.confirmPassword = ''
   nextTick(() => {

@@ -19,67 +19,67 @@
           :collapse-transition="false"
           class="nav-menu"
         >
-          <el-menu-item index="/dashboard">
+          <el-menu-item v-if="menuVisible(['admin','editor','moderator','operator'])" index="/dashboard">
             <el-icon><DataAnalysis /></el-icon>
             <template #title>数据看板</template>
           </el-menu-item>
-          <el-menu-item index="/users">
+          <el-menu-item v-if="menuVisible(['admin'])" index="/users">
             <el-icon><User /></el-icon>
             <template #title>用户管理</template>
           </el-menu-item>
-          <el-menu-item index="/activities">
+          <el-menu-item v-if="menuVisible(['admin','editor','moderator','operator'])" index="/activities">
             <el-icon><Calendar /></el-icon>
             <template #title>活动管理</template>
           </el-menu-item>
-          <el-menu-item index="/businesses">
+          <el-menu-item v-if="menuVisible(['admin','editor','moderator','operator'])" index="/businesses">
             <el-icon><Connection /></el-icon>
             <template #title>商机管理</template>
           </el-menu-item>
-          <el-menu-item index="/products">
+          <el-menu-item v-if="menuVisible(['admin','editor'])" index="/products">
             <el-icon><Goods /></el-icon>
             <template #title>商品管理</template>
           </el-menu-item>
-          <el-menu-item index="/orders">
+          <el-menu-item v-if="menuVisible(['admin','operator'])" index="/orders">
             <el-icon><List /></el-icon>
             <template #title>订单管理</template>
           </el-menu-item>
-          <el-menu-item index="/vip">
+          <el-menu-item v-if="menuVisible(['admin','operator'])" index="/vip">
             <el-icon><TrophyBase /></el-icon>
             <template #title>VIP管理</template>
           </el-menu-item>
-          <el-menu-item index="/notifications">
+          <el-menu-item v-if="menuVisible(['admin','operator'])" index="/notifications">
             <el-icon><Bell /></el-icon>
             <template #title>消息管理</template>
           </el-menu-item>
-          <el-menu-item index="/banners">
+          <el-menu-item v-if="menuVisible(['admin','operator'])" index="/banners">
             <el-icon><Picture /></el-icon>
             <template #title>Banner管理</template>
           </el-menu-item>
-          <el-menu-item index="/coupons">
+          <el-menu-item v-if="menuVisible(['admin','operator'])" index="/coupons">
             <el-icon><Ticket /></el-icon>
             <template #title>优惠券管理</template>
           </el-menu-item>
-          <el-menu-item index="/category-management">
+          <el-menu-item v-if="menuVisible(['admin','editor'])" index="/category-management">
             <el-icon><Notebook /></el-icon>
             <template #title>商机分类</template>
           </el-menu-item>
-          <el-menu-item index="/product-category-management">
+          <el-menu-item v-if="menuVisible(['admin','editor'])" index="/product-category-management">
             <el-icon><GoodsFilled /></el-icon>
             <template #title>商品分类</template>
           </el-menu-item>
-          <el-menu-item index="/points/rules">
+          <el-menu-item v-if="menuVisible(['admin','operator'])" index="/points/rules">
             <el-icon><Coin /></el-icon>
             <template #title>积分规则</template>
           </el-menu-item>
-          <el-menu-item index="/points/logs">
+          <el-menu-item v-if="menuVisible(['admin','operator'])" index="/points/logs">
             <el-icon><Document /></el-icon>
             <template #title>积分明细</template>
           </el-menu-item>
-          <el-menu-item index="/bigscreen">
+          <el-menu-item v-if="menuVisible(['admin','editor','moderator','operator'])" index="/bigscreen">
             <el-icon><Monitor /></el-icon>
             <template #title>数据大屏</template>
           </el-menu-item>
-          <el-menu-item index="/settings">
+          <el-menu-item v-if="menuVisible(['admin'])" index="/settings">
             <el-icon><Setting /></el-icon>
             <template #title>系统设置</template>
           </el-menu-item>
@@ -109,7 +109,7 @@
           <el-dropdown>
             <span class="user-info">
               <el-icon><UserFilled /></el-icon>
-              <span>管理员</span>
+              <span>{{ currentUserName }}</span>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -133,6 +133,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useThemeStore } from '@/store/theme'
+import { menuVisible, getAdminUser, clearAdminUser } from '@/utils/permission'
 
 const route = useRoute()
 const router = useRouter()
@@ -140,6 +141,7 @@ const themeStore = useThemeStore()
 
 const currentRoute = computed(() => route.path)
 const isCollapsed = computed(() => (route.query.collapsed as string) === '1')
+const currentUserName = computed(() => getAdminUser()?.nickname || '管理员')
 const breadcrumb = computed(() => {
   const map: Record<string, string> = {
     '/dashboard': '数据看板',
@@ -163,6 +165,8 @@ const breadcrumb = computed(() => {
 
 const handleLogout = () => {
   localStorage.removeItem('admin_token')
+  localStorage.removeItem('admin_refreshToken')
+  clearAdminUser()
   router.push('/login')
 }
 </script>

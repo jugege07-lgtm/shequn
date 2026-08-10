@@ -5,12 +5,12 @@
         <div class="card-header">
           <span>活动管理</span>
           <div class="header-actions">
-            <el-popconfirm title="确定清空所有活动报名数据？报名记录将被删除，活动仍保留。" @confirm="clearAllSignups">
+            <el-popconfirm v-if="canOperator" title="确定清空所有活动报名数据？报名记录将被删除，活动仍保留。" @confirm="clearAllSignups">
               <template #reference>
                 <el-button type="danger" size="small">清空报名</el-button>
               </template>
             </el-popconfirm>
-            <el-button type="primary" @click="$router.push('/activities/create')">新增活动</el-button>
+            <el-button v-if="canEdit" type="primary" @click="$router.push('/activities/create')">新增活动</el-button>
           </div>
         </div>
       </template>
@@ -54,19 +54,33 @@
             <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="420" fixed="right">
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="success" v-if="row.status === 'pending'" @click="approve(row.id)">通过</el-button>
-            <el-button size="small" type="danger" v-if="row.status === 'pending'" @click="showRejectDialog(row)">拒绝</el-button>
-            <el-button size="small" @click="viewDetail(row.id)">详情</el-button>
-            <el-button size="small" type="primary" @click="$router.push(`/activities/create?id=${row.id}`)">编辑</el-button>
-            <el-button size="small" type="info" @click="toggleStatus(row)">
-              {{ row.status === 'approved' ? '下架' : '上架' }}
-            </el-button>
-            <el-button size="small" type="warning" @click="clearSingleSignup(row.id)">清报名</el-button>
-            <el-button size="small" @click="exportSignups(row.id, row.title)">导出报名</el-button>
-            <el-button size="small" type="success" plain @click="showQrCode(row)">核销码</el-button>
-            <el-button size="small" type="danger" @click="deleteActivity(row.id)">删除</el-button>
+            <div class="op-cell">
+              <!-- 主操作按钮：编辑 / 下架 -->
+              <el-button v-if="canEdit" size="small" type="primary" @click="$router.push(`/activities/create?id=${row.id}`)">编辑</el-button>
+              <el-button v-if="canReview" size="small" type="info" @click="toggleStatus(row)">
+                {{ row.status === 'approved' ? '下架' : '上架' }}
+              </el-button>
+              <!-- 主操作按钮：核销码 / 导出报名 -->
+              <el-button size="small" type="success" plain @click="showQrCode(row)">核销码</el-button>
+              <el-button size="small" @click="exportSignups(row.id, row.title)">导出报名</el-button>
+              <!-- 其余功能收折至“更多”下拉 -->
+              <el-dropdown trigger="click" @command="(cmd: string) => handleMore(row, cmd)">
+                <el-button size="small" link type="primary">
+                  更多<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item v-if="row.status === 'pending' && canReview" command="approve">通过</el-dropdown-item>
+                    <el-dropdown-item v-if="row.status === 'pending' && canReview" command="reject">拒绝</el-dropdown-item>
+                    <el-dropdown-item command="detail">详情</el-dropdown-item>
+                    <el-dropdown-item v-if="canOperator" command="clearSignup" divided>清报名</el-dropdown-item>
+                    <el-dropdown-item v-if="canEdit" command="delete" divided>删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -108,7 +122,9 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
 import request from '@/api/request'
+import { hasAnyRole } from '@/utils/permission'
 
 const router = useRouter()
 const activeTab = ref('')
@@ -124,9 +140,35 @@ const qrVisible = ref(false)
 const qrDataUrl = ref('')
 const qrFilename = ref('核销二维码.png')
 
+// 角色权限：审核=admin/moderator，运营=admin/operator，内容编辑=admin/editor
+const canReview = hasAnyRole(['admin', 'moderator'])
+const canOperator = hasAnyRole(['admin', 'operator'])
+const canEdit = hasAnyRole(['admin', 'editor'])
+
 const getStatusType = (s: string) => ({ pending: 'warning', approved: 'success', rejected: 'danger', offline: 'info', ended: 'info' }[s] || 'info')
 const getStatusText = (s: string) => ({ pending: '待审核', approved: '已发布', rejected: '已拒绝', offline: '已下架', ended: '已结束' }[s] || s)
 const formatDate = (d: string) => d ? new Date(d).toLocaleString('zh-CN') : '-'
+
+/** “更多”下拉菜单命令分发 */
+function handleMore(row: any, cmd: string) {
+  switch (cmd) {
+    case 'approve':
+      approve(row.id)
+      break
+    case 'reject':
+      showRejectDialog(row)
+      break
+    case 'detail':
+      viewDetail(row.id)
+      break
+    case 'clearSignup':
+      clearSingleSignup(row.id)
+      break
+    case 'delete':
+      deleteActivity(row.id)
+      break
+  }
+}
 
 async function fetchActivities() {
   loading.value = true
@@ -266,4 +308,6 @@ onMounted(fetchActivities)
 <style scoped>
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .header-actions { display: flex; gap: 8px; }
+.op-cell { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.op-cell .el-button + .el-button { margin-left: 0; }
 </style>

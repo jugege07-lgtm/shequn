@@ -31,7 +31,7 @@ export class AuthService {
     const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456';
 
     let user = await this.prisma.user.findFirst({
-      where: { nickname: ADMIN_USERNAME, role: 'admin' },
+      where: { nickname: ADMIN_USERNAME, role: { contains: 'admin' } },
     });
 
     if (!user) {
@@ -54,6 +54,7 @@ export class AuthService {
       });
     }
 
+    // 验证密码（默认管理员未设置密码时使用环境变量默认值）
     const passwordToCheck = user.password || ADMIN_PASSWORD;
     const passwordMatch = await bcrypt.compare(dto.password, passwordToCheck);
     if (!passwordMatch) {
@@ -71,7 +72,72 @@ export class AuthService {
         id: user.id,
         nickname: user.nickname,
         avatarUrl: user.avatarUrl,
+        phone: user.phone,
         role: user.role,
+        roles: String(user.role || '').split(',').map((s) => s.trim()).filter(Boolean),
+        adminLevel: user.adminLevel,
+      },
+    };
+  }
+
+  // ========== 后台角色账号登录（编辑/审核/运营/管理员） ==========
+  async staffLogin(dto: AdminLoginDto): Promise<{ accessToken: string; refreshToken: string; user: any }> {
+    const username = (dto.username || '').trim();
+    if (!username) throw new UnauthorizedException('请输入用户名');
+    const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456';
+
+    // 按昵称或手机号查找（后台角色账号）
+    let user = await this.prisma.user.findFirst({
+      where: { OR: [{ nickname: username }, { phone: username }] },
+    });
+
+    // 兼容默认管理员首次登录
+    if (!user && username === ADMIN_USERNAME) {
+      const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+      user = await this.prisma.user.create({
+        data: {
+          openid: 'admin_fixed_' + Date.now(),
+          nickname: ADMIN_USERNAME,
+          avatarUrl: '',
+          role: 'admin',
+          adminLevel: 1,
+          password: hashedPassword,
+        },
+      });
+    }
+
+    if (!user) {
+      throw new UnauthorizedException('账号不存在，请先将该账号分配为后台角色');
+    }
+
+    // 校验该账号是否拥有后台角色权限
+    const roles = String(user.role || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const hasStaffRole = roles.some((r) => ['admin', 'editor', 'moderator', 'operator'].includes(r));
+    if (!hasStaffRole) {
+      throw new UnauthorizedException('该账号无后台管理权限，请先由管理员分配角色');
+    }
+
+    const passwordToCheck = user.password || ADMIN_PASSWORD;
+    const passwordMatch = await bcrypt.compare(dto.password, passwordToCheck);
+    if (!passwordMatch) {
+      throw new UnauthorizedException('用户名或密码错误');
+    }
+
+    const payload = this.generateJwtPayload(user);
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '30d' });
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        nickname: user.nickname,
+        avatarUrl: user.avatarUrl,
+        phone: user.phone,
+        role: user.role,
+        roles,
         adminLevel: user.adminLevel,
       },
     };

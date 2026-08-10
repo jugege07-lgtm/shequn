@@ -43,6 +43,14 @@ export class AuthController {
     return await this.authService.adminLogin(dto);
   }
 
+  @Post('staff-login')
+  @HttpCode(200)
+  @ApiOperation({ summary: '后台角色账号登录（编辑/审核/运营/管理员）' })
+  @ApiBody({ type: AdminLoginDto })
+  async staffLogin(@Body() dto: AdminLoginDto) {
+    return await this.authService.staffLogin(dto);
+  }
+
   @Post('refresh')
   @HttpCode(200)
   @ApiOperation({ summary: '刷新 Token' })

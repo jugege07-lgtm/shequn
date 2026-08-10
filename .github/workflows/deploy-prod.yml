@@ -1,0 +1,274 @@
+name: Deploy to Tencent Cloud (Production)
+
+# 触发条件：
+# 1. 推送 main 分支或 v*.*.* tag → 自动部署到生产
+# 2. 手动触发（workflow_dispatch） → 可选择强制重建
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: '强制重建后端镜像（不缓存）'
+        type: boolean
+        default: false
+      skip_migrate:
+        description: '跳过数据库迁移（紧急回滚时使用）'
+        type: boolean
+        default: false
+
+# 并发控制：同一分支最新一次运行会取消旧运行
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: true
+
+env:
+  PROJECT_NAME: shequn
+  DEPLOY_PATH: /home/deploy/shequn
+  BACKEND_IMAGE: shequn-backend
+
+jobs:
+  # ============================================================
+  # Job 1: 后端构建 + 部署（Node.js 20 + Docker）
+  # ============================================================
+  backend:
+    name: Build & Deploy Backend
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add CVM host fingerprint
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy via SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          FORCE_REBUILD: ${{ inputs.force_rebuild }}
+          SKIP_MIGRATE: ${{ inputs.skip_migrate }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          ssh -o StrictHostKeyChecking=yes ${SSH_USER}@${SSH_HOST} \
+            "bash ${DEPLOY_PATH}/deploy/scripts/deploy.sh \
+              '${GITHUB_REF}' \
+              '${GITHUB_SHA}' \
+              '${FORCE_REBUILD}' \
+              '${SKIP_MIGRATE}'"
+
+  # ============================================================
+  # Job 2: 管理后台前端构建（仅推送 main / tag 时）
+  # ============================================================
+  admin:
+    name: Build & Deploy Admin
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    needs: backend   # 后端先部署完，避免 API 未就绪
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: admin/package-lock.json
+
+      - name: Build admin
+        working-directory: admin
+        env:
+          VITE_API_BASE_URL: ${{ secrets.ADMIN_API_BASE_URL }}
+        run: |
+          npm ci --no-audit --ignore-scripts
+          npm run build
+          echo "✅ Admin built, dist size:"
+          du -sh dist
+
+      - name: Upload admin dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-dist
+          path: admin/dist
+          retention-days: 3
+
+  # ============================================================
+  # Job 3: 部署管理后台到 CVM
+  # ============================================================
+  deploy-admin:
+    name: Deploy Admin to Nginx
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: admin
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add CVM host fingerprint
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Download admin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: admin-dist
+          path: admin-dist
+
+      - name: Deploy admin to CVM
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # 打包
+          tar czf /tmp/admin-dist.tar.gz -C admin-dist .
+          # 上传
+          scp -o StrictHostKeyChecking=yes /tmp/admin-dist.tar.gz \
+            ${SSH_USER}@${SSH_HOST}:/tmp/admin-dist.tar.gz
+          # 解压到 web 目录
+          ssh -o StrictHostKeyChecking=yes ${SSH_USER}@${SSH_HOST} << 'EOF'
+            set -e
+            sudo mkdir -p /var/www/shequn/admin
+            sudo rm -rf /var/www/shequn/admin/*
+            sudo tar xzf /tmp/admin-dist.tar.gz -C /var/www/shequn/admin
+            sudo chown -R www-data:www-data /var/www/shequn/admin
+            rm -f /tmp/admin-dist.tar.gz
+            echo "✅ Admin deployed to /var/www/shequn/admin"
+            ls -la /var/www/shequn/admin | head -10
+          EOF
+
+  # ============================================================
+  # Job 3.5: 移动端 H5 前端构建（仅推送 main / tag 时）
+  # ============================================================
+  mobile:
+    name: Build Mobile H5
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    needs: backend   # 后端先部署完，避免 API 未就绪
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Build mobile
+        working-directory: mobile
+        run: |
+          npm ci --no-audit --ignore-scripts
+          npm run build
+          echo "✅ Mobile built, dist size:"
+          du -sh dist
+
+      - name: Upload mobile dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-dist
+          path: mobile/dist
+          retention-days: 3
+
+  # ============================================================
+  # Job 3.6: 部署移动端 H5 到 Nginx
+  # ============================================================
+  deploy-mobile:
+    name: Deploy Mobile to Nginx
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: mobile
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add CVM host fingerprint
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Download mobile artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mobile-dist
+          path: mobile-dist
+
+      - name: Deploy mobile to CVM
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # 打包
+          tar czf /tmp/mobile-dist.tar.gz -C mobile-dist .
+          # 上传
+          scp -o StrictHostKeyChecking=yes /tmp/mobile-dist.tar.gz \
+            ${SSH_USER}@${SSH_HOST}:/tmp/mobile-dist.tar.gz
+          # 解压到 web 目录
+          ssh -o StrictHostKeyChecking=yes ${SSH_USER}@${SSH_HOST} << 'EOF'
+            set -e
+            sudo mkdir -p /var/www/shequn/h5
+            sudo rm -rf /var/www/shequn/h5/*
+            sudo tar xzf /tmp/mobile-dist.tar.gz -C /var/www/shequn/h5
+            sudo chown -R www-data:www-data /var/www/shequn/h5
+            rm -f /tmp/mobile-dist.tar.gz
+            echo "✅ Mobile deployed to /var/www/shequn/h5"
+            ls -la /var/www/shequn/h5 | head -10
+          EOF
+
+  # ============================================================
+  # Job 4: 健康检查（最后执行）
+  # ============================================================
+  healthcheck:
+    name: Post-deploy Health Check
+    runs-on: ubuntu-22.04
+    timeout-minutes: 3
+    needs: [backend, deploy-admin, deploy-mobile]
+    if: success()
+
+    steps:
+      - name: Hit health endpoints
+        env:
+          API_BASE: ${{ secrets.API_PUBLIC_URL }}
+        run: |
+          echo "⏳ Waiting 10s for service warm-up..."
+          sleep 10
+          echo ""
+          echo "=== Backend health ==="
+          curl -fsS -o /dev/null -w "HTTP %{http_code} | %{time_total}s\n" \
+            "${API_BASE}/public/big-screen" || echo "❌ Backend NOT healthy"
+          echo ""
+          echo "=== Swagger docs ==="
+          curl -fsS -o /dev/null -w "HTTP %{http_code}\n" \
+            "${API_BASE}/docs" || echo "❌ Swagger NOT reachable"
+          echo ""
+          echo "=== Admin SPA ==="
+          curl -fsS -o /dev/null -w "HTTP %{http_code}\n" \
+            "${{ secrets.ADMIN_PUBLIC_URL }}" || echo "❌ Admin NOT reachable"
+          echo ""
+          echo "🎉 Deploy finished."

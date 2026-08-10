@@ -20,7 +20,7 @@ function showErrorOnce(msg: string, minInterval = 2000) {
 
 axios.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (config.url && config.url.includes('admin-login')) {
+    if (config.url && (config.url.includes('admin-login') || config.url.includes('staff-login'))) {
       return config
     }
 
@@ -55,7 +55,8 @@ axios.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('admin_token')
       localStorage.removeItem('admin_refreshToken')
-      if (error.config && !error.config.url?.includes('admin-login')) {
+      localStorage.removeItem('admin_user')
+      if (error.config && !error.config.url?.includes('admin-login') && !error.config.url?.includes('staff-login')) {
         router.push('/login')
       }
       showErrorOnce('登录已过期，请重新登录')

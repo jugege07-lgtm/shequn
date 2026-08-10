@@ -57,7 +57,7 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    const res: any = await request.post('/auth/admin-login', {
+    const res: any = await request.post('/auth/staff-login', {
       username: form.username,
       password: form.password,
     })
@@ -66,6 +66,10 @@ const handleLogin = async () => {
     }
     localStorage.setItem('admin_token', res.accessToken)
     localStorage.setItem('admin_refreshToken', res.refreshToken || '')
+    // 保存当前登录用户信息（含角色），用于菜单与操作权限控制
+    if (res.user) {
+      localStorage.setItem('admin_user', JSON.stringify(res.user))
+    }
     router.push('/')
   } catch (err: any) {
     // handled by interceptor

@@ -52,7 +52,7 @@ export class CouponController {
   // ===== 管理端接口（需要 admin 角色）=====
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Get('admin/coupons')
   @ApiOperation({ summary: '获取所有优惠券（管理端）' })
   async getAllCoupons(@Query() query: any) {
@@ -61,7 +61,7 @@ export class CouponController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Post('admin/coupons')
   @ApiOperation({ summary: '创建优惠券' })
   async createCoupon(@Body() data: any) {
@@ -70,7 +70,7 @@ export class CouponController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Put('admin/coupons/:id')
   @ApiOperation({ summary: '更新优惠券' })
   async updateCoupon(@Param('id') id: string, @Body() data: any) {
@@ -79,7 +79,7 @@ export class CouponController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Delete('admin/coupons/:id')
   @ApiOperation({ summary: '删除优惠券' })
   async deleteCoupon(@Param('id') id: string) {
@@ -89,7 +89,7 @@ export class CouponController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Get('admin/coupons/records')
   @ApiOperation({ summary: '获取领取记录' })
   async getClaimRecords(@Query() query: any) {
@@ -98,7 +98,7 @@ export class CouponController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'operator')
   @Post('admin/coupons/assign')
   @ApiOperation({ summary: '后台精准发放' })
   async assignCoupon(@Body('couponId') couponId: number, @Body('userIds') userIds: number[]) {
