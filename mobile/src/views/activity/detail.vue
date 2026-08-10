@@ -336,6 +336,7 @@ function shareActivity() {
 }
 
 // 打开系统地图并定位到活动地点（兼容 iOS / Android 双平台）
+// 有坐标时优先用坐标精确定位（避免中文地址在 geo:// 中乱码且定位更准），无坐标时才用地址搜索
 function openMap() {
   const a = rawActivity.value
   if (!a || !a.location) {
@@ -344,23 +345,26 @@ function openMap() {
   }
   const lat = a.latitude
   const lng = a.longitude
-  const query = encodeURIComponent(a.location)
+  const hasCoord = typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
   const isAndroid = /Android/i.test(navigator.userAgent)
 
   let url: string
-  // 有精确坐标 → 直接定位到坐标点
-  if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+  if (hasCoord) {
+    // 有精确坐标 → 直接定位到坐标点（不传中文，杜绝 geo:// 乱码）
     if (isIOS) {
-      url = `maps://maps.apple.com/?q=${lat},${lng}&ll=${lat},${lng}&z=16`
+      // iOS 苹果地图：ll 参数精确定位
+      url = `maps://maps.apple.com/?ll=${lat},${lng}&z=16`
     } else if (isAndroid) {
-      url = `geo:${lat},${lng}?q=${lat},${lng}(${query})`
+      // Android 高德/百度等：标准 geo 协议坐标定位
+      url = `geo:${lat},${lng}?z=16`
     } else {
-      // PC 兜底：打开高德地图网页
-      url = `https://uri.amap.com/marker?position=${lng},${lat}&name=${query}`
+      // PC 兜底：打开高德地图网页（坐标 marker）
+      url = `https://uri.amap.com/marker?position=${lng},${lat}`
     }
   } else {
-    // 无坐标 → 用地址文本搜索
+    // 无坐标 → 用地址文本搜索（此时才需要 URL 编码中文）
+    const query = encodeURIComponent(a.location)
     if (isIOS) {
       url = `maps://maps.apple.com/?q=${query}`
     } else if (isAndroid) {
