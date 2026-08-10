@@ -25,10 +25,14 @@ export class ConnectionService {
     return true;
   }
 
-  /** 校验当前用户 VIP 权限，不通过则抛 403 */
-  private async assertVip(user: any): Promise<number> {
+  /**
+   * 校验当前用户 VIP 权限，不通过则抛 403。
+   * 注意：必须从数据库读取最新用户记录，而不是信任 JWT 里的 vipLevel——用户升级 VIP 后令牌可能仍是旧值，否则会误判为 403。
+   */
+  private async assertVip(userId: number): Promise<number> {
     const minLevel = await this.getMinVipLevel();
-    if (!this.isVip(user, minLevel)) {
+    const fresh = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!this.isVip(fresh, minLevel)) {
       throw new ForbiddenException(`该功能需要 VIP${minLevel} 及以上会员权限`);
     }
     return minLevel;
@@ -50,8 +54,8 @@ export class ConnectionService {
   }
 
   /** 大咖推荐列表（需 VIP） */
-  async getRecommendations(userId: number, user: any) {
-    await this.assertVip(user);
+  async getRecommendations(userId: number) {
+    await this.assertVip(userId);
     const now = Date.now();
 
     // 大咖 = 拥有完整名片信息的用户，且非当前用户
@@ -120,15 +124,23 @@ export class ConnectionService {
   }
 
   /** 发起联系请求（需 VIP）。向被联系人发送待确认消息通知 */
-  async requestConnection(userId: number, user: any, targetId: number) {
-    await this.assertVip(user);
+  async requestConnection(userId: number, targetId: number) {
+    await this.assertVip(userId);
     if (userId === targetId) throw new BadRequestException('不能添加自己为人脉');
 
-    const target = await this.prisma.user.findUnique({
-      where: { id: targetId },
-      include: { card: true },
-    });
+    const [target, requester] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: targetId },
+        include: { card: true },
+      }),
+      // 需查询完整的请求方信息，用于构造消息中的真实姓名（JWT 里只有 userId）
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { card: true },
+      }),
+    ]);
     if (!target) throw new NotFoundException('该用户不存在');
+    if (!requester) throw new NotFoundException('当前用户不存在');
 
     const existing = await this.prisma.connection.findFirst({
       where: {
@@ -148,7 +160,7 @@ export class ConnectionService {
           where: { id: existing.id },
           data: { status: 'pending' },
         });
-        await this.notifyRequest(target, user, existing.id);
+        await this.notifyRequest(target, requester, existing.id);
         return { connectionId: existing.id, status: 'pending' };
       }
     }
@@ -156,7 +168,7 @@ export class ConnectionService {
     const connection = await this.prisma.connection.create({
       data: { requesterId: userId, targetId, status: 'pending' },
     });
-    await this.notifyRequest(target, user, connection.id);
+    await this.notifyRequest(target, requester, connection.id);
     return { connectionId: connection.id, status: 'pending' };
   }
 
@@ -268,15 +280,54 @@ export class ConnectionService {
       return {
         connectionId: c.id,
         userId: other.id,
+        cardId: other.card?.id || null,
         nickname: other.nickname || '',
-        avatarUrl: other.avatarUrl || '',
+        // 头像：优先用户头像，其次名片头像
+        avatarUrl: other.avatarUrl || other.card?.avatarUrl || '',
         realName: other.card?.realName || '',
         company: other.card?.company || '',
         position: other.card?.position || '',
+        email: other.card?.email || '',
         // 已同意 → 展示完整电话
         phone: this.maskPhone(other.phone, true),
         createdAt: c.createdAt,
       };
     });
+  }
+
+  /** 获取已同意好友的完整名片（好友间可见完整联系方式） */
+  async getFriendCard(userId: number, friendId: number) {
+    const conn = await this.prisma.connection.findFirst({
+      where: {
+        status: 'accepted',
+        OR: [
+          { requesterId: userId, targetId: friendId },
+          { requesterId: friendId, targetId: userId },
+        ],
+      },
+      include: {
+        requester: { include: { card: true } },
+        target: { include: { card: true } },
+      },
+    });
+    if (!conn) throw new NotFoundException('你们还不是好友人脉');
+
+    const isRequester = conn.requesterId === userId;
+    const other = isRequester ? conn.target : conn.requester;
+    return {
+      connectionId: conn.id,
+      userId: other.id,
+      cardId: other.card?.id || null,
+      nickname: other.nickname || '',
+      avatarUrl: other.avatarUrl || other.card?.avatarUrl || '',
+      realName: other.card?.realName || '',
+      company: other.card?.company || '',
+      position: other.card?.position || '',
+      wechat: other.card?.wechat || '',
+      email: other.card?.email || '',
+      intro: other.card?.intro || '',
+      // 已同意 → 展示完整电话，便于一键保存通讯录
+      phone: this.maskPhone(other.phone, true),
+    };
   }
 }

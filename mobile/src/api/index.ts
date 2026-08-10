@@ -347,6 +347,10 @@ export async function getMyConnections() {
   return request.get('/api/connections/my')
 }
 
+export async function getFriendCard(userId: number) {
+  return request.get(`/api/connections/friend/${userId}/card`)
+}
+
 export async function getConnectionRequests() {
   return request.get('/api/connections/requests')
 }

@@ -95,6 +95,7 @@
           >
             <div class="action-icon" :style="{ background: action.bg, color: action.color, opacity: action.disabled ? 0.5 : 1 }">
               <component :is="action.icon" />
+              <span v-if="action.badge && unreadCount > 0" class="action-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
             </div>
             <div class="action-label" :class="{ disabled: action.disabled }">{{ action.label }}</div>
           </div>
@@ -119,7 +120,7 @@
         </div>
         <div class="empty-state" v-else>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-          <span>暂无动态</span>
+          <span>暂无最新动态</span>
         </div>
       </div>
 
@@ -154,7 +155,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, getMyActivities, getMyBusinesses, getDajiaConfig } from '@/api'
+import { getCurrentUser, getMyActivities, getMyBusinesses, getDajiaConfig, getUnreadMessageCount } from '@/api'
 import { useUserStore } from '@/store/user'
 import { normalizeImageUrl } from '@/utils/image'
 
@@ -166,6 +167,16 @@ const loading = ref(false)
 const activities = ref<any[]>([])
 const avatarError = ref(false)
 const dajiaMinVipLevel = ref(1)
+const unreadCount = ref(0)
+
+async function loadUnreadCount() {
+  try {
+    const res: any = await getUnreadMessageCount()
+    unreadCount.value = Number(res?.count) || 0
+  } catch {
+    unreadCount.value = 0
+  }
+}
 
 const dajiaVipOk = computed(() => {
   const u = userInfo.value
@@ -270,10 +281,10 @@ const quickActions = computed(() => [
   { label: '发布商机', icon: renderIcon('publishBusiness'), bg: '#dbeafe', color: '#3b82f6', onClick: () => router.push('/business/publish') },
   { label: '创建活动', icon: renderIcon('publishActivity'), bg: '#fef3c7', color: '#f59e0b', onClick: () => router.push('/activity/publish'), disabled: !isAdmin.value, disabledTip: '请联系管理员获取创建权限' },
   { label: '邀请好友', icon: renderIcon('invite'), bg: '#fce7f3', color: '#db2777', onClick: () => router.push('/card/index') },
-  { label: '消息', icon: renderIcon('message'), bg: '#d1fae5', color: '#10b981', onClick: () => router.push('/message/index') },
+  { label: '消息', icon: renderIcon('message'), bg: '#d1fae5', color: '#10b981', onClick: () => router.push('/message/index'), badge: true },
   { label: '订单', icon: renderIcon('order'), bg: '#ede9fe', color: '#6366f1', onClick: () => router.push('/order/list') },
   { label: '积分', icon: renderIcon('points'), bg: '#dbeafe', color: '#3b82f6', onClick: () => router.push('/points/index') },
-  { label: '优惠券', icon: renderIcon('coupon'), bg: '#fef3c7', color: '#f59e0b', onClick: () => router.push('/coupon/index') },
+  { label: '领券中心', icon: renderIcon('coupon'), bg: '#fef3c7', color: '#f59e0b', onClick: () => router.push('/coupon/claim') },
 ])
 
 function showNoPermission(tip?: string) {
@@ -367,6 +378,7 @@ onMounted(() => {
   loadUser()
   loadActivities()
   loadDajiaConfig()
+  loadUnreadCount()
 })
 </script>
 
@@ -513,8 +525,8 @@ onMounted(() => {
 .mc-bottom-label { font-size: 12px; color: #8a6d3b; font-weight: 600; letter-spacing: 1px; }
 .mc-id {
   font-family: 'Courier New', monospace;
-  font-size: 26px; font-weight: 800; letter-spacing: 3px;
-  color: #2b2320;
+  font-size: 18px; font-weight: 600; letter-spacing: 1px;
+  color: #9ca3af;
 }
 
 /* Data Cards */
@@ -595,10 +607,20 @@ onMounted(() => {
 .action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.15s; }
 .action-item:active { transform: scale(0.95); }
 .action-icon {
+  position: relative;
   width: 48px; height: 48px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
 }
 .action-icon svg { width: 24px; height: 24px; }
+.action-badge {
+  position: absolute; top: -6px; right: -10px;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 99px; box-sizing: border-box;
+  background: #ef4444; color: #fff;
+  font-size: 11px; font-weight: 700; line-height: 18px;
+  text-align: center; white-space: nowrap;
+  box-shadow: 0 0 0 2px #fff;
+}
 .action-label { font-size: 12px; color: #4b5563; }
 .action-item.disabled { cursor: not-allowed; }
 .action-item.disabled:active { transform: none; }

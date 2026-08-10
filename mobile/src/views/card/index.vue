@@ -80,7 +80,7 @@
         <div class="connections-list" v-if="connections.length">
           <div class="connection-row" v-for="(conn, index) in connections" :key="index">
             <div class="connection-avatar" :style="{ background: getAvatarColor(conn.realName || conn.nickname || '人脉') }">
-              <img v-if="connAvatarUrl(conn)" :src="connAvatarUrl(conn)" class="avatar-img" alt="头像" />
+              <img v-if="connAvatarUrl(conn) && !avatarErrors.has(index)" :src="connAvatarUrl(conn)" class="avatar-img" alt="头像" @error="onAvatarError(index)" />
               <span v-else>{{ (conn.realName || conn.nickname || '人脉').charAt(0) }}</span>
             </div>
             <div class="connection-info">
@@ -118,6 +118,7 @@ const userInfo = ref<any>(null)
 const loading = ref(false)
 const connections = ref<any[]>([])
 const avatarError = ref(false)
+const avatarErrors = ref<Set<number>>(new Set())
 const dajiaMinVipLevel = ref(1)
 
 const dajiaVipOk = computed(() => {
@@ -143,7 +144,15 @@ function getAvatarColor(name: string) {
 }
 
 function handleConnect(conn: any) {
-  showToast(`已查看 ${conn.name} 的名片`)
+  if (!conn.userId) {
+    showToast('暂无可查看的名片')
+    return
+  }
+  router.push(`/card/friend/${conn.userId}`)
+}
+
+function onAvatarError(index: number) {
+  avatarErrors.value = new Set(avatarErrors.value).add(index)
 }
 
 async function loadData() {

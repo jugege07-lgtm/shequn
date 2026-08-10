@@ -143,7 +143,8 @@ async function loadRecommendations() {
       list.value = res?.list || []
     }
   } catch (err: any) {
-    showToast(err?.message || '加载失败')
+    // 优先使用拦截器解析后的友好提示（如"该功能需要 VIP1 及以上会员权限"），避免暴露原始英文错误
+    showToast(err?.userMessage || err?.message || '加载失败')
   } finally {
     loading.value = false
   }

@@ -20,6 +20,7 @@ const routes = [
   { path: '/card/edit', name: 'CardEdit', component: () => import('@/views/card/edit.vue'), meta: { requiresAuth: true } },
   { path: '/card/share', name: 'CardShare', component: () => import('@/views/card/share.vue'), meta: { requiresAuth: true } },
   { path: '/card/share/:id', name: 'CardShareById', component: () => import('@/views/card/share.vue'), meta: { requiresAuth: true } },
+  { path: '/card/friend/:userId', name: 'CardFriend', component: () => import('@/views/card/friend.vue'), meta: { requiresAuth: true } },
   { path: '/about/index', name: 'AboutIndex', component: () => import('@/views/about/index.vue'), meta: { requiresAuth: true } },
 
   { path: '/mall/index', name: 'MallIndex', component: () => import('@/views/mall/index.vue'), meta: { requiresAuth: true } },

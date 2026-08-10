@@ -22,7 +22,7 @@ export class ConnectionController {
   @Get('connections/recommendations')
   @ApiOperation({ summary: '获取大咖推荐列表（需VIP）' })
   async getRecommendations(@CurrentUser() user: any) {
-    const data = await this.connectionService.getRecommendations(user.userId, user);
+    const data = await this.connectionService.getRecommendations(user.userId);
     return { code: 0, data };
   }
 
@@ -31,7 +31,7 @@ export class ConnectionController {
   @Post('connections/request')
   @ApiOperation({ summary: '发起联系请求（需VIP）' })
   async requestConnection(@CurrentUser() user: any, @Body() dto: RequestConnectionDto) {
-    const data = await this.connectionService.requestConnection(user.userId, user, dto.targetId);
+    const data = await this.connectionService.requestConnection(user.userId, dto.targetId);
     return { code: 0, data };
   }
 
@@ -41,6 +41,17 @@ export class ConnectionController {
   @ApiOperation({ summary: '获取我的人脉列表' })
   async getMyConnections(@CurrentUser() user: any) {
     return { code: 0, data: await this.connectionService.getMyConnections(user.userId) };
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('connections/friend/:id/card')
+  @ApiOperation({ summary: '获取好友完整名片（需已同意）' })
+  async getFriendCard(
+    @CurrentUser() user: any,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return { code: 0, data: await this.connectionService.getFriendCard(user.userId, id) };
   }
 
   @ApiBearerAuth()

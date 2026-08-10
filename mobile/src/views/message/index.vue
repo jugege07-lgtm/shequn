@@ -48,10 +48,20 @@ onMounted(async () => {
     messages.value = (res.list || []).map((m: any) => {
       const payload = parseData(m.data)
       const isRequest = m.type === 'connection_request'
+      // 好友申请消息：优先用 payload.sourceName 构造文案，并对历史数据中的 undefined 做兜底清洗
+      let desc = m.content || ''
+      if (isRequest) {
+        const name = payload.sourceName || ''
+        if (name && !/undefined/.test(name)) {
+          desc = `${name} 请求添加你为好友人脉，请确认是否同意`
+        } else {
+          desc = (desc || '').replace(/用户undefined/g, '')
+        }
+      }
       return {
         id: m.id,
         title: m.title,
-        desc: m.content,
+        desc,
         time: m.createdAt,
         iconClass: iconClassOf(m.type),
         isRead: m.isRead,
