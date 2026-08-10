@@ -2,10 +2,14 @@
   <div class="page">
     <!-- Sticky Header -->
     <div class="header-bar">
-      <h2>商机大厅</h2>
-      <div class="search-bar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input v-model="searchKeyword" type="search" placeholder="搜索商机..." @input="debounceSearch" />
+      <div class="hero-card">
+        <div class="hero-title-row">
+          <h2>商机大厅</h2>
+          <span class="hero-sub">发现优质商机 · 对接资源</span>
+        </div>
+        <div class="search-box">
+          <input v-model="searchKeyword" type="search" placeholder="搜索商机..." @input="debounceSearch" />
+        </div>
       </div>
       <div class="filter-row">
         <span class="filter-chip" :class="{ active: activeCat === '' }" @click="activeCat = ''">全部</span>
@@ -58,6 +62,11 @@
       <button class="load-more-btn" @click="loadMore" :disabled="loading">
         {{ loading ? '加载中...' : '加载更多' }}
       </button>
+    </div>
+
+    <!-- Floating Publish Button -->
+    <div class="fab" @click="goPublish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
     </div>
   </div>
 </template>
@@ -220,6 +229,10 @@ function goDetail(id: number) {
   router.push(`/business/detail/${id}`)
 }
 
+function goPublish() {
+  router.push('/business/publish')
+}
+
 onMounted(() => {
   loadCategories()
   loadBusinesses()
@@ -247,43 +260,75 @@ onUnmounted(() => {
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 0.5px solid rgba(60,60,67,0.1);
+  border-bottom: 0.5px solid rgba(60,60,67,0.08);
   padding: 10px 16px 8px;
 }
-.header-bar h2 {
-  font-size: 20px;
+
+/* ===== Hero Card (title + search) ===== */
+.hero-card {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 20px;
+  padding: 20px 18px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 26px rgba(99,102,241,0.28);
+  position: relative;
+  overflow: hidden;
+}
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: -46px; right: -30px;
+  width: 130px; height: 130px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+}
+.hero-card::after {
+  content: '';
+  position: absolute;
+  bottom: -38px; left: -20px;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+.hero-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  position: relative; z-index: 1;
+}
+.hero-title-row h2 {
+  font-size: 22px;
   font-weight: 800;
-  color: var(--color-text-primary);
-  margin-bottom: 10px;
+  color: #fff;
   letter-spacing: 0.5px;
 }
-
-/* ===== Search Bar ===== */
-.search-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(0,0,0,0.04);
-  border-radius: 24px;
-  padding: 8px 14px;
-  margin-bottom: 10px;
+.hero-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
 }
-.search-bar svg {
-  width: 18px;
-  height: 18px;
-  color: var(--color-text-tertiary);
-  flex-shrink: 0;
+.search-box {
+  background: rgba(255,255,255,0.16);
+  border-radius: 14px;
+  padding: 10px 14px;
+  position: relative; z-index: 1;
+  border: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(4px);
 }
-.search-bar input {
-  flex: 1;
+.search-box input {
+  width: 100%;
   border: none;
   background: transparent;
   font-size: 14px;
-  color: var(--color-text-primary);
+  color: #fff;
   outline: none;
 }
-.search-bar input::placeholder {
-  color: var(--color-text-tertiary);
+.search-box input::placeholder {
+  color: rgba(255,255,255,0.7);
+}
+.search-box input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
 }
 
 /* ===== Filter Chips ===== */
@@ -471,5 +516,32 @@ onUnmounted(() => {
 .load-more-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== Floating Action Button ===== */
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.45), 0 2px 6px rgba(0,0,0,0.12);
+  cursor: pointer;
+  z-index: 200;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.fab svg {
+  width: 26px;
+  height: 26px;
+}
+.fab:active {
+  transform: scale(0.92);
+  box-shadow: 0 4px 12px rgba(99,102,241,0.35);
 }
 </style>
