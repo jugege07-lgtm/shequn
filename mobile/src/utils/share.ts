@@ -121,6 +121,17 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath()
 }
 
+/** 去除 HTML 标签，将 HTML 实体解码为纯文本（用于海报 Canvas 绘制） */
+function stripHtml(html: string): string {
+  if (!html) return ''
+  // 用临时 DOM 解析，自动处理实体编码（&nbsp; &amp; 等）
+  const tmp = document.createElement('div')
+  tmp.innerHTML = html
+  // 移除 style/script 标签内容
+  tmp.querySelectorAll('style,script').forEach((el) => el.remove())
+  return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim()
+}
+
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
   const chars = Array.from(text.replace(/\s+/g, ' '))
   const lines: string[] = []
@@ -157,6 +168,11 @@ export async function createSharePoster(
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('canvas context not available')
   const meta = TYPE_META[content.type]
+  // 将所有 HTML 文本转为纯文本（防止 HTML 标签在 Canvas 上原样输出造成乱码）
+  const cleanTitle = stripHtml(content.title || '')
+  const cleanPrice = content.price ? stripHtml(content.price) : ''
+  const cleanMeta = (content.meta || []).map((m) => stripHtml(m)).filter(Boolean)
+  const cleanReferrer = stripHtml(referrerName || '')
 
   // 背景
   ctx.fillStyle = '#ffffff'
@@ -216,7 +232,7 @@ export async function createSharePoster(
   // 标题（最多 2 行）
   ctx.font = `bold ${26 * S}px "PingFang SC","Microsoft YaHei",sans-serif`
   ctx.fillStyle = '#1e1b4b'
-  const titleLines = wrapText(ctx, content.title || '', bodyW, 2)
+  const titleLines = wrapText(ctx, cleanTitle, bodyW, 2)
   let y = coverH + 26 * S
   titleLines.forEach((ln) => {
     ctx.fillText(ln, bodyX, y)
@@ -224,20 +240,20 @@ export async function createSharePoster(
   })
 
   // 价格
-  if (content.price) {
+  if (cleanPrice) {
     y += 6 * S
     ctx.font = `bold ${22 * S}px "PingFang SC","Microsoft YaHei",sans-serif`
     ctx.fillStyle = '#e11d48'
-    ctx.fillText(content.price, bodyX, y)
+    ctx.fillText(cleanPrice, bodyX, y)
     y += 34 * S
   }
 
   // 信息行
-  if (content.meta && content.meta.length) {
+  if (cleanMeta.length) {
     y += 2 * S
     ctx.font = `${15 * S}px "PingFang SC","Microsoft YaHei",sans-serif`
     ctx.fillStyle = '#7c7c8a'
-    content.meta.forEach((m) => {
+    cleanMeta.forEach((m) => {
       const line = wrapText(ctx, m, bodyW, 1)[0]
       if (!line) return
       ctx.fillText(line, bodyX, y)
@@ -286,7 +302,7 @@ export async function createSharePoster(
   // 分享人
   ctx.font = `${13 * S}px "PingFang SC","Microsoft YaHei",sans-serif`
   ctx.fillStyle = '#8a8a99'
-  ctx.fillText(referrerName ? `分享自：${referrerName}` : '长按识别二维码', bodyX + brandCircleR * 2 + 10 * S, qrY + 52 * S)
+  ctx.fillText(cleanReferrer ? `分享自：${cleanReferrer}` : '长按识别二维码', bodyX + brandCircleR * 2 + 10 * S, qrY + 52 * S)
 
   // 二维码
   if (qrDataUrl) {

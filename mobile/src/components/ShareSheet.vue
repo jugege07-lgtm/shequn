@@ -35,19 +35,27 @@
           <!-- 社交渠道 -->
           <div class="ss-channels">
             <div class="ss-channel" @click="shareTo('微信')">
-              <div class="ch-icon ch-wechat">💬</div>
+              <div class="ch-icon ch-wechat">
+                <ShareIcon type="wechat" :size="26" color="#ffffff" />
+              </div>
               <span>微信</span>
             </div>
             <div class="ss-channel" @click="shareTo('朋友圈')">
-              <div class="ch-icon ch-moments">🔵</div>
+              <div class="ch-icon ch-moments">
+                <ShareIcon type="moments" :size="26" color="#ffffff" />
+              </div>
               <span>朋友圈</span>
             </div>
             <div class="ss-channel" @click="shareTo('QQ')">
-              <div class="ch-icon ch-qq">🅰️</div>
+              <div class="ch-icon ch-qq">
+                <ShareIcon type="qq" :size="26" color="#ffffff" />
+              </div>
               <span>QQ</span>
             </div>
             <div class="ss-channel" @click="useNativeShare">
-              <div class="ch-icon ch-more">⋯</div>
+              <div class="ch-icon ch-more">
+                <ShareIcon type="system" :size="26" color="#ffffff" />
+              </div>
               <span>系统分享</span>
             </div>
           </div>
@@ -60,6 +68,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import type { ShareContent } from '@/utils/share'
+import ShareIcon from '@/components/ShareIcon.vue'
 import {
   buildShareUrl,
   generateQrDataUrl,
@@ -227,12 +236,12 @@ watch(
 .ch-icon {
   width: 48px; height: 48px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; color: #fff;
+  color: #fff;
 }
 .ch-wechat { background: #07c160; }
 .ch-moments { background: #2fae60; }
 .ch-qq { background: #12b7f5; }
-.ch-more { background: linear-gradient(135deg, #6366f1, #8b5cf6); font-size: 26px; font-weight: 700; }
+.ch-more { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
 
 .share-fade-enter-active, .share-fade-leave-active { transition: opacity 0.22s ease; }
 .share-fade-enter-active .share-sheet, .share-fade-leave-active .share-sheet {
