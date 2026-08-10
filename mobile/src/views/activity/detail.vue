@@ -44,7 +44,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
           <span>{{ activity.date }}</span>
         </div>
-        <div class="info-row">
+        <div class="info-row" @click="openMap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <span>{{ activity.location }}</span>
         </div>
@@ -75,9 +75,15 @@
       <!-- Map placeholder -->
       <div class="info-card">
         <h3 class="section-label">活动地点</h3>
-        <div class="map-placeholder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>{{ activity.location }}</span>
+        <div class="map-placeholder" @click="openMap">
+          <div class="map-pin">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div class="map-info">
+            <span class="map-addr">{{ activity.location }}</span>
+            <span class="map-hint">点击打开地图导航 »</span>
+          </div>
+          <svg class="map-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </div>
       </div>
       <!-- Description -->
@@ -156,6 +162,8 @@ interface ActivityInfo {
   type: string
   price: number
   location: string
+  latitude: number | null
+  longitude: number | null
   startTime: string
   endTime: string
   maxParticipants: number | null
@@ -240,6 +248,8 @@ async function loadActivity() {
       type: data.type || '',
       price: data.price ?? 0,
       location: data.location || '',
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
       startTime: data.startTime,
       endTime: data.endTime,
       maxParticipants: data.maxParticipants ?? null,
@@ -323,6 +333,44 @@ function goBack() {
 
 function shareActivity() {
   showToast('分享功能开发中')
+}
+
+// 打开系统地图并定位到活动地点（兼容 iOS / Android 双平台）
+function openMap() {
+  const a = rawActivity.value
+  if (!a || !a.location) {
+    showToast('暂无地点信息')
+    return
+  }
+  const lat = a.latitude
+  const lng = a.longitude
+  const query = encodeURIComponent(a.location)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const isAndroid = /Android/i.test(navigator.userAgent)
+
+  let url: string
+  // 有精确坐标 → 直接定位到坐标点
+  if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+    if (isIOS) {
+      url = `maps://maps.apple.com/?q=${lat},${lng}&ll=${lat},${lng}&z=16`
+    } else if (isAndroid) {
+      url = `geo:${lat},${lng}?q=${lat},${lng}(${query})`
+    } else {
+      // PC 兜底：打开高德地图网页
+      url = `https://uri.amap.com/marker?position=${lng},${lat}&name=${query}`
+    }
+  } else {
+    // 无坐标 → 用地址文本搜索
+    if (isIOS) {
+      url = `maps://maps.apple.com/?q=${query}`
+    } else if (isAndroid) {
+      url = `geo:0,0?q=${query}`
+    } else {
+      url = `https://uri.amap.com/search?keyword=${query}`
+    }
+  }
+
+  window.location.href = url
 }
 
 function showToast(msg: string) {
@@ -410,12 +458,25 @@ function showToast(msg: string) {
 .stat-txt { font-size: 12px; color: var(--color-text-tertiary); margin-top: 4px; }
 
 .map-placeholder {
-  height: 140px; border-radius: var(--radius-md);
+  min-height: 72px; border-radius: var(--radius-md);
   background: var(--color-primary-50);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
-.map-placeholder svg { width: 32px; height: 32px; color: var(--color-primary); }
-.map-placeholder span { font-size: 13px; color: var(--color-text-secondary); }
+.map-placeholder:active { background: var(--color-primary-100); }
+.map-pin {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.8);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.map-pin svg { width: 22px; height: 22px; color: var(--color-primary); }
+.map-info { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.map-addr { font-size: 14px; color: var(--color-text-primary); font-weight: 600; line-height: 1.4; word-break: break-all; }
+.map-hint { font-size: 12px; color: var(--color-primary); }
+.map-arrow { width: 18px; height: 18px; color: var(--color-text-tertiary); flex-shrink: 0; }
 
 .bottom-action {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
