@@ -1,15 +1,5 @@
 <template>
   <div class="phone-frame profile-page">
-    <!-- Header -->
-    <div class="profile-header">
-      <div class="header-title-row">
-        <div class="header-title">个人中心</div>
-        <div class="header-setting" @click="$router.push('/setting/index')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        </div>
-      </div>
-    </div>
-
     <!-- Decorative background elements -->
     <div class="profile-decorations">
       <div class="deco-spot spot-1"></div>
@@ -38,7 +28,12 @@
               <span class="mc-tag">社群成员</span>
             </div>
           </div>
-          <div class="mc-brand">SHEQUN</div>
+          <div class="mc-top-right">
+            <div class="mc-menu-btn" @click="toggleSettingsMenu">
+              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </div>
+            <div class="mc-brand">SHEQUN</div>
+          </div>
         </div>
 
         <div class="mc-divider"></div>
@@ -126,6 +121,31 @@
 
     </div>
 
+    <!-- Settings Menu -->
+    <transition name="menu-fade">
+      <div v-if="settingsMenuOpen" class="settings-mask" @click="settingsMenuOpen = false">
+        <div class="settings-menu" @click.stop>
+          <div class="settings-menu-title">设置</div>
+          <div class="settings-menu-item" @click="goTo('/setting/index')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            <span>个人设置</span>
+          </div>
+          <div class="settings-menu-item" @click="goTo('/card/index')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <span>我的名片</span>
+          </div>
+          <div class="settings-menu-item" @click="goTo('/message/index')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span>消息中心</span>
+          </div>
+          <div class="settings-menu-item" @click="goTo('/points/index')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span>我的积分</span>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- TabBar -->
     <div class="tabbar">
       <div class="tab" @click="$router.push('/')">
@@ -168,6 +188,16 @@ const activities = ref<any[]>([])
 const avatarError = ref(false)
 const dajiaMinVipLevel = ref(1)
 const unreadCount = ref(0)
+const settingsMenuOpen = ref(false)
+
+function toggleSettingsMenu() {
+  settingsMenuOpen.value = !settingsMenuOpen.value
+}
+
+function goTo(path: string) {
+  settingsMenuOpen.value = false
+  router.push(path)
+}
 
 async function loadUnreadCount() {
   try {
@@ -412,37 +442,6 @@ onMounted(() => {
   border-radius: 2px;
 }
 
-/* Header */
-.profile-header {
-  background: transparent;
-  padding: 12px 16px 0;
-  color: #1e1b4b;
-  position: relative;
-  z-index: 1;
-}
-.header-title-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-}
-.header-title {
-  font-size: 18px;
-  font-weight: 700;
-}
-.header-setting {
-  position: absolute;
-  right: -4px;
-  width: 40px; height: 40px; border-radius: 50%;
-  background: rgba(99,102,241,0.1); display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  z-index: 10; color: #6366f1;
-}
-.header-setting:active { background: rgba(99,102,241,0.18); }
-.header-setting svg { width: 22px; height: 22px; }
-
 /* Main Scroll */
 .main-scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -508,6 +507,24 @@ onMounted(() => {
   background: rgba(255,255,255,0.6);
   border: 1px solid rgba(120,90,40,0.12);
 }
+.mc-top-right {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; flex-shrink: 0; align-self: flex-start;
+}
+.mc-menu-btn {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #8a6d3b; cursor: pointer;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(212,175,122,0.35);
+  transition: all 0.2s ease;
+}
+.mc-menu-btn:active {
+  background: rgba(212,175,122,0.25);
+  transform: scale(0.92);
+}
+.mc-menu-btn svg { width: 16px; height: 16px; }
 .mc-brand {
   font-size: 11px; font-weight: 700; letter-spacing: 2px;
   color: rgba(139,92,246,0.5); writing-mode: vertical-rl;
@@ -648,6 +665,37 @@ onMounted(() => {
 }
 .empty-state svg { width: 40px; height: 40px; margin-bottom: 8px; }
 .empty-state span { font-size: 13px; }
+
+/* Settings Menu */
+.settings-mask {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex; align-items: flex-start; justify-content: flex-end;
+  z-index: 500;
+}
+.settings-menu {
+  width: 200px;
+  margin: 110px 16px 0 0;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+}
+.settings-menu-title {
+  font-size: 13px; font-weight: 600; color: #9ca3af;
+  padding: 14px 16px 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.settings-menu-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  font-size: 15px; color: #1e1b4b; font-weight: 500;
+  cursor: pointer; transition: background 0.15s;
+}
+.settings-menu-item:active { background: #f5f5f7; }
+.settings-menu-item svg { width: 20px; height: 20px; color: #6366f1; flex-shrink: 0; }
+.menu-fade-enter-active, .menu-fade-leave-active { transition: opacity 0.2s ease; }
+.menu-fade-enter-from, .menu-fade-leave-to { opacity: 0; }
 
 /* TabBar */
 .tabbar {

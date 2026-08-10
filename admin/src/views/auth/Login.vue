@@ -9,9 +9,9 @@
       <template #header>
         <div class="login-header">
           <div class="logo-icon">
-            <el-icon :size="28"><Share /></el-icon>
+            <img class="logo-img" src="/logo.jpg" alt="聚格软件" />
           </div>
-          <h2 class="login-title">聚格软件管理后台</h2>
+          <h2 class="login-title">聚格软件软件社群管理系统</h2>
         </div>
       </template>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="0">
@@ -115,14 +115,19 @@ const handleLogin = async () => {
   padding: 28px 0 20px;
 }
 .logo-icon {
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(12px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   display: flex; align-items: center; justify-content: center;
-  color: #fff;
+  overflow: hidden;
   margin-bottom: 14px;
+}
+.logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .login-title {
   font-size: 22px;

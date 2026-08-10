@@ -6,9 +6,9 @@
         <!-- Logo -->
         <div class="logo" @click="isCollapsed = !isCollapsed">
           <div class="logo-icon">
-            <el-icon :size="22"><Share /></el-icon>
+            <img class="logo-img" src="/logo.jpg" alt="聚格软件" />
           </div>
-          <span class="logo-text" :class="{ hidden: isCollapsed }">聚格软件管理</span>
+          <span class="logo-text" :class="{ hidden: isCollapsed }">聚格软件软件社群管理系统</span>
         </div>
 
         <!-- Menu -->
@@ -211,15 +211,22 @@ const handleLogout = () => {
   background: var(--sidebar-hover);
 }
 .logo-icon {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+.logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .logo-text {
   font-size: 16px;
