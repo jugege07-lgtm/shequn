@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import { hasAnyRole } from '@/utils/permission'
+import { hasAnyRole, clearAdminUser } from '@/utils/permission'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -157,17 +157,31 @@ const router = createRouter({
 })
 
 // 导航守卫
+const STAFF_ROLES = ['admin', 'editor', 'moderator', 'operator']
 router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('admin_token')
 
-  // 如果访问登录页且有 token，跳转到首页
-  if (to.path === '/login' && token) {
-    next('/')
+  // 访问登录页：有有效角色才回首页，否则停留在登录页（清理无效会话）
+  if (to.path === '/login') {
+    if (token && hasAnyRole(STAFF_ROLES)) {
+      next('/')
+      return
+    }
+    next()
     return
   }
 
-  // 如果需要认证但没有 token，跳转到登录页
+  // 需要认证但没有 token，跳转到登录页
   if (to.meta.requiresAuth !== false && !token) {
+    next('/login')
+    return
+  }
+
+  // 有 token 但无有效后台角色（旧版本遗留 token / 被降权）→ 清理会话回登录页，避免看板死循环
+  if (token && !hasAnyRole(STAFF_ROLES)) {
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_refreshToken')
+    clearAdminUser()
     next('/login')
     return
   }
@@ -175,6 +189,11 @@ router.beforeEach((to, _from, next) => {
   // 角色权限校验：页面声明了允许角色且当前用户不满足时，跳到数据看板
   const allowed = (to.meta.roles as string[]) || []
   if (token && allowed.length > 0 && !hasAnyRole(allowed)) {
+    // 已在看板仍无权（不应发生）→ 回登录页，防止自身重定向死循环
+    if (to.path === '/dashboard') {
+      next('/login')
+      return
+    }
     next('/dashboard')
     return
   }
