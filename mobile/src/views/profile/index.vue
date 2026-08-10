@@ -20,27 +20,43 @@
 
     <!-- Main Scroll -->
     <div class="main-scroll" v-loading="loading">
-      <!-- User Info Card -->
-      <div class="user-info-card">
-        <div class="user-avatar" :style="{ background: avatarBg }">
-          <img v-if="displayAvatar && !avatarError" :src="displayAvatar" class="avatar-img" alt="头像" @error="avatarError = true" />
-          <span v-else>{{ displayName.charAt(0) }}</span>
-        </div>
-        <div class="user-meta">
-          <div class="user-name">{{ displayName }}</div>
-          <div class="user-level" v-if="userInfo?.vipLevel">👑 VIP{{ userInfo.vipLevel }}</div>
-          <div class="member-id-row">
-            <span class="member-id">会员ID: {{ userInfo?.id ?? '-' }}</span>
-            <span class="copy-btn" @click="copyMemberId">复制</span>
+      <!-- Member Card -->
+      <div class="member-card">
+        <div class="mc-mesh mc-mesh-1"></div>
+        <div class="mc-mesh mc-mesh-2"></div>
+        <div class="mc-glow"></div>
+
+        <div class="mc-top">
+          <div class="mc-avatar" :style="{ background: avatarBg }">
+            <img v-if="displayAvatar && !avatarError" :src="displayAvatar" class="avatar-img" alt="头像" @error="avatarError = true" />
+            <span v-else>{{ displayName.charAt(0) }}</span>
           </div>
+          <div class="mc-meta">
+            <div class="mc-name">{{ displayName }}</div>
+            <div class="mc-badges">
+              <span class="mc-vip" v-if="userInfo?.vipLevel">👑 VIP{{ userInfo.vipLevel }}</span>
+              <span class="mc-tag">社群成员</span>
+            </div>
+          </div>
+          <div class="mc-brand">SHEQUN</div>
+        </div>
+
+        <div class="mc-divider"></div>
+
+        <div class="mc-bottom">
+          <div class="mc-bottom-label">会员ID</div>
+          <div class="mc-id">{{ memberId }}</div>
         </div>
       </div>
 
-      <!-- Stats -->
-      <div class="stats-card">
-        <div class="stat-item" v-for="s in statsList" :key="s.label" @click="s.path && $router.push(s.path)">
-          <div class="stat-value">{{ s.value }}</div>
-          <div class="stat-label">{{ s.label }}</div>
+      <!-- Data Cards -->
+      <div class="data-card">
+        <div class="data-item" v-for="s in statsList" :key="s.label" @click="s.path && $router.push(s.path)">
+          <div class="data-icon" :style="{ background: s.bg, color: s.color }">
+            <component :is="s.icon" />
+          </div>
+          <div class="data-value">{{ s.value }}</div>
+          <div class="data-label">{{ s.label }}</div>
         </div>
       </div>
 
@@ -167,6 +183,12 @@ const isAdmin = computed(() => {
   return userInfo.value?.role === 'admin' || userInfo.value?.adminLevel > 0
 })
 
+const memberId = computed(() => {
+  const id = userInfo.value?.id
+  if (!id) return '--------'
+  return String(id).padStart(8, '0')
+})
+
 const avatarBg = computed(() => {
   const colors = ['#ede9fe', '#dbeafe', '#fef3c7', '#fce7f3', '#d1fae5']
   const c = displayName.value.charCodeAt(0)
@@ -174,27 +196,11 @@ const avatarBg = computed(() => {
 })
 
 const statsList = computed(() => [
-  { label: '我的活动', value: userInfo.value?.activityCount || 0, path: '/activity/my' },
-  { label: '我的商机', value: userInfo.value?.businessCount || 0, path: '/business/my' },
-  { label: '我的积分', value: userInfo.value?.points || 0, path: '/points/index' },
-  { label: '优惠券', value: userInfo.value?.couponCount || 0, path: '/coupon/index' },
+  { label: '我的活动', value: userInfo.value?.activityCount || 0, path: '/activity/my', icon: renderIcon('activity'), bg: '#ede9fe', color: '#7c3aed' },
+  { label: '我的商机', value: userInfo.value?.businessCount || 0, path: '/business/my', icon: renderIcon('business'), bg: '#dbeafe', color: '#2563eb' },
+  { label: '我的积分', value: userInfo.value?.points || 0, path: '/points/index', icon: renderIcon('points'), bg: '#fef3c7', color: '#d97706' },
+  { label: '优惠券', value: userInfo.value?.couponCount || 0, path: '/coupon/index', icon: renderIcon('coupon'), bg: '#fce7f3', color: '#db2777' },
 ])
-
-function copyMemberId() {
-  const id = userInfo.value?.id
-  if (!id) return
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(String(id)).then(() => showToast('会员ID已复制'))
-  } else {
-    const input = document.createElement('input')
-    input.value = String(id)
-    document.body.appendChild(input)
-    input.select()
-    document.execCommand('copy')
-    document.body.removeChild(input)
-    showToast('会员ID已复制')
-  }
-}
 
 function showToast(msg: string) {
   const existing = document.querySelector('.mobile-toast')
@@ -209,6 +215,15 @@ function showToast(msg: string) {
 
 function renderIcon(name: string) {
   const icons: Record<string, any> = {
+    activity: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('rect', { x: '3', y: '4', width: '18', height: '18', rx: '2' }),
+      h('path', { d: 'M16 2v4M8 2v4M3 10h18' }),
+    ]),
+    business: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('path', { d: 'M12 2L2 7l10 5 10-5-10-5z' }),
+      h('path', { d: 'M2 17l10 5 10-5' }),
+      h('path', { d: 'M2 12l10 5 10-5' }),
+    ]),
     card: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
       h('rect', { x: '2', y: '5', width: '20', height: '14', rx: '2' }),
       h('line', { x1: '2', y1: '10', x2: '22', y2: '10' }),
@@ -424,62 +439,109 @@ onMounted(() => {
   z-index: 1;
 }
 
-/* User Info Card */
-.user-info-card {
-  margin-bottom: 14px;
-  padding: 18px 16px;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+/* Member Card */
+.member-card {
+  position: relative;
+  overflow: hidden;
+  height: 200px;
+  margin-bottom: 16px;
+  padding: 22px 20px 18px;
+  border-radius: 20px;
+  background: linear-gradient(150deg, #f6f1ec 0%, #faf7f2 45%, #f3ece4 100%);
+  box-shadow: 0 10px 30px rgba(90, 60, 30, 0.10), inset 0 1px 0 rgba(255,255,255,0.7);
+  border: 1px solid rgba(212,175,122,0.22);
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.mc-mesh {
+  position: absolute; border-radius: 50%;
+  filter: blur(1px);
+}
+.mc-mesh-1 {
+  width: 220px; height: 220px; top: -90px; right: -60px;
+  background: radial-gradient(circle, rgba(212,175,122,0.28) 0%, rgba(212,175,122,0) 70%);
+}
+.mc-mesh-2 {
+  width: 160px; height: 160px; bottom: -70px; left: -50px;
+  background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, rgba(139,92,246,0) 70%);
+}
+.mc-glow {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, #d4af7a, transparent);
+  opacity: 0.8;
+}
+.mc-top {
+  position: relative; z-index: 1;
   display: flex; align-items: center; gap: 14px;
 }
-.user-avatar {
+.mc-avatar {
   width: 64px; height: 64px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 28px; font-weight: 700; color: #6366f1;
-  border: 3px solid rgba(99,102,241,0.12); overflow: hidden;
-  background: #ede9fe;
-  flex-shrink: 0;
+  font-size: 28px; font-weight: 700; color: #8a6d3b;
+  border: 2px solid rgba(212,175,122,0.6); overflow: hidden;
+  background: #ede9fe; flex-shrink: 0;
 }
 .avatar-img { width: 100%; height: 100%; object-fit: cover; }
-.user-meta { flex: 1; min-width: 0; }
-.user-name { font-size: 20px; font-weight: 800; color: #1e1b4b; margin-bottom: 4px; }
-.user-level { font-size: 12px; font-weight: 600; color: #f59e0b; margin-bottom: 4px; }
-.member-id-row { display: flex; align-items: center; gap: 8px; }
-.member-id {
-  display: inline-block; padding: 3px 10px; border-radius: 99px;
-  background: #f3f4f6; color: #6b7280; font-size: 12px;
+.mc-meta { flex: 1; min-width: 0; }
+.mc-name { font-size: 21px; font-weight: 800; color: #2b2320; letter-spacing: -0.3px; margin-bottom: 8px; }
+.mc-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mc-vip {
+  font-size: 11px; font-weight: 700; color: #8a6d3b;
+  padding: 3px 10px; border-radius: 99px;
+  background: linear-gradient(135deg, #f0e2c8, #e7d3ac);
+  border: 1px solid rgba(212,175,122,0.5);
 }
-.copy-btn {
-  font-size: 12px; color: #6366f1; font-weight: 600; cursor: pointer;
-  padding: 3px 8px; border-radius: 6px; transition: background 0.15s;
+.mc-tag {
+  font-size: 11px; font-weight: 600; color: #6b7280;
+  padding: 3px 10px; border-radius: 99px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(120,90,40,0.12);
 }
-.copy-btn:active { background: rgba(99,102,241,0.1); }
+.mc-brand {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  color: rgba(139,92,246,0.5); writing-mode: vertical-rl;
+  text-transform: uppercase; display: flex; align-items: center;
+}
+.mc-divider {
+  position: relative; z-index: 1;
+  height: 1px; margin: 4px 0;
+  background: linear-gradient(90deg, rgba(212,175,122,0.4), rgba(255,255,255,0));
+}
+.mc-bottom {
+  position: relative; z-index: 1;
+  display: flex; align-items: baseline; gap: 12px;
+}
+.mc-bottom-label { font-size: 12px; color: #8a6d3b; font-weight: 600; letter-spacing: 1px; }
+.mc-id {
+  font-family: 'Courier New', monospace;
+  font-size: 26px; font-weight: 800; letter-spacing: 3px;
+  color: #2b2320;
+}
 
-/* Stats */
-.stats-card {
+/* Data Cards */
+.data-card {
   margin-bottom: 16px;
-  padding: 18px 0;
-  background: #ffffff;
-  border-radius: 18px;
+  padding: 18px 6px;
+  background: linear-gradient(160deg, #ffffff 0%, #faf7f2 100%);
+  border-radius: 20px;
+  border: 1px solid rgba(212,175,122,0.2);
+  box-shadow: 0 6px 20px rgba(90, 60, 30, 0.06);
   display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  align-items: flex-start;
 }
-.stat-item {
+.data-item {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  cursor: pointer;
-  transition: opacity 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; transition: opacity 0.15s;
 }
-.stat-item:active { opacity: 0.7; }
-.stat-value { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: #6366f1; }
-.stat-label { font-size: 12px; color: #6b7280; }
+.data-item:active { opacity: 0.7; }
+.data-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 2px;
+}
+.data-icon svg { width: 21px; height: 21px; }
+.data-value { font-size: 20px; font-weight: 800; color: #2b2320; line-height: 1; }
+.data-label { font-size: 12px; color: #8a8578; }
 
 /* Dajia Module */
 .dajia-module {
