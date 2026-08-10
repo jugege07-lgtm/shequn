@@ -564,7 +564,7 @@ model AdminRole {
   code        String   @unique @map("code") // 角色标识: admin / editor / moderator / operator
   name        String   @default("") @map("name") // 角色名称
   description String   @default("") // 角色描述
-  permissions String   @default("[]") // 权限码 JSON 数组，如 ["user:view","activity:manage"]
+  permissions String   @db.Text // 权限码 JSON 数组；管理员全量权限较长，需 TEXT 类型（代码 parsePermissions 已兼容空值）
   isSystem    Int      @default(0) @map("is_system") // 1=系统内置不可删除
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at")
