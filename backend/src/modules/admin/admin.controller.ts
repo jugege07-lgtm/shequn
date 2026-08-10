@@ -381,6 +381,30 @@ export class AdminController {
     return { code: 0, data: await this.adminService.saveRolePermission(operator, code, dto, this.getClientIp(req)) };
   }
 
+  @Post('roles')
+  @Roles('admin')
+  @Permissions('role:manage')
+  @ApiOperation({ summary: '新增自定义角色' })
+  async createRole(@Body() dto: any, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.createRole(operator, dto, this.getClientIp(req)) };
+  }
+
+  @Put('roles/:code')
+  @Roles('admin')
+  @Permissions('role:manage')
+  @ApiOperation({ summary: '编辑角色' })
+  async updateRole(@Param('code') code: string, @Body() dto: any, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.updateRole(operator, code, dto, this.getClientIp(req)) };
+  }
+
+  @Delete('roles/:code')
+  @Roles('admin')
+  @Permissions('role:manage')
+  @ApiOperation({ summary: '删除自定义角色' })
+  async deleteRole(@Param('code') code: string, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.deleteRole(operator, code, this.getClientIp(req)) };
+  }
+
   // ============== 操作日志 ==============
   @Get('operation-logs')
   @Roles('admin')

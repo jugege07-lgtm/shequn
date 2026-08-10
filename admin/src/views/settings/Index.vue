@@ -37,6 +37,28 @@
               <el-button type="primary" @click="saveVipRules" :loading="vipSaving">保存VIP权限配置</el-button>
             </el-form-item>
           </el-form>
+
+          <el-divider content-position="left">免费商机解锁次数</el-divider>
+          <el-alert type="info" :closable="false" style="margin-bottom: 16px;">
+            <template #title>限制同一用户可免费解锁（解锁费用为 0）的商机数量。普通会员与各 VIP 等级可分别设置，达到上限后需付费解锁或升级会员。</template>
+          </el-alert>
+          <el-form label-width="160px" style="max-width: 640px;" v-loading="unlockCfgLoading">
+            <el-form-item label="普通会员解锁次数">
+              <el-input-number v-model.number="unlockCfg.default" :min="0" :max="1000" style="width: 200px;" />
+              <span class="form-tip">非 VIP 用户可免费解锁的商机次数，0 表示禁止免费解锁</span>
+            </el-form-item>
+            <el-form-item
+              v-for="lv in vipLevels"
+              :key="lv"
+              :label="`VIP ${lv} 级解锁次数`"
+            >
+              <el-input-number v-model.number="unlockCfg.vip[lv]" :min="0" :max="1000" style="width: 200px;" />
+              <span class="form-tip">VIP {{ lv }} 级用户可免费解锁的商机次数，0 表示禁止免费解锁</span>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="saveUnlockCfg" :loading="unlockCfgSaving">保存解锁次数配置</el-button>
+            </el-form-item>
+          </el-form>
         </el-tab-pane>
         <el-tab-pane label="支付配置" name="payment">
           <el-form :model="payForm" label-width="150px" style="max-width: 720px;" v-loading="payLoading">
@@ -116,38 +138,6 @@
               <template #default="{ row }">
                 <el-button size="small" @click="editAnnouncement(row)">编辑</el-button>
                 <el-popconfirm title="确定删除？" @confirm="deleteAnnouncement(row.id)">
-                  <template #reference>
-                    <el-button size="small" type="danger">删除</el-button>
-                  </template>
-                </el-popconfirm>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-        <el-tab-pane label="Banner管理" name="banners">
-          <div style="margin-bottom: 12px;">
-            <el-button type="primary" @click="showBannerDialog = true; editingBanner = null">新增Banner</el-button>
-          </div>
-          <el-table :data="banners" border stripe v-loading="bannerLoading">
-            <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="title" label="标题" />
-            <el-table-column label="图片" width="120">
-              <template #default="{ row }">
-                <el-image v-if="row.imageUrl" :src="row.imageUrl" style="width: 80px; height: 40px;" fit="cover" />
-                <span v-else style="color: #999;">无图片</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="linkType" label="链接类型" width="80" />
-            <el-table-column prop="sortOrder" label="排序" width="80" />
-            <el-table-column label="状态" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '禁用' }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="180">
-              <template #default="{ row }">
-                <el-button size="small" @click="editBanner(row)">编辑</el-button>
-                <el-popconfirm title="确定删除？" @confirm="deleteBanner(row.id)">
                   <template #reference>
                     <el-button size="small" type="danger">删除</el-button>
                   </template>
@@ -246,47 +236,6 @@
             @current-change="loadStaff"
           />
         </el-tab-pane>
-        <el-tab-pane label="角色权限" name="roles">
-          <div v-loading="roleLoading">
-            <el-alert type="info" :closable="false" style="margin-bottom: 14px;">
-              <template #title>为每个角色勾选可用的操作权限。管理员角色自动拥有全部权限，无需勾选。保存后即时生效。</template>
-            </el-alert>
-            <div class="role-layout">
-              <div class="role-list">
-                <div
-                  v-for="role in roleList"
-                  :key="role.code"
-                  class="role-item"
-                  :class="{ active: selectedRole === role.code }"
-                  @click="selectedRole = role.code"
-                >
-                  <div class="role-item-name">{{ role.name }}</div>
-                  <div class="role-item-desc">{{ role.description }}</div>
-                </div>
-              </div>
-              <div class="role-perms">
-                <div v-if="!currentRole" style="color: #909399; padding: 30px; text-align: center;">请选择左侧角色进行权限配置</div>
-                <template v-else>
-                  <div class="role-perms-head">
-                    <span class="role-perms-title">{{ currentRole.name }} · 权限配置</span>
-                    <div>
-                      <el-button size="small" @click="checkAllCurrent">全选</el-button>
-                      <el-button size="small" type="primary" :loading="roleSaving" @click="saveRolePermission">保存权限</el-button>
-                    </div>
-                  </div>
-                  <el-checkbox-group v-model="currentRolePerms">
-                    <div v-for="group in permissionGroups" :key="group.group" class="perm-group">
-                      <div class="perm-group-title">{{ group.group }}</div>
-                      <div class="perm-group-items">
-                        <el-checkbox v-for="p in group.items" :key="p.code" :label="p.code" :disabled="currentRole.code === 'admin'">{{ p.label }}</el-checkbox>
-                      </div>
-                    </div>
-                  </el-checkbox-group>
-                </template>
-              </div>
-            </div>
-          </div>
-        </el-tab-pane>
         <el-tab-pane label="操作日志" name="logs">
           <div style="margin-bottom: 12px; display: flex; gap: 10px;">
             <el-input v-model="logKeyword" placeholder="搜索操作人/详情" clearable style="width: 240px;" @keyup.enter="loadLogs" @clear="loadLogs" />
@@ -365,25 +314,6 @@
       </template>
     </el-dialog>
 
-    <!-- Banner对话框 -->
-    <el-dialog v-model="showBannerDialog" :title="editingBanner ? '编辑Banner' : '新增Banner'" width="500px">
-      <el-form :model="bannerForm" label-width="80px">
-        <el-form-item label="标题"><el-input v-model="bannerForm.title" /></el-form-item>
-        <el-form-item label="图片URL"><el-input v-model="bannerForm.imageUrl" /></el-form-item>
-        <el-form-item label="链接地址"><el-input v-model="bannerForm.linkUrl" /></el-form-item>
-        <el-form-item label="链接类型"><el-input v-model="bannerForm.linkType" placeholder="activity/vip/mall" /></el-form-item>
-        <el-form-item label="位置"><el-select v-model="bannerForm.position"><el-option label="首页" value="home" /><el-option label="其他" value="other" /></el-select></el-form-item>
-        <el-form-item label="状态">
-          <el-switch v-model="bannerForm.status" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-        <el-form-item label="排序"><el-input-number v-model="bannerForm.sortOrder" :min="0" /></el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showBannerDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveBanner" :loading="saving">保存</el-button>
-      </template>
-    </el-dialog>
-
     <!-- 版本对话框 -->
     <el-dialog v-model="showVersionDialog" :title="editingVersion ? '编辑版本' : '新增版本'" width="500px">
       <el-form :model="verForm" label-width="100px">
@@ -452,7 +382,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted, shallowRef, onBeforeUnmount } from 'vue'
+import { ref, reactive, onMounted, shallowRef, onBeforeUnmount } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import request from '@/api/request'
 import { compressImage, MAX_BYTES } from '@/utils/imageCompress'
@@ -622,6 +552,51 @@ async function saveVipRules() {
   }
 }
 
+// ========== 免费商机解锁次数配置 ==========
+const unlockCfgLoading = ref(false)
+const unlockCfgSaving = ref(false)
+const vipLevels = ref<number[]>([])
+const unlockCfg = reactive<{ default: number; vip: Record<string, number> }>({ default: 3, vip: {} })
+
+async function loadUnlockCfg() {
+  unlockCfgLoading.value = true
+  try {
+    const [cfgRes, planRes]: any = await Promise.all([
+      request.get('/admin/config/business_free_unlock'),
+      request.get('/admin/vip-plans'),
+    ])
+    const raw = cfgRes?.value
+    let parsed: any = { default: 3, vip: {} }
+    if (raw) { try { parsed = { default: 3, vip: {}, ...JSON.parse(raw) } } catch { /* 忽略 */ } }
+    unlockCfg.default = Number(parsed.default) || 3
+    unlockCfg.vip = {}
+    const levels = new Set<number>()
+    ;(planRes?.list || []).forEach((p: any) => { if (p?.level) levels.add(Number(p.level)) })
+    if (levels.size === 0) { for (let i = 1; i <= 3; i++) levels.add(i) }
+    vipLevels.value = Array.from(levels).sort((a, b) => a - b)
+    vipLevels.value.forEach((lv) => {
+      unlockCfg.vip[String(lv)] = parsed.vip?.[String(lv)] != null ? Number(parsed.vip[String(lv)]) : 0
+    })
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载解锁次数配置失败')
+  } finally {
+    unlockCfgLoading.value = false
+  }
+}
+
+async function saveUnlockCfg() {
+  unlockCfgSaving.value = true
+  try {
+    const payload = { value: JSON.stringify({ default: unlockCfg.default, vip: unlockCfg.vip }), description: '免费商机解锁次数配置（普通会员与各VIP等级差异化）' }
+    await request.put('/admin/config/business_free_unlock', payload)
+    ElMessage.success('解锁次数配置保存成功')
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存失败')
+  } finally {
+    unlockCfgSaving.value = false
+  }
+}
+
 // ========== 支付配置 ==========
 const payLoading = ref(false)
 const paySaving = ref(false)
@@ -736,53 +711,6 @@ async function deleteAnnouncement(id: number) {
     await request.delete(`/admin/announcements/${id}`)
     ElMessage.success('删除成功')
     loadAnnouncements()
-  } catch (err: any) {
-    ElMessage.error(err.message || '删除失败')
-  }
-}
-
-// ========== Banner ==========
-const banners = ref<any[]>([])
-const bannerLoading = ref(false)
-const showBannerDialog = ref(false)
-const editingBanner = ref<any>(null)
-const bannerForm = reactive({ title: '', imageUrl: '', linkUrl: '', linkType: '', position: 'home', status: 1, sortOrder: 0 })
-
-async function loadBanners() {
-  bannerLoading.value = true
-  try {
-    banners.value = await request.get('/admin/banners') || []
-  } catch (err: any) { ElMessage.error(err.message || '操作失败') }
-  finally { bannerLoading.value = false }
-}
-
-function editBanner(row: any) {
-  editingBanner.value = row
-  Object.assign(bannerForm, { title: row.title, imageUrl: row.imageUrl, linkUrl: row.linkUrl, linkType: row.linkType, position: row.position || 'home', status: row.status, sortOrder: row.sortOrder })
-  showBannerDialog.value = true
-}
-
-async function saveBanner() {
-  saving.value = true
-  try {
-    if (editingBanner.value) {
-      await request.put(`/admin/banners/${editingBanner.value.id}`, bannerForm)
-    } else {
-      await request.post('/admin/banners', bannerForm)
-    }
-    ElMessage.success('保存成功')
-    showBannerDialog.value = false
-    loadBanners()
-  } catch (err: any) {
-    ElMessage.error(err.message || '保存失败')
-  } finally { saving.value = false }
-}
-
-async function deleteBanner(id: number) {
-  try {
-    await request.delete(`/admin/banners/${id}`)
-    ElMessage.success('删除成功')
-    loadBanners()
   } catch (err: any) {
     ElMessage.error(err.message || '删除失败')
   }
@@ -1022,68 +950,6 @@ async function saveResetPwd() {
   }
 }
 
-// ========== 角色权限 ==========
-const roleLoading = ref(false)
-const roleSaving = ref(false)
-const roleList = ref<any[]>([])
-const selectedRole = ref('')
-const permissionCatalog = ref<any[]>([])
-const currentRolePerms = ref<string[]>([])
-
-const currentRole = computed(() => roleList.value.find((r) => r.code === selectedRole.value) || null)
-const permissionGroups = computed(() => {
-  const groups: Record<string, any[]> = {}
-  permissionCatalog.value.forEach((p) => {
-    ;(groups[p.group] = groups[p.group] || []).push(p)
-  })
-  return Object.entries(groups).map(([group, items]) => ({ group, items }))
-})
-
-async function loadRolePermissions() {
-  roleLoading.value = true
-  try {
-    const [roles, perms] = await Promise.all([
-      request.get('/admin/role-permissions') as Promise<any>,
-      request.get('/admin/permissions') as Promise<any>,
-    ])
-    roleList.value = roles || []
-    permissionCatalog.value = perms || []
-    const target = roleList.value.find((r) => r.code !== 'admin') || roleList.value[0]
-    if (target) {
-      selectedRole.value = target.code
-      syncCurrentRolePerms()
-    }
-  } catch (err: any) {
-    ElMessage.error(err.message || '加载角色失败')
-  } finally {
-    roleLoading.value = false
-  }
-}
-
-function syncCurrentRolePerms() {
-  const role = roleList.value.find((r) => r.code === selectedRole.value)
-  currentRolePerms.value = role ? [...(role.permissions || [])] : []
-}
-watch(selectedRole, () => syncCurrentRolePerms())
-
-function checkAllCurrent() {
-  currentRolePerms.value = permissionGroups.value.flatMap((g) => g.items.map((p) => p.code))
-}
-
-async function saveRolePermission() {
-  if (!currentRole.value) return
-  roleSaving.value = true
-  try {
-    await request.put(`/admin/role-permissions/${currentRole.value.code}`, { permissions: currentRolePerms.value })
-    ElMessage.success('权限保存成功')
-    loadRolePermissions()
-  } catch (err: any) {
-    ElMessage.error(err.message || '保存失败')
-  } finally {
-    roleSaving.value = false
-  }
-}
-
 // ========== 操作日志 ==========
 const logList = ref<any[]>([])
 const logLoading = ref(false)
@@ -1109,6 +975,9 @@ const actionLabelMap: Record<string, string> = {
   delete_admin: '删除账号',
   reset_password: '重置密码',
   update_role_permission: '更新角色权限',
+  create_role: '新增角色',
+  update_role: '编辑角色',
+  delete_role: '删除角色',
 }
 const actionLabel = (a: string) => actionLabelMap[a] || a
 
@@ -1128,13 +997,12 @@ async function loadLogs() {
 onMounted(() => {
   loadConfigs()
   loadVipRules()
+  loadUnlockCfg()
   loadPaymentConfig()
   loadAnnouncements()
-  loadBanners()
   loadVersions()
   loadAboutUs()
   loadStaff()
-  loadRolePermissions()
   loadLogs()
 })
 </script>
@@ -1150,62 +1018,5 @@ onMounted(() => {
 .about-actions {
   margin-top: 16px;
   display: flex; justify-content: flex-end; gap: 10px;
-}
-/* 角色权限布局 */
-.role-layout {
-  display: flex;
-  gap: 16px;
-  min-height: 320px;
-}
-.role-list {
-  width: 200px;
-  flex-shrink: 0;
-  border-right: 1px solid #f0f0f0;
-  padding-right: 12px;
-}
-.role-item {
-  padding: 12px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  margin-bottom: 8px;
-  transition: all 0.2s;
-}
-.role-item:hover { background: #f5f7fa; }
-.role-item.active {
-  background: #ecf5ff;
-  border-color: #409eff;
-}
-.role-item-name { font-size: 14px; font-weight: 600; color: #303133; }
-.role-item-desc { font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4; }
-.role-perms {
-  flex: 1;
-  min-width: 0;
-}
-.role-perms-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.role-perms-title { font-size: 15px; font-weight: 600; color: #303133; }
-.perm-group {
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  background: #fafafa;
-  border-radius: 8px;
-}
-.perm-group-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #606266;
-  margin-bottom: 10px;
-  padding-left: 8px;
-  border-left: 3px solid #409eff;
-}
-.perm-group-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 20px;
 }
 </style>

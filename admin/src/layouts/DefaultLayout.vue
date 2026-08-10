@@ -59,6 +59,10 @@
             <el-icon><Ticket /></el-icon>
             <template #title>优惠券管理</template>
           </el-menu-item>
+          <el-menu-item v-if="menuVisible(['admin'])" index="/roles">
+            <el-icon><Lock /></el-icon>
+            <template #title>角色权限</template>
+          </el-menu-item>
           <el-menu-item v-if="menuVisible(['admin','editor'])" index="/category-management">
             <el-icon><Notebook /></el-icon>
             <template #title>商机分类</template>
@@ -154,6 +158,7 @@ const breadcrumb = computed(() => {
     '/notifications': '消息管理',
     '/banners': 'Banner管理',
     '/coupons': '优惠券管理',
+    '/roles': '角色权限',
     '/category-management': '商机分类',
     '/product-category-management': '商品分类',
     '/points/rules': '积分规则',

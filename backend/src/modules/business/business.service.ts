@@ -118,6 +118,9 @@ export class BusinessService {
 
     // 免费商机直接解锁
     if (!business.unlockFee || business.unlockFee <= 0) {
+      // 校验免费商机解锁次数上限（普通会员 / 各VIP等级差异化）
+      await this.checkFreeUnlockLimit(userId);
+
       const orderNo = `BIZ_FREE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const unlock = await this.prisma.businessUnlock.create({
         data: {
@@ -169,6 +172,39 @@ export class BusinessService {
     ]);
 
     return { unlock, order: { id: order.id, orderNo: order.orderNo }, needPay: true };
+  }
+
+  /**
+   * 校验用户免费商机解锁次数上限。
+   * 配置读取系统配置 business_free_unlock：{"default":3,"vip":{"1":5,"2":8}}
+   * - default：普通（非 VIP）会员可解锁的免费商机次数
+   * - vip：各 VIP 等级对应的免费商机解锁次数（未配置的等级回退到 default）
+   */
+  private async checkFreeUnlockLimit(userId: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('用户不存在');
+
+    const used = await this.prisma.businessUnlock.count({
+      where: { userId, business: { unlockFee: { lte: 0 } } },
+    });
+
+    let cfg: { default: number; vip: Record<string, number> } = { default: 3, vip: {} };
+    try {
+      const row = await this.prisma.systemConfig.findUnique({ where: { key: 'business_free_unlock' } });
+      if (row?.value) cfg = { default: 3, vip: {}, ...JSON.parse(row.value) };
+    } catch {
+      // 配置解析失败时使用默认值
+    }
+
+    const now = new Date();
+    const isVip = user.vipLevel > 0 && !!user.vipExpireAt && user.vipExpireAt > now;
+    const limit = isVip
+      ? (cfg.vip?.[String(user.vipLevel)] ?? cfg.default)
+      : cfg.default;
+
+    if (used >= limit) {
+      throw new ForbiddenException('您的免费商机解锁次数已达上限，可升级会员或解锁付费商机');
+    }
   }
 
   async fulfillBusinessUnlock(orderNo: string) {

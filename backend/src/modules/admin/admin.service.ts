@@ -481,6 +481,68 @@ export class AdminService {
     return { code, permissions };
   }
 
+  /** 校验权限码数组是否均为合法权限码 */
+  private filterValidPermissions(permissions: any): string[] {
+    const validCodes = new Set(AdminService.PERMISSION_CATALOG.map((p) => p.code));
+    return Array.isArray(permissions) ? permissions.filter((p) => validCodes.has(p)) : [];
+  }
+
+  /** 新增自定义角色 */
+  async createRole(operator: any, dto: any, ip: string) {
+    const code = String(dto.code || '').trim();
+    const name = String(dto.name || '').trim();
+    if (!/^[a-zA-Z][a-zA-Z0-9_]{1,19}$/.test(code)) {
+      throw new BadRequestException('角色标识需为字母开头，仅含字母、数字、下划线，长度 2-20');
+    }
+    if (!name) throw new BadRequestException('角色名称不能为空');
+    const exists = await this.prisma.adminRole.findUnique({ where: { code } });
+    if (exists) throw new BadRequestException(`角色标识「${code}」已存在`);
+    await this.prisma.adminRole.create({
+      data: {
+        code,
+        name,
+        description: String(dto.description || ''),
+        permissions: JSON.stringify(this.filterValidPermissions(dto.permissions)),
+        isSystem: 0,
+        sortOrder: 100,
+      },
+    });
+    await this.logOperation(operator, 'role', 'create_role', `新增角色「${name}」(${code})`, ip);
+    return { code, name };
+  }
+
+  /** 编辑角色（名称/描述/权限） */
+  async updateRole(operator: any, code: string, dto: any, ip: string) {
+    const role = await this.prisma.adminRole.findUnique({ where: { code } });
+    if (!role) throw new BadRequestException('角色不存在');
+    const data: any = {};
+    if (dto.name !== undefined) {
+      const name = String(dto.name).trim();
+      if (!name) throw new BadRequestException('角色名称不能为空');
+      data.name = name;
+    }
+    if (dto.description !== undefined) data.description = String(dto.description);
+    if (dto.permissions !== undefined) {
+      // 管理员角色始终拥有全部权限，禁止降级
+      data.permissions = JSON.stringify(
+        role.code === 'admin' ? AdminService.PERMISSION_CATALOG.map((p) => p.code) : this.filterValidPermissions(dto.permissions)
+      );
+    }
+    await this.prisma.adminRole.update({ where: { code }, data });
+    await this.logOperation(operator, 'role', 'update_role', `更新角色「${role.name}」(${code})`, ip);
+    return { code };
+  }
+
+  /** 删除自定义角色（系统内置角色不可删除） */
+  async deleteRole(operator: any, code: string, ip: string) {
+    const role = await this.prisma.adminRole.findUnique({ where: { code } });
+    if (!role) throw new BadRequestException('角色不存在');
+    if (role.isSystem === 1) throw new BadRequestException('系统内置角色不可删除');
+    await this.prisma.adminRole.delete({ where: { code } });
+    await this.logOperation(operator, 'role', 'delete_role', `删除角色「${role.name}」(${code})`, ip);
+    return { success: true };
+  }
+
   /** 初始化系统预定义角色及默认权限 */
   private async seedRoles() {
     const defaults: Record<string, string[]> = {

@@ -136,6 +136,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '优惠券管理', icon: 'Ticket', roles: ['admin', 'operator'] },
       },
       {
+        path: 'roles',
+        name: 'Roles',
+        component: () => import('@/views/roles/Index.vue'),
+        meta: { title: '角色权限', icon: 'Lock', roles: ['admin'] },
+      },
+      {
         path: 'points/rules',
         name: 'PointRules',
         component: () => import('@/views/points/Index.vue'),
