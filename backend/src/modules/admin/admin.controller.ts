@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { SystemService } from '../system/system.service';
@@ -8,12 +8,14 @@ import { CreateActivityDto } from './dto/create-activity.dto';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('后台管理')
 @Controller('api/admin')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles('admin', 'editor', 'moderator', 'operator')
 @ApiBearerAuth()
 export class AdminController {
@@ -304,6 +306,96 @@ export class AdminController {
     }
     const result = await this.adminService.updateUserRoles(+id, operator.userId || operator.id, roles);
     return { code: 0, data: result };
+  }
+
+  // ============== 后台账号管理 ==============
+  @Get('staff')
+  @Roles('admin')
+  @Permissions('staff:manage')
+  @ApiOperation({ summary: '后台账号列表' })
+  async getStaffList(@Query() query: any) {
+    return { code: 0, data: await this.adminService.getStaffList(query) };
+  }
+
+  @Post('staff')
+  @Roles('admin')
+  @Permissions('staff:manage')
+  @ApiOperation({ summary: '新增后台账号' })
+  async createStaff(@Body() dto: any, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.createStaff(operator, dto, this.getClientIp(req)) };
+  }
+
+  @Put('staff/:id')
+  @Roles('admin')
+  @Permissions('staff:manage')
+  @ApiOperation({ summary: '编辑后台账号' })
+  async updateStaff(@Param('id') id: string, @Body() dto: any, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.updateStaff(operator, +id, dto, this.getClientIp(req)) };
+  }
+
+  @Delete('staff/:id')
+  @Roles('admin')
+  @Permissions('staff:manage')
+  @ApiOperation({ summary: '删除后台账号' })
+  async deleteStaff(@Param('id') id: string, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.deleteStaff(operator, +id, this.getClientIp(req)) };
+  }
+
+  @Put('staff/:id/password')
+  @Roles('admin')
+  @Permissions('staff:manage')
+  @ApiOperation({ summary: '重置后台账号密码' })
+  async resetStaffPassword(@Param('id') id: string, @Body() dto: any, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.resetStaffPassword(operator, +id, dto, this.getClientIp(req)) };
+  }
+
+  // ============== 修改当前管理员密码 ==============
+  @Put('profile/password')
+  @ApiOperation({ summary: '修改当前登录账号密码' })
+  async changeOwnPassword(@Body() dto: any, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.changeOwnPassword(operator, dto, this.getClientIp(req)) };
+  }
+
+  // ============== 角色权限管理 ==============
+  @Get('permissions')
+  @Roles('admin')
+  @Permissions('role:manage')
+  @ApiOperation({ summary: '获取权限目录' })
+  getPermissionCatalog() {
+    return { code: 0, data: AdminService.PERMISSION_CATALOG };
+  }
+
+  @Get('role-permissions')
+  @Roles('admin')
+  @Permissions('role:manage')
+  @ApiOperation({ summary: '获取角色权限配置' })
+  async getRolePermissions() {
+    return { code: 0, data: await this.adminService.getRolePermissions() };
+  }
+
+  @Put('role-permissions/:code')
+  @Roles('admin')
+  @Permissions('role:manage')
+  @ApiOperation({ summary: '保存角色权限配置' })
+  async saveRolePermission(@Param('code') code: string, @Body() dto: any, @CurrentUser() operator: any, @Req() req: any) {
+    return { code: 0, data: await this.adminService.saveRolePermission(operator, code, dto, this.getClientIp(req)) };
+  }
+
+  // ============== 操作日志 ==============
+  @Get('operation-logs')
+  @Roles('admin')
+  @Permissions('log:view')
+  @ApiOperation({ summary: '操作日志列表' })
+  async getOperationLogs(@Query() query: any) {
+    return { code: 0, data: await this.adminService.getOperationLogs(query) };
+  }
+
+  private getClientIp(req: any): string {
+    const forwarded = req?.headers?.['x-forwarded-for'];
+    if (forwarded) {
+      return String(forwarded).split(',')[0].trim();
+    }
+    return req?.ip || req?.connection?.remoteAddress || '';
   }
 
   // ============== 活动管理 ==============

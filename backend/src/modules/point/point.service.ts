@@ -261,6 +261,41 @@ export class PointService extends PrismaService {
 
   // ===== 积分调整 =====
 
+  /**
+   * 消耗积分（内部调用，通常用于购物/兑换等业务场景）
+   * @param userId 用户ID
+   * @param points 消耗积分（正数）
+   * @param action 业务动作标识（写入 point_logs.action，如 product_exchange）
+   * @param remark 备注说明
+   * 返回变动后余额。积分不足会抛 BadRequestException。
+   */
+  async spendPoints(userId: number, points: number, action: string, remark: string) {
+    const uid = Number(userId);
+    const need = Math.max(0, Math.floor(Number(points) || 0));
+    if (need <= 0) throw new Error('消耗积分必须大于 0');
+    const user = await this.user.findUnique({ where: { id: uid } });
+    if (!user) throw new Error('用户不存在');
+    const current = user.points ?? 0;
+    if (current < need) {
+      throw new Error(`积分不足，当前 ${current} 积分`);
+    }
+    const newBalance = current - need;
+    await this.user.update({
+      where: { id: uid },
+      data: { points: newBalance },
+    });
+    await this.pointLog.create({
+      data: {
+        userId: uid,
+        action,
+        points: -need,
+        balance: newBalance,
+        remark,
+      },
+    });
+    return { userId: uid, points: newBalance, spent: need };
+  }
+
   /** 消耗积分（手动调整） */
   async adjustPoints(userId: number, points: number, remark: string) {
     const uid = Number(userId);

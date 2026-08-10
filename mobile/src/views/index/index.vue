@@ -156,7 +156,10 @@
           <div class="biz-desc">{{ b.desc }}</div>
           <div class="biz-footer">
             <div class="biz-publisher">
-              <div class="biz-avatar" :class="b.avatarClass">{{ b.publisher }}</div>
+              <div class="biz-avatar" :class="b.avatarClass">
+                <img v-if="b.avatarUrl && !b.avatarError" :src="b.avatarUrl" class="biz-avatar-img" alt="头像" @error="b.avatarError = true" />
+                <span v-else>{{ b.publisher.charAt(0) }}</span>
+              </div>
               <span class="biz-name">{{ b.publisher }}</span>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
@@ -487,6 +490,8 @@ function applyData(data: any) {
         isFree: b.unlockFee === 0,
         priceHtml: b.unlockFee === 0 ? '免费' : `¥${b.unlockFee}`,
         publisher: b.publisher?.nickname || '匿名',
+        avatarUrl: b.publisher?.avatarUrl ? normalizeImageUrl(b.publisher.avatarUrl) : '',
+        avatarError: false,
         avatarClass: ['', 'c2', 'c3'][b.publisherId % 3],
         progress: b.maxUnlocks > 0 ? Math.round((b.currentUnlocks / b.maxUnlocks) * 100) : 0,
         progressText: `${b.currentUnlocks || 0}/${b.maxUnlocks || 0}`,
@@ -755,7 +760,9 @@ onBeforeUnmount(() => {
   background: var(--color-primary);
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 10px; font-weight: 700;
+  overflow: hidden; flex-shrink: 0;
 }
+.biz-avatar-img { width: 100%; height: 100%; object-fit: cover; background: transparent; }
 .biz-avatar.c2 {
   background: linear-gradient(135deg, #274a6f, #1a2f4e);
   color: #f5f7fa;

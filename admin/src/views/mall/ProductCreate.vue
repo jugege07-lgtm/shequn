@@ -110,6 +110,121 @@
           </el-form-item>
         </div>
 
+        <!-- 积分购买配置 -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="title-bar"></span>
+            积分购买配置
+          </div>
+
+          <!-- 纯积分兑换 -->
+          <div class="points-block">
+            <div class="block-header">
+              <el-switch
+                v-model="form.pointsEnabled"
+                :active-value="1"
+                :inactive-value="0"
+                @change="onPointsModeChange"
+              />
+              <span class="block-label">纯积分兑换</span>
+              <span class="form-hint">开启后，用户可用积分直接兑换该商品，无需现金</span>
+            </div>
+            <template v-if="form.pointsEnabled === 1">
+              <el-row :gutter="20" class="block-body">
+                <el-col :span="8">
+                  <el-form-item label="兑换积分" :prop="'pointsPrice'" label-width="90px">
+                    <el-input-number v-model="form.pointsPrice" :min="1" :step="10" style="width: 100%" />
+                    <span class="form-hint block-hint">每件所需积分</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="单笔上限" label-width="90px">
+                    <el-input-number v-model="form.pointsMaxLimit" :min="0" :step="100" style="width: 100%" />
+                    <span class="form-hint block-hint">0 = 不限（单笔最多使用积分）</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <div class="stock-note">
+                    <el-icon :size="14" color="#f59e0b"><Warning /></el-icon>
+                    <span>库存联动：兑换成功会同步扣减商品库存，库存不足自动拦截</span>
+                  </div>
+                </el-col>
+              </el-row>
+            </template>
+          </div>
+
+          <!-- 积分+现金组合支付 -->
+          <div class="points-block">
+            <div class="block-header">
+              <el-switch
+                :model-value="form.pointsEnabled === 2"
+                @change="(v: boolean) => onComboSwitch(v)"
+              />
+              <span class="block-label">积分 + 现金组合支付</span>
+              <span class="form-hint">开启后，用户可用积分抵扣部分现金</span>
+            </div>
+            <template v-if="form.pointsEnabled === 2">
+              <el-form-item label="抵扣模式" label-width="120px">
+                <el-radio-group v-model="form.pointsDeductMode">
+                  <el-radio value="fixed">固定金额抵扣</el-radio>
+                  <el-radio value="ratio">按比例抵扣</el-radio>
+                </el-radio-group>
+                <span class="form-hint">
+                  {{ form.pointsDeductMode === 'fixed' ? '如每 100 积分抵 1 元' : '积分可抵商品价格的一定比例' }}
+                </span>
+              </el-form-item>
+
+              <el-row :gutter="20">
+                <el-col :span="8">
+                  <el-form-item label="兑换汇率" label-width="110px">
+                    <el-input-number v-model="form.pointsRate" :min="1" :step="50" style="width: 100%" />
+                    <span class="form-hint block-hint">N 积分抵 1 元（默认 100）</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="最低使用积分" label-width="110px">
+                    <el-input-number v-model="form.pointsMinLimit" :min="0" :step="50" style="width: 100%" />
+                    <span class="form-hint block-hint">用户至少使用多少积分</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="单笔最高抵扣" label-width="110px">
+                    <el-input-number v-model="form.pointsMaxLimit" :min="0" :step="100" style="width: 100%" />
+                    <span class="form-hint block-hint">0 = 不限（单笔最多使用积分）</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <el-row v-if="form.pointsDeductMode === 'ratio'" :gutter="20">
+                <el-col :span="8">
+                  <el-form-item label="可抵价格比例" label-width="110px">
+                    <el-input-number
+                      v-model="form.pointsRatioPercent"
+                      :min="0"
+                      :max="100"
+                      :step="5"
+                      style="width: 100%"
+                    />
+                    <span class="form-hint block-hint">可抵商品价格的 X%（0-100）</span>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="最高抵扣金额" label-width="110px">
+                    <el-input-number
+                      v-model="form.pointsMaxDeduct"
+                      :min="0"
+                      :step="10"
+                      :precision="2"
+                      style="width: 100%"
+                    />
+                    <span class="form-hint block-hint">0 = 不限（单笔最高抵扣现金）</span>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </template>
+          </div>
+        </div>
+
         <!-- 上架设置 -->
         <div class="form-section">
           <div class="section-title">
@@ -143,7 +258,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type UploadRequestOptions } from 'element-plus'
-import { ArrowLeft, Plus } from '@element-plus/icons-vue'
+import { ArrowLeft, Plus, Warning } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 
@@ -174,7 +289,29 @@ const form = reactive({
   vipPrice: 0,
   stock: 0,
   status: 1,
+  // ===== 积分购买配置 =====
+  pointsEnabled: 0 as 0 | 1 | 2, // 0=关闭 1=纯积分 2=组合
+  pointsPrice: 100,
+  pointsMinLimit: 0,
+  pointsMaxLimit: 0,
+  pointsDeductMode: 'fixed',
+  pointsRate: 100,
+  pointsRatioPercent: 50,
+  pointsMaxDeduct: 0,
 })
+
+// 纯积分开关：切换时互斥组合支付
+function onPointsModeChange(v: 0 | 1 | 2) {
+  if (v === 1) {
+    // 打开纯积分时关闭组合
+    // pointsEnabled 已由 v-model 设为 1
+  }
+}
+
+// 组合支付开关（独立于纯积分）
+function onComboSwitch(on: boolean) {
+  form.pointsEnabled = on ? 2 : 0
+}
 
 const rules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
@@ -210,6 +347,15 @@ async function loadProductDetail() {
       form.vipPrice = data.vipPrice ?? 0
       form.stock = data.stock ?? 0
       form.status = data.status ?? 1
+      // 积分购买配置回填
+      form.pointsEnabled = data.pointsEnabled ?? 0
+      form.pointsPrice = data.pointsPrice ?? 100
+      form.pointsMinLimit = data.pointsMinLimit ?? 0
+      form.pointsMaxLimit = data.pointsMaxLimit ?? 0
+      form.pointsDeductMode = data.pointsDeductMode ?? 'fixed'
+      form.pointsRate = data.pointsRate ?? 100
+      form.pointsRatioPercent = data.pointsRatioPercent ?? 50
+      form.pointsMaxDeduct = data.pointsMaxDeduct ?? 0
     }
   } catch (err: any) {
     ElMessage.error(err.message || '加载商品详情失败')
@@ -271,6 +417,19 @@ async function handleSubmit() {
         vipPrice: Number(form.vipPrice),
         stock: Number(form.stock),
         status: form.status,
+        // 积分购买配置
+        pointsEnabled: form.pointsEnabled,
+        pointsPrice: form.pointsEnabled === 1 ? Number(form.pointsPrice) || 0 : 0,
+        pointsMinLimit: form.pointsEnabled === 2 ? Number(form.pointsMinLimit) || 0 : 0,
+        pointsMaxLimit: Number(form.pointsMaxLimit) || 0,
+        pointsDeductMode: form.pointsDeductMode,
+        pointsRate: form.pointsEnabled === 2 ? Number(form.pointsRate) || 100 : 100,
+        pointsRatioPercent: form.pointsEnabled === 2 && form.pointsDeductMode === 'ratio'
+          ? Number(form.pointsRatioPercent) || 0
+          : 0,
+        pointsMaxDeduct: form.pointsEnabled === 2 && form.pointsDeductMode === 'ratio'
+          ? Number(form.pointsMaxDeduct) || 0
+          : 0,
       }
       if (isEdit.value) {
         await request.put(`/admin/products/${productId.value}`, payload)
@@ -328,6 +487,46 @@ onMounted(() => {
   margin-left: 12px;
   font-size: 12px;
   color: #9ca3af;
+}
+
+/* 积分购买配置 */
+.points-block {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: #fafbfc;
+}
+.block-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.block-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+.block-body {
+  margin-top: 12px;
+}
+.block-hint {
+  margin-left: 0;
+  display: block;
+  margin-top: 4px;
+}
+.stock-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 6px;
+  padding: 8px 10px;
+  height: fit-content;
+  margin-top: 2px;
 }
 
 /* 首图上传 */

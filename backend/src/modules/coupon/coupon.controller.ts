@@ -12,10 +12,13 @@ export class CouponController {
   constructor(private readonly couponService: CouponService) {}
 
   // ===== 公开接口 =====
+  // 注意:JwtAuthGuard 失败时仍允许匿名访问,但拿不到 userId,
+  // 此时 list 项里的 userClaimed/userClaimCount 默认为 0,前端显示「可领取」。
   @Get('public/coupons')
   @ApiOperation({ summary: '获取优惠券列表（公开）' })
-  async getPublicCoupons(@Query() query: any) {
-    return { code: 0, data: await this.couponService.getCoupons(query) };
+  async getPublicCoupons(@Query() query: any, @CurrentUser() _user: any) {
+    const userId = _user?.userId ? Number(_user.userId) : undefined;
+    return { code: 0, data: await this.couponService.getCoupons({ ...query, userId }) };
   }
 
   @Get('public/coupons/:id')

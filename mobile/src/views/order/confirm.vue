@@ -49,13 +49,51 @@
           <span>商品总价</span>
           <span>¥{{ totalPrice }}</span>
         </div>
+        <!-- 积分抵扣明细 -->
+        <template v-if="payType === 'points'">
+          <div class="summary-row points-used">
+            <span>积分抵扣</span>
+            <span class="points-total">{{ pointsPlan.pointsUsed }} 积分（全额）</span>
+          </div>
+        </template>
+        <template v-else-if="payType === 'points_cash'">
+          <div class="summary-row points-used">
+            <span>积分抵扣现金</span>
+            <span>-¥{{ pointsPlan.cashDeduct }}</span>
+          </div>
+          <div class="summary-row">
+            <span>消耗积分</span>
+            <span class="points-total">{{ pointsPlan.pointsUsed }} 积分</span>
+          </div>
+          <div class="points-input-row" v-if="pointsPlan.maxPoints > pointsPlan.minLimit">
+            <span>使用积分</span>
+            <div class="points-input-wrap">
+              <input
+                type="number"
+                class="points-input"
+                :value="pointsUsed"
+                :min="pointsPlan.minLimit"
+                :max="pointsPlan.maxPoints"
+                @change="onPointsInput"
+              />
+              <span class="points-max">最多 {{ pointsPlan.maxPoints }}</span>
+            </div>
+          </div>
+        </template>
         <div class="summary-row">
           <span>运费</span>
           <span>免运费</span>
         </div>
         <div class="summary-row total">
           <span>应付总额</span>
-          <span class="total-amount"><span>¥</span>{{ totalPrice }}</span>
+          <span class="total-amount">
+            <template v-if="payType === 'points'">
+              <span class="points-amount">{{ pointsPlan.pointsUsed }} 积分</span>
+            </template>
+            <template v-else>
+              <span>¥</span>{{ totalPayAmount }}
+            </template>
+          </span>
         </div>
       </div>
     </div>
@@ -63,10 +101,17 @@
     <div class="bottom-bar">
       <div class="total-wrap">
         <span class="total-label">应付：</span>
-        <span class="total-price"><span>¥</span>{{ totalPrice }}</span>
+        <span class="total-price">
+          <template v-if="payType === 'points'">
+            <span class="points-amount">{{ pointsPlan.pointsUsed }} 积分</span>
+          </template>
+          <template v-else>
+            <span>¥</span>{{ totalPayAmount }}
+          </template>
+        </span>
       </div>
       <button class="submit-btn" :disabled="submitting" @click="handleSubmit">
-        {{ submitting ? '提交中...' : '提交订单' }}
+        {{ submitting ? '提交中...' : payType === 'points' ? '积分兑换' : '提交订单' }}
       </button>
     </div>
 
@@ -111,6 +156,7 @@ const router = useRouter()
 
 const productId = computed(() => Number(route.query.productId) || 0)
 const quantity = computed(() => Number(route.query.quantity) || 1)
+const payType = computed(() => (route.query.payType as string) || 'cash')
 const cartItemIds = computed(() => {
   const raw = route.query.cartItemIds as string
   return raw ? raw.split(',').map(Number).filter(Boolean) : []
@@ -124,6 +170,108 @@ const remark = ref('')
 const loading = ref(false)
 const submitting = ref(false)
 const showAddressPicker = ref(false)
+
+// 当前商品（积分下单需要读取商品配置）
+const currentProduct = ref<any>(null)
+// 组合支付时用户实际使用的积分
+const pointsUsed = ref(0)
+
+/** 积分支付方案（与后端 computePointsPlan 逻辑保持一致，仅用于展示） */
+const pointsPlan = computed(() => {
+  const p = currentProduct.value || {}
+  const price = Number(p.price) || 0
+  const qty = quantity.value
+  const totalAmount = price * qty
+  const enabled = Number(p.pointsEnabled) || 0
+
+  if (payType.value === 'points' && enabled === 1) {
+    const required = (Number(p.pointsPrice) || 0) * qty
+    return {
+      mode: 'points',
+      pointsUsed: required,
+      cashDeduct: totalAmount.toFixed(2),
+      payAmount: 0,
+      totalAmount: totalAmount.toFixed(2),
+      maxPoints: required,
+      minLimit: 0,
+    }
+  }
+
+  if (payType.value === 'points_cash' && enabled === 2) {
+    const rate = Number(p.pointsRate) || 100
+    let maxCash = totalAmount
+    if (p.pointsDeductMode === 'ratio') {
+      const pct = Number(p.pointsRatioPercent) || 0
+      maxCash = Math.min(maxCash, (totalAmount * pct) / 100)
+    }
+    const cap = Number(p.pointsMaxDeduct) || 0
+    if (cap > 0) maxCash = Math.min(maxCash, cap)
+    maxCash = Math.min(maxCash, Math.max(0, totalAmount - 0.01))
+
+    const minLimit = Number(p.pointsMinLimit) || 0
+    const maxPoints = Math.ceil(maxCash * rate)
+
+    // 用户输入的积分（未输入则默认用满）
+    let want = Number(pointsUsed.value) || 0
+    if (want <= 0) want = maxPoints
+    want = Math.min(Math.max(want, minLimit), maxPoints)
+
+    const rawCash = want / rate
+    const cashDeduct = Math.min(rawCash, maxCash)
+    const used = Math.ceil(cashDeduct * rate)
+    const payAmount = Math.max(0, Math.round((totalAmount - cashDeduct) * 100) / 100)
+
+    return {
+      mode: 'points_cash',
+      pointsUsed: used,
+      cashDeduct: (Math.round(cashDeduct * 100) / 100).toFixed(2),
+      payAmount: payAmount.toFixed(2),
+      totalAmount: totalAmount.toFixed(2),
+      maxPoints,
+      minLimit,
+    }
+  }
+
+  return {
+    mode: 'cash',
+    pointsUsed: 0,
+    cashDeduct: 0,
+    payAmount: totalAmount.toFixed(2),
+    totalAmount: totalAmount.toFixed(2),
+    maxPoints: 0,
+    minLimit: 0,
+  }
+})
+
+const totalPrice = computed(() => {
+  return goodsList.value
+    .reduce((sum, item) => sum + (item.price || item.product?.price || 0) * (item.quantity || 1), 0)
+    .toFixed(2)
+})
+
+/** 应付现金（组合支付 = 商品价 - 积分抵扣；纯积分 = 0） */
+const totalPayAmount = computed(() => {
+  if (payType.value === 'points') return '0.00'
+  if (payType.value === 'points_cash') return pointsPlan.value.payAmount
+  return totalPrice.value
+})
+
+function onPointsInput(e: Event) {
+  const v = Number((e.target as HTMLInputElement).value) || 0
+  const plan = pointsPlan.value
+  if (v < plan.minLimit) {
+    showToast(`至少使用 ${plan.minLimit} 积分`)
+    pointsUsed.value = plan.minLimit
+  } else if (v > plan.maxPoints) {
+    showToast(`最多使用 ${plan.maxPoints} 积分`)
+    pointsUsed.value = plan.maxPoints
+  } else {
+    pointsUsed.value = v
+  }
+  // 触发重算
+  const t = pointsUsed.value
+  pointsUsed.value = t
+}
 
 function normalizeImageUrl(url: string | undefined): string {
   if (!url) return ''
@@ -153,12 +301,26 @@ async function loadGoods() {
       goodsList.value = list.filter((item: any) => cartItemIds.value.includes(item.id))
     } else if (productId.value) {
       const product = await getProduct(productId.value)
+      currentProduct.value = product
       goodsList.value = [{
         name: product.name,
         coverImage: product.coverImage,
         price: product.price,
         quantity: quantity.value,
       }]
+      // 组合支付默认用满积分
+      if (payType.value === 'points_cash' && Number(product.pointsEnabled) === 2) {
+        const rate = Number(product.pointsRate) || 100
+        let maxCash = product.price * quantity.value
+        if (product.pointsDeductMode === 'ratio') {
+          const pct = Number(product.pointsRatioPercent) || 0
+          maxCash = Math.min(maxCash, (maxCash * pct) / 100)
+        }
+        const cap = Number(product.pointsMaxDeduct) || 0
+        if (cap > 0) maxCash = Math.min(maxCash, cap)
+        maxCash = Math.min(maxCash, Math.max(0, maxCash - 0.01))
+        pointsUsed.value = Math.ceil(maxCash * rate)
+      }
     }
   } catch (err: any) {
     showToast(err.message || '加载商品失败')
@@ -167,19 +329,14 @@ async function loadGoods() {
   }
 }
 
-const totalPrice = computed(() => {
-  return goodsList.value
-    .reduce((sum, item) => sum + (item.price || item.product?.price || 0) * (item.quantity || 1), 0)
-    .toFixed(2)
-})
-
 function selectAddress(addr: any) {
   selectedAddress.value = addr
   showAddressPicker.value = false
 }
 
 async function handleSubmit() {
-  if (!selectedAddress.value) {
+  // 纯积分订单无需收货地址；组合支付/现金仍需要
+  if (payType.value !== 'points' && !selectedAddress.value) {
     showToast('请选择收货地址')
     return
   }
@@ -187,16 +344,23 @@ async function handleSubmit() {
   try {
     let order: any
     if (isCartMode.value) {
-      order = await createOrderFromCart({ cartItemIds: cartItemIds.value, addressId: selectedAddress.value.id, remark: remark.value })
+      order = await createOrderFromCart({ cartItemIds: cartItemIds.value, addressId: selectedAddress.value?.id, remark: remark.value })
     } else {
       order = await createOrder({
         productId: productId.value,
         quantity: quantity.value,
-        addressId: selectedAddress.value.id,
+        addressId: selectedAddress.value?.id,
         remark: remark.value,
+        payType: payType.value === 'cash' ? undefined : payType.value,
+        pointsUsed: payType.value === 'points_cash' ? pointsPlan.value.pointsUsed : undefined,
       })
     }
     const orderId = order?.id || order?.data?.id
+    if (payType.value === 'points') {
+      // 纯积分：下单即完成，直接跳成功页
+      router.replace(`/order/success?orderId=${orderId}&amount=0&points=${pointsPlan.value.pointsUsed}`)
+      return
+    }
     router.push(`/order/pay/${orderId}`)
   } catch (err: any) {
     showToast(err.message || '提交失败')
@@ -269,6 +433,21 @@ onMounted(() => {
 .summary-row.total { margin-bottom: 0; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); }
 .total-amount { font-size: 18px; font-weight: 700; color: var(--color-primary); }
 .total-amount span { font-size: 12px; font-weight: 400; }
+.points-used { color: #d97706; }
+.points-total { font-weight: 700; color: #d97706; }
+.points-amount { font-size: 18px; font-weight: 800; color: #d97706; }
+.points-input-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; font-size: 14px; color: var(--color-text-secondary);
+}
+.points-input-wrap { display: flex; align-items: center; gap: 8px; }
+.points-input {
+  width: 96px; padding: 6px 10px; border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px; font-size: 14px; color: var(--color-text-primary);
+  text-align: right; outline: none;
+}
+.points-input:focus { border-color: var(--color-primary); }
+.points-max { font-size: 12px; color: var(--color-text-tertiary); }
 .bottom-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px;
   padding: 10px 16px env(safe-area-inset-bottom, 10px); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);

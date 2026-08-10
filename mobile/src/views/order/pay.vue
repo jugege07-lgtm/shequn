@@ -42,6 +42,22 @@
         </div>
       </div>
 
+      <!-- 积分抵扣明细 -->
+      <div class="goods-card" v-if="order.pointsUsed > 0">
+        <div class="goods-title">积分抵扣</div>
+        <div class="points-detail">
+          <div class="points-row">
+            <span>消耗积分</span>
+            <span class="points-val">-{{ order.pointsUsed }} 积分</span>
+          </div>
+          <div class="points-row" v-if="order.pointsDeduct > 0">
+            <span>抵扣现金</span>
+            <span class="points-val">-¥{{ order.pointsDeduct }}</span>
+          </div>
+          <div class="points-tip">支付成功后自动从您的账户扣除积分</div>
+        </div>
+      </div>
+
       <div class="pay-method-card">
         <div class="pay-title">支付方式</div>
         <div class="pay-option" :class="{ active: payMethod === 'wechat' }" @click="payMethod = 'wechat'">
@@ -116,6 +132,11 @@ async function loadOrder() {
   try {
     const data = await getOrder(orderId)
     order.value = data || {}
+    if (data?.status === 'paid' && data?.payAmount === 0) {
+      // 纯积分订单：无需支付，直接展示成功状态
+      router.replace(`/order/success?orderId=${orderId}&amount=0&points=${data.pointsUsed || 0}`)
+      return
+    }
     if (data?.status !== 'pending_payment') {
       showToast('该订单无需支付')
     }
@@ -197,6 +218,12 @@ onMounted(() => {
 .goods-img { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; background: #f5f5f5; }
 .goods-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
 .goods-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* 积分抵扣明细 */
+.points-detail { display: flex; flex-direction: column; gap: 8px; }
+.points-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--color-text-secondary); }
+.points-val { font-weight: 700; color: #d97706; }
+.points-tip { font-size: 12px; color: var(--color-text-tertiary); background: #fef3c7; border-radius: 6px; padding: 6px 10px; }
 .goods-price-row { display: flex; justify-content: space-between; align-items: center; }
 .goods-price { font-size: 14px; font-weight: 700; color: var(--color-primary); }
 .goods-price span { font-size: 11px; font-weight: 400; }

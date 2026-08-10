@@ -39,6 +39,7 @@ const routes = [
   { path: '/coupon/index', name: 'CouponIndex', component: () => import('@/views/coupon/index.vue'), meta: { requiresAuth: true } },
   { path: '/coupon/claim', name: 'CouponClaim', component: () => import('@/views/coupon/claim.vue'), meta: { requiresAuth: true } },
   { path: '/points/index', name: 'PointsIndex', component: () => import('@/views/points/index.vue'), meta: { requiresAuth: true } },
+  { path: '/balance/index', name: 'BalanceIndex', component: () => import('@/views/balance/index.vue'), meta: { requiresAuth: true } },
   { path: '/cart/index', name: 'CartIndex', component: () => import('@/views/cart/index.vue'), meta: { requiresAuth: true } },
   { path: '/setting/index', name: 'SettingIndex', component: () => import('@/views/setting/index.vue'), meta: { requiresAuth: true } },
 ]

@@ -19,6 +19,7 @@ import { CouponModule } from './modules/coupon/coupon.module';
 import { PointModule } from './modules/point/point.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ConnectionModule } from './modules/connection/connection.module';
+import { BalanceModule } from './modules/balance/balance.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ConnectionModule } from './modules/connection/connection.module';
     PointModule,
     PaymentModule,
     ConnectionModule,
+    BalanceModule,
   ],
 })
 export class AppModule {}

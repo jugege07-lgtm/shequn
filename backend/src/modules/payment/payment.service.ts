@@ -237,12 +237,50 @@ export class PaymentService {
         await this.activityService.fulfillActivitySignup(order.orderNo);
       } else if (order.orderType === 'business_unlock') {
         await this.businessService.fulfillBusinessUnlock(order.orderNo);
+      } else if (order.orderType === 'product') {
+        // 商品订单：若使用积分抵扣（积分+现金组合支付），支付成功后扣减积分并写明细
+        const o = await this.prisma.order.findUnique({ where: { orderNo: order.orderNo } });
+        if (o && o.pointsUsed > 0) {
+          await this.deductPointsForPaidOrder(o);
+        }
       }
       // product 类型订单无需额外履约，订单状态已更新
     } catch (err: any) {
       this.logger.error(`订单履约失败: ${order.orderNo}`, err?.message || err);
       // 不抛异常，避免影响微信回调返回 SUCCESS
     }
+  }
+
+  /**
+   * 组合支付订单支付成功后扣积分 + 写明细（事务一致）
+   */
+  private async deductPointsForPaidOrder(order: { userId: number; pointsUsed: number; orderNo: string }) {
+    await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id: order.userId } });
+      const balance = (user?.points ?? 0) - order.pointsUsed;
+      if (balance < 0) {
+        throw new BadRequestException(
+          `积分不足，当前 ${user?.points ?? 0} 积分，需要 ${order.pointsUsed} 积分`,
+        );
+      }
+      const item = await tx.orderItem.findFirst({
+        where: { orderId: (await tx.order.findUnique({ where: { orderNo: order.orderNo } }))!.id },
+        select: { productName: true },
+      });
+      await tx.user.update({
+        where: { id: order.userId },
+        data: { points: balance },
+      });
+      await tx.pointLog.create({
+        data: {
+          userId: order.userId,
+          action: 'product_exchange',
+          points: -order.pointsUsed,
+          balance,
+          remark: `积分+现金购买商品${item?.productName ? `「${item.productName}」` : ''}，消耗 ${order.pointsUsed} 积分`,
+        },
+      });
+    });
   }
 
   /**

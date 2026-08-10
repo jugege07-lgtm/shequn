@@ -1,12 +1,17 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PointService } from '../point/point.service';
+import { BalanceService } from '../balance/balance.service';
+
+/** 商机收益分成比例：成交金额的 70% 发放给发布者 */
+const BUSINESS_INCOME_RATIO = 0.7;
 
 @Injectable()
 export class BusinessService {
   constructor(
     private prisma: PrismaService,
     private pointService: PointService,
+    private balanceService: BalanceService,
   ) {}
 
   async getPublicBusinesses(params?: { page?: number; size?: number; status?: string; categoryId?: string | number }) {
@@ -188,6 +193,19 @@ export class BusinessService {
       await this.pointService.awardPoints(unlock.userId, 'unlock_business', '解锁商机');
     } catch (err) {
       console.error('解锁商机积分发放失败:', err);
+    }
+
+    // 付费商机成交后：将成交金额的 70% 作为收益发放至发布者余额账户
+    if (business.unlockFee > 0) {
+      try {
+        await this.balanceService.addBusinessIncome(
+          business.publisherId,
+          { id: business.id, title: business.title, unlockFee: business.unlockFee },
+          BUSINESS_INCOME_RATIO,
+        );
+      } catch (err) {
+        console.error('商机收益入账失败:', err);
+      }
     }
   }
 

@@ -14,6 +14,7 @@ model User {
   unionId       String?           @map("union_id")
   sessionKey    String?           @map("session_key")
   nickname      String            @default("") @map("nickname")
+  realName      String            @default("") @map("real_name")
   avatarUrl     String            @default("") @map("avatar_url")
   phone         String?           @map("phone")
   gender        Int               @default(0) @map("gender")
@@ -27,6 +28,7 @@ model User {
   updatedAt     DateTime          @updatedAt @map("updated_at")
   password      String            @default("") @map("password")
   points        Int               @default(0) @map("points")
+  balance       Float             @default(0) @map("balance")
   referrerId    Int?              @map("referrer_id")
   referrer      User?             @relation("UserReferral", fields: [referrerId], references: [id])
   referrals     User[]            @relation("UserReferral")
@@ -45,6 +47,7 @@ model User {
   pointLogs     PointLog[]
   connectionsRequested Connection[] @relation("ConnectionRequester")
   connectionsReceived   Connection[] @relation("ConnectionTarget")
+  balanceLogs           BalanceLog[]
 
   @@map("users")
 }
@@ -219,6 +222,16 @@ model Product {
   salesCount  Int             @default(0) @map("sales_count")
   specs       String?         @default("{}")
   status      Int             @default(1)
+  // ===== 积分购买配置 =====
+  // pointsEnabled: 0=关闭 1=纯积分兑换 2=积分+现金组合支付
+  pointsEnabled      Int     @default(0) @map("points_enabled")
+  pointsPrice        Int     @default(0) @map("points_price") // 纯积分兑换：每件所需积分
+  pointsMinLimit     Int     @default(0) @map("points_min_limit") // 组合支付：最低使用积分门槛
+  pointsMaxLimit     Int     @default(0) @map("points_max_limit") // 组合支付：单笔最高可抵扣积分（0=不限）
+  pointsDeductMode   String  @default("fixed") @map("points_deduct_mode") // fixed=固定金额抵扣 ratio=按比例抵扣
+  pointsRate         Int     @default(100) @map("points_rate") // 兑换汇率：N 积分抵 1 元（默认 100 积分 = 1 元）
+  pointsRatioPercent Float   @default(0) @map("points_ratio_percent") // ratio 模式：积分可抵商品价格的 X%（0-100）
+  pointsMaxDeduct    Float   @default(0) @map("points_max_deduct") // ratio 模式：单笔最高抵扣金额（元，0=不限）
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
   cartItems   CartItem[]
@@ -277,6 +290,9 @@ model Order {
   shippingNo      String      @default("") @map("shipping_no")
   shippingCompany String      @default("") @map("shipping_company")
   remark          String      @default("")
+  // ===== 积分购买相关 =====
+  pointsUsed      Int         @default(0) @map("points_used") // 本次下单消耗的积分
+  pointsDeduct    Float       @default(0) @map("points_deduct") // 积分抵扣的现金金额(元)
   activityId      Int?        @map("activity_id")
   businessId      Int?        @map("business_id")
   paidAt          DateTime?   @map("paid_at")
@@ -467,13 +483,15 @@ model Coupon {
   name        String       @map("name")
   description String       @default("") @map("description")
   type        String       @default("fixed") // fixed=固定金额, percent=折扣
-  value       Float        @default(0) // 金额或折扣率
+  value       Float        @default(0) // 金额(元) 或 折扣率(0-1, 0.8 表示 8 折)
   minAmount   Float        @default(0) // 最低消费门槛
+  discountCap Float?       @map("discount_cap") // 折扣券最高优惠金额(可选, 折扣券时生效)
   totalQty    Int          @default(0) @map("total_qty") // 发行总量
   claimedQty  Int          @default(0) @map("claimed_qty") // 已领取数
+  perUserLimit Int         @default(1) @map("per_user_limit") // 每人限领次数
   validDays   Int          @default(7) @map("valid_days") // 领取后有效天数
-  validFrom   DateTime?    @map("valid_from") // 固定有效期开始
-  validTo     DateTime?    @map("valid_to") // 固定有效期结束
+  validFrom   DateTime?    @map("valid_from") // 领券活动开始时间(可选)
+  validTo     DateTime?    @map("valid_to") // 领券活动结束时间(可选)
   status      Int          @default(1) // 1=上架 0=下架
   sortOrder   Int          @default(0) @map("sort_order")
   createdAt   DateTime     @default(now()) @map("created_at")
@@ -538,4 +556,58 @@ model PointLog {
   @@index([userId])
   @@index([createdAt])
   @@map("point_logs")
+}
+
+// ===== 后台角色-权限配置 =====
+model AdminRole {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @map("code") // 角色标识: admin / editor / moderator / operator
+  name        String   @default("") @map("name") // 角色名称
+  description String   @default("") // 角色描述
+  permissions String   @default("[]") // 权限码 JSON 数组，如 ["user:view","activity:manage"]
+  isSystem    Int      @default(0) @map("is_system") // 1=系统内置不可删除
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@map("admin_roles")
+}
+
+// ===== 后台操作日志 =====
+model OperationLog {
+  id         Int      @id @default(autoincrement())
+  operatorId Int      @map("operator_id") // 操作人用户ID
+  operator   String   @default("") // 操作人用户名
+  module     String   @default("") // 模块: system / user / role / activity ...
+  action     String   @default("") // 动作: change_password / create_admin / update_role ...
+  detail     String   @default("") // 操作详情描述
+  ip         String   @default("") // 操作人IP
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([operatorId])
+  @@index([createdAt])
+  @@index([module])
+  @@map("operation_logs")
+}
+
+// ===== 余额模块 =====
+model BalanceLog {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  type          String    @map("type") // recharge=充值, income=商机收益
+  amount        Float     @map("amount") // 正=收入, 负=支出
+  balance       Float     @map("balance") // 变动后余额
+  remark        String    @default("") // 备注说明
+  businessId    Int?      @map("business_id") // 相关商机ID（收益记录）
+  businessTitle String    @default("") @map("business_title") // 商机名称
+  dealAmount    Float?    @map("deal_amount") // 成交金额
+  ratio         Float?    @map("ratio") // 分成比例（如 0.7）
+  createdAt     DateTime  @default(now()) @map("created_at")
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("balance_logs")
 }

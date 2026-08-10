@@ -4,9 +4,12 @@
       <div class="success-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <div class="success-title">支付成功</div>
-      <div class="success-amount"><span>¥</span>{{ amount }}</div>
-      <div class="success-desc">感谢您的购买，商家将尽快为您发货</div>
+      <div class="success-title">{{ titleText }}</div>
+      <div class="success-amount" v-if="points > 0" style="color:#d97706">
+        <span class="points-big">{{ points }}</span><span class="points-unit"> 积分</span>
+      </div>
+      <div class="success-amount" v-else><span>¥</span>{{ amount }}</div>
+      <div class="success-desc">{{ descText }}</div>
 
       <div class="order-info-card" v-if="orderId">
         <div class="info-row">
@@ -35,8 +38,14 @@ const route = useRoute()
 const router = useRouter()
 const orderId = Number(route.query.orderId) || 0
 const amount = Number(route.query.amount || 0).toFixed(2)
+const points = Number(route.query.points || 0)
 const payTime = ref('')
 const redirect = ref(route.query.redirect as string || '')
+
+const titleText = computed(() => (points > 0 ? '兑换成功' : '支付成功'))
+const descText = computed(() =>
+  points > 0 ? `已从您的账户扣除 ${points} 积分，商家将尽快为您发货` : '感谢您的购买，商家将尽快为您发货'
+)
 
 const primaryBtnText = computed(() => redirect.value ? '返回' : '继续购物')
 const secondaryBtnText = computed(() => '查看订单')
@@ -68,6 +77,8 @@ onMounted(() => {
 .success-title { font-size: 22px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 12px; }
 .success-amount { font-size: 36px; font-weight: 800; color: var(--color-primary); margin-bottom: 10px; }
 .success-amount span { font-size: 18px; }
+.points-big { font-size: 44px; font-weight: 800; }
+.points-unit { font-size: 16px; font-weight: 600; }
 .success-desc { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 32px; }
 .order-info-card {
   width: 100%; padding: 16px; border-radius: var(--radius-xl);

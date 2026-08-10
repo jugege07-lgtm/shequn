@@ -173,7 +173,7 @@ export async function getProduct(id: number) {
   return request.get(`/api/public/products/${id}`)
 }
 
-export async function createOrder(data: { productId: number; quantity: number; addressId?: number; remark?: string }) {
+export async function createOrder(data: { productId: number; quantity: number; addressId?: number; remark?: string; payType?: string; pointsUsed?: number }) {
   return request.post('/api/orders', data)
 }
 
@@ -317,6 +317,20 @@ export async function getMyPointLogs(params?: { page?: number; size?: number }) 
 
 export async function getPointRules(params?: { page?: number; size?: number }) {
   return request.get('/api/public/point-rules', { params })
+}
+
+// ==================== 余额接口 ====================
+
+export async function getMyBalance() {
+  return request.get('/api/balance/my')
+}
+
+export async function getMyBalanceLogs(params?: { page?: number; size?: number; type?: string }) {
+  return request.get('/api/balance/my/logs', { params })
+}
+
+export async function rechargeBalance(amount: number) {
+  return request.post('/api/balance/recharge', { amount })
 }
 
 // ==================== 上传接口 ====================

@@ -27,4 +27,14 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   remark?: string;
+
+  @ApiPropertyOptional({ description: '支付类型：cash=纯现金 points=纯积分兑换 points_cash=积分+现金组合' })
+  @IsOptional()
+  @IsString()
+  payType?: string;
+
+  @ApiPropertyOptional({ description: '组合支付时用户希望使用的积分数量（可选，不传则默认用满）' })
+  @IsOptional()
+  @IsNumber()
+  pointsUsed?: number;
 }

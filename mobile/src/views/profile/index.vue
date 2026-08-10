@@ -175,7 +175,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, getMyActivities, getMyBusinesses, getDajiaConfig, getUnreadMessageCount } from '@/api'
+import { getCurrentUser, getMyCard, getMyActivities, getMyBusinesses, getDajiaConfig, getUnreadMessageCount } from '@/api'
 import { useUserStore } from '@/store/user'
 import { normalizeImageUrl } from '@/utils/image'
 
@@ -183,6 +183,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const userInfo = ref<any>(userStore.userInfo || null)
+const card = ref<any>({})
 const loading = ref(false)
 const activities = ref<any[]>([])
 const avatarError = ref(false)
@@ -217,7 +218,7 @@ const dajiaVipOk = computed(() => {
 })
 
 const displayName = computed(() => userInfo.value?.nickname || userInfo.value?.realName || '用户')
-const displayAvatar = computed(() => normalizeImageUrl(userInfo.value?.avatarUrl))
+const displayAvatar = computed(() => normalizeImageUrl(card.value.avatarUrl || userInfo.value?.avatarUrl))
 watch(displayAvatar, () => { avatarError.value = false })
 
 const isAdmin = computed(() => {
@@ -239,7 +240,7 @@ const avatarBg = computed(() => {
 const statsList = computed(() => [
   { label: '我的活动', value: userInfo.value?.activityCount || 0, path: '/activity/my', icon: renderIcon('activity'), bg: '#ede9fe', color: '#7c3aed' },
   { label: '我的商机', value: userInfo.value?.businessCount || 0, path: '/business/my', icon: renderIcon('business'), bg: '#dbeafe', color: '#2563eb' },
-  { label: '我的积分', value: userInfo.value?.points || 0, path: '/points/index', icon: renderIcon('points'), bg: '#fef3c7', color: '#d97706' },
+  { label: '我的余额', value: (Number(userInfo.value?.balance) || 0).toFixed(2), path: '/balance/index', icon: renderIcon('balance'), bg: '#fef3c7', color: '#d97706' },
   { label: '优惠券', value: userInfo.value?.couponCount || 0, path: '/coupon/index', icon: renderIcon('coupon'), bg: '#fce7f3', color: '#db2777' },
 ])
 
@@ -292,6 +293,11 @@ function renderIcon(name: string) {
       h('circle', { cx: '12', cy: '12', r: '10' }),
       h('path', { d: 'M12 6v6l4 2' }),
     ]),
+    balance: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      h('rect', { x: '2', y: '5', width: '20', height: '14', rx: '2' }),
+      h('line', { x1: '2', y1: '10', x2: '22', y2: '10' }),
+      h('path', { d: 'M6 15h1' }),
+    ]),
     coupon: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
       h('path', { d: 'M20 12V8H6a2 2 0 01-2-2c0-1.1.9-2 2-2h12v4' }),
       h('path', { d: 'M4 6v12c0 1.1.9 2 2 2h14v-4' }),
@@ -332,11 +338,15 @@ function showNoPermission(tip?: string) {
 async function loadUser() {
   loading.value = true
   try {
-    const data = await getCurrentUser().catch(() => null)
-    if (data) {
-      userInfo.value = data
-      userStore.setUserInfo(data)
+    const [userData, cardData] = await Promise.all([
+      getCurrentUser().catch(() => null),
+      getMyCard().catch(() => null),
+    ])
+    if (userData) {
+      userInfo.value = userData
+      userStore.setUserInfo(userData)
     }
+    if (cardData) card.value = cardData
   } finally {
     loading.value = false
   }

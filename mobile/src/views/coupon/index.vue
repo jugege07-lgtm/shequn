@@ -20,11 +20,20 @@
     <!-- Coupon List -->
     <div class="coupon-list" v-loading="loading">
       <div v-if="coupons.length === 0" class="empty-tip">暂无优惠券</div>
-      <div class="coupon-card" v-for="c in coupons" :key="c.id">
+      <div class="coupon-card" v-for="c in coupons" :key="c.id" :class="'state-' + c.status">
         <div class="coupon-left">
-          <div class="coupon-value">{{ c.coupon.value }}<span v-if="c.coupon.type === 'percent'">%</span></div>
-          <div class="coupon-unit" v-if="c.coupon.type === 'fixed'">元</div>
-          <div class="coupon-condition">{{ c.coupon.minAmount > 0 ? '满' + c.coupon.minAmount + '元可用' : '无门槛' }}</div>
+          <div class="coupon-value">
+            <template v-if="c.coupon.type === 'percent'">
+              <span class="value-num">{{ formatPercent(c.coupon.value) }}</span><span class="value-unit">折</span>
+            </template>
+            <template v-else>
+              <span class="value-unit">¥</span><span class="value-num">{{ c.coupon.value }}</span>
+            </template>
+          </div>
+          <div class="coupon-condition">{{ c.coupon.minAmount > 0 ? '满¥' + c.coupon.minAmount + '可用' : '无门槛' }}</div>
+          <div v-if="c.coupon.type === 'percent' && c.coupon.discountCap" class="coupon-cap">
+            最高减 ¥{{ c.coupon.discountCap }}
+          </div>
         </div>
         <div class="coupon-divider"></div>
         <div class="coupon-right">
@@ -63,7 +72,15 @@ async function loadCoupons() {
 
 function formatDate(d: string) {
   if (!d) return ''
-  return new Date(d).toLocaleDateString('zh-CN')
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return ''
+  return `${dt.getFullYear()}-${(dt.getMonth() + 1).toString().padStart(2, '0')}-${dt.getDate().toString().padStart(2, '0')}`
+}
+
+function formatPercent(v: number) {
+  const n = Number(v)
+  if (Number.isNaN(n)) return '-'
+  return (n * 10).toFixed(1).replace(/\.0$/, '')
 }
 
 function statusText(s: string) {
@@ -96,17 +113,26 @@ watch(activeTab, loadCoupons)
   box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px dashed #e0d4f5;
 }
 .coupon-left {
-  width: 100px; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; padding: 16px 8px; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  width: 110px; min-height: 110px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 16px 8px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: #fff; position: relative;
 }
 .coupon-left::after {
-  content: ''; position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
+  content: ''; position: absolute; right: -8px; top: 50%;
+  transform: translateY(-50%);
   width: 16px; height: 16px; border-radius: 50%; background: #f0f2f8;
 }
-.coupon-value { font-size: 28px; font-weight: 800; line-height: 1; }
-.coupon-unit { font-size: 12px; margin-top: 2px; }
-.coupon-condition { font-size: 10px; margin-top: 8px; opacity: 0.8; }
+.coupon-value { display: flex; align-items: baseline; gap: 2px; line-height: 1; }
+.coupon-value .value-num { font-size: 30px; font-weight: 800; }
+.coupon-value .value-unit { font-size: 13px; font-weight: 600; }
+.coupon-condition { font-size: 11px; margin-top: 8px; opacity: 0.85; }
+.coupon-cap { font-size: 10px; margin-top: 4px; opacity: 0.75; }
+.coupon-card.state-used .coupon-left,
+.coupon-card.state-expired .coupon-left { background: linear-gradient(135deg, #94a3b8, #64748b); }
+.coupon-card.state-used,
+.coupon-card.state-expired { opacity: 0.7; }
 
 .coupon-divider { width: 1px; background: repeating-linear-gradient(180deg, #ccc 0, #ccc 4px, transparent 4px, transparent 8px); margin-top: 16px; }
 

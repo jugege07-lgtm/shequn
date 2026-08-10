@@ -188,6 +188,135 @@
             </el-table-column>
           </el-table>
         </el-tab-pane>
+        <el-tab-pane label="修改密码" name="password">
+          <el-form :model="pwdForm" :rules="pwdRules" ref="pwdFormRef" label-width="120px" style="max-width: 460px;">
+            <el-form-item label="原密码" prop="oldPassword">
+              <el-input v-model="pwdForm.oldPassword" type="password" show-password placeholder="请输入当前登录密码" />
+            </el-form-item>
+            <el-form-item label="新密码" prop="newPassword">
+              <el-input v-model="pwdForm.newPassword" type="password" show-password placeholder="至少6位，需包含字母和数字" />
+            </el-form-item>
+            <el-form-item label="确认新密码" prop="confirmPassword">
+              <el-input v-model="pwdForm.confirmPassword" type="password" show-password placeholder="再次输入新密码" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="changePassword" :loading="pwdSaving">确认修改</el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane label="账号管理" name="staff">
+          <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <el-input v-model="staffKeyword" placeholder="搜索用户名/姓名/手机号" clearable style="width: 260px;" @keyup.enter="loadStaff" @clear="loadStaff" />
+            <el-button type="primary" @click="openStaffDialog()">新增账号</el-button>
+          </div>
+          <el-table :data="staffList" border stripe v-loading="staffLoading">
+            <el-table-column prop="id" label="ID" width="60" />
+            <el-table-column prop="nickname" label="用户名" min-width="100" />
+            <el-table-column prop="realName" label="姓名" min-width="90" />
+            <el-table-column prop="phone" label="联系方式" min-width="120" />
+            <el-table-column label="角色" min-width="150">
+              <template #default="{ row }">
+                <el-tag v-for="r in parseRoles(row.role)" :key="r" :type="roleTagType(r)" size="small" style="margin-right: 4px;">{{ roleLabel(r) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'normal' ? 'success' : 'info'">{{ row.status === 'normal' ? '正常' : '禁用' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="createdAt" label="创建时间" width="160" />
+            <el-table-column label="操作" width="220" fixed="right">
+              <template #default="{ row }">
+                <el-button size="small" @click="openStaffDialog(row)">编辑</el-button>
+                <el-button size="small" type="warning" @click="openResetPwd(row)">重置密码</el-button>
+                <el-popconfirm title="确定删除该账号？" @confirm="deleteStaff(row)">
+                  <template #reference>
+                    <el-button size="small" type="danger">删除</el-button>
+                  </template>
+                </el-popconfirm>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-pagination
+            style="margin-top: 14px; justify-content: center;"
+            v-model:current-page="staffPage"
+            :page-size="staffSize"
+            :total="staffTotal"
+            layout="total, prev, pager, next"
+            @current-change="loadStaff"
+          />
+        </el-tab-pane>
+        <el-tab-pane label="角色权限" name="roles">
+          <div v-loading="roleLoading">
+            <el-alert type="info" :closable="false" style="margin-bottom: 14px;">
+              <template #title>为每个角色勾选可用的操作权限。管理员角色自动拥有全部权限，无需勾选。保存后即时生效。</template>
+            </el-alert>
+            <div class="role-layout">
+              <div class="role-list">
+                <div
+                  v-for="role in roleList"
+                  :key="role.code"
+                  class="role-item"
+                  :class="{ active: selectedRole === role.code }"
+                  @click="selectedRole = role.code"
+                >
+                  <div class="role-item-name">{{ role.name }}</div>
+                  <div class="role-item-desc">{{ role.description }}</div>
+                </div>
+              </div>
+              <div class="role-perms">
+                <div v-if="!currentRole" style="color: #909399; padding: 30px; text-align: center;">请选择左侧角色进行权限配置</div>
+                <template v-else>
+                  <div class="role-perms-head">
+                    <span class="role-perms-title">{{ currentRole.name }} · 权限配置</span>
+                    <div>
+                      <el-button size="small" @click="checkAllCurrent">全选</el-button>
+                      <el-button size="small" type="primary" :loading="roleSaving" @click="saveRolePermission">保存权限</el-button>
+                    </div>
+                  </div>
+                  <el-checkbox-group v-model="currentRolePerms">
+                    <div v-for="group in permissionGroups" :key="group.group" class="perm-group">
+                      <div class="perm-group-title">{{ group.group }}</div>
+                      <div class="perm-group-items">
+                        <el-checkbox v-for="p in group.items" :key="p.code" :label="p.code" :disabled="currentRole.code === 'admin'">{{ p.label }}</el-checkbox>
+                      </div>
+                    </div>
+                  </el-checkbox-group>
+                </template>
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="操作日志" name="logs">
+          <div style="margin-bottom: 12px; display: flex; gap: 10px;">
+            <el-input v-model="logKeyword" placeholder="搜索操作人/详情" clearable style="width: 240px;" @keyup.enter="loadLogs" @clear="loadLogs" />
+            <el-select v-model="logModule" placeholder="模块筛选" clearable style="width: 160px;" @change="loadLogs">
+              <el-option v-for="m in logModules" :key="m.value" :label="m.label" :value="m.value" />
+            </el-select>
+            <el-button @click="loadLogs">查询</el-button>
+          </div>
+          <el-table :data="logList" border stripe v-loading="logLoading">
+            <el-table-column prop="id" label="ID" width="60" />
+            <el-table-column prop="operator" label="操作人" width="110" />
+            <el-table-column label="模块" width="100">
+              <template #default="{ row }"><el-tag size="small" effect="plain">{{ logModuleLabel(row.module) }}</el-tag></template>
+            </el-table-column>
+            <el-table-column label="动作" width="130">
+              <template #default="{ row }"><span>{{ actionLabel(row.action) }}</span></template>
+            </el-table-column>
+            <el-table-column prop="detail" label="操作详情" min-width="220" show-overflow-tooltip />
+            <el-table-column prop="ip" label="IP" width="130" />
+            <el-table-column prop="createdAt" label="时间" width="170" />
+          </el-table>
+          <el-pagination
+            style="margin-top: 14px; justify-content: center;"
+            v-model:current-page="logPage"
+            :page-size="logSize"
+            :total="logTotal"
+            layout="total, prev, pager, next"
+            @current-change="loadLogs"
+          />
+        </el-tab-pane>
         <el-tab-pane label="关于我们" name="about">
           <div v-loading="aboutLoading" class="about-editor-wrap">
             <el-alert type="info" :closable="false" style="margin-bottom: 14px;">
@@ -276,12 +405,55 @@
         <el-button type="primary" @click="saveVersion" :loading="saving">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 新增/编辑后台账号对话框 -->
+    <el-dialog v-model="showStaffDialog" :title="editingStaff ? '编辑账号' : '新增账号'" width="520px">
+      <el-form :model="staffForm" :rules="staffRules" ref="staffFormRef" label-width="90px">
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="staffForm.username" :disabled="!!editingStaff" placeholder="3-20位字母、数字或下划线" />
+        </el-form-item>
+        <el-form-item v-if="!editingStaff" label="密码" prop="password">
+          <el-input v-model="staffForm.password" type="password" show-password placeholder="至少6位，需包含字母和数字" />
+        </el-form-item>
+        <el-form-item label="姓名" prop="realName">
+          <el-input v-model="staffForm.realName" placeholder="请输入姓名" />
+        </el-form-item>
+        <el-form-item label="联系方式" prop="phone">
+          <el-input v-model="staffForm.phone" placeholder="请输入手机号" maxlength="11" />
+        </el-form-item>
+        <el-form-item label="角色" prop="roles">
+          <el-checkbox-group v-model="staffForm.roles">
+            <el-checkbox v-for="r in staffRoleOptions" :key="r.value" :label="r.value">{{ r.label }}</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showStaffDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveStaff" :loading="staffSaving">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 重置密码对话框 -->
+    <el-dialog v-model="showResetPwd" :title="`重置密码 - ${resetTarget?.nickname || ''}`" width="440px">
+      <el-form :model="resetForm" :rules="resetRules" ref="resetFormRef" label-width="90px">
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input v-model="resetForm.newPassword" type="password" show-password placeholder="至少6位，需包含字母和数字" />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input v-model="resetForm.confirmPassword" type="password" show-password placeholder="再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showResetPwd = false">取消</el-button>
+        <el-button type="primary" @click="saveResetPwd" :loading="resetSaving">确认重置</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, shallowRef, onBeforeUnmount } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, computed, watch, onMounted, shallowRef, onBeforeUnmount } from 'vue'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import request from '@/api/request'
 import { compressImage, MAX_BYTES } from '@/utils/imageCompress'
 import '@wangeditor/editor/dist/css/style.css'
@@ -663,6 +835,296 @@ async function deleteVersion(id: number) {
   }
 }
 
+// ========== 修改密码 ==========
+const pwdForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
+const pwdFormRef = ref<FormInstance>()
+const pwdSaving = ref(false)
+const pwdRules: FormRules = {
+  oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 32, message: '密码长度为6-32位', trigger: 'blur' },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d).+$/, message: '密码需同时包含字母和数字', trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (_r: any, v: string, cb: (e?: Error) => void) => {
+        if (v !== pwdForm.newPassword) cb(new Error('两次输入的密码不一致'))
+        else cb()
+      },
+      trigger: 'blur',
+    },
+  ],
+}
+
+async function changePassword() {
+  const valid = await pwdFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  pwdSaving.value = true
+  try {
+    await request.put('/admin/profile/password', pwdForm)
+    ElMessage.success('密码修改成功，请使用新密码重新登录')
+    pwdFormRef.value?.resetFields()
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_refreshToken')
+    localStorage.removeItem('admin_user')
+    setTimeout(() => { window.location.href = '/login' }, 1200)
+  } catch (err: any) {
+    ElMessage.error(err.message || '修改失败')
+  } finally {
+    pwdSaving.value = false
+  }
+}
+
+// ========== 账号管理 ==========
+const staffList = ref<any[]>([])
+const staffLoading = ref(false)
+const staffKeyword = ref('')
+const staffPage = ref(1)
+const staffSize = ref(20)
+const staffTotal = ref(0)
+const showStaffDialog = ref(false)
+const staffSaving = ref(false)
+const editingStaff = ref<any>(null)
+const staffFormRef = ref<FormInstance>()
+const staffForm = reactive({ username: '', password: '', realName: '', phone: '', roles: [] as string[] })
+const staffRoleOptions = [
+  { value: 'admin', label: '管理员' },
+  { value: 'editor', label: '内容编辑' },
+  { value: 'moderator', label: '审核员' },
+  { value: 'operator', label: '运营' },
+]
+const staffRules: FormRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9_]{3,20}$/, message: '3-20位字母、数字或下划线', trigger: 'blur' },
+  ],
+  password: [
+    { validator: (_r: any, v: string, cb: (e?: Error) => void) => {
+      if (editingStaff.value) { cb(); return }
+      if (!v) { cb(new Error('请输入密码')); return }
+      if (v.length < 6 || v.length > 32) { cb(new Error('密码长度为6-32位')); return }
+      if (!/^(?=.*[a-zA-Z])(?=.*\d).+$/.test(v)) { cb(new Error('密码需同时包含字母和数字')); return }
+      cb()
+    }, trigger: 'blur' },
+  ],
+  realName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  roles: [{ required: true, type: 'array', min: 1, message: '请至少选择一个角色', trigger: 'change' }],
+}
+
+async function loadStaff() {
+  staffLoading.value = true
+  try {
+    const data: any = await request.get('/admin/staff', { params: { page: staffPage.value, size: staffSize.value, keyword: staffKeyword.value } })
+    staffList.value = data?.list || []
+    staffTotal.value = data?.total || 0
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载失败')
+  } finally {
+    staffLoading.value = false
+  }
+}
+
+function openStaffDialog(row?: any) {
+  editingStaff.value = row || null
+  Object.assign(staffForm, {
+    username: row?.nickname || '',
+    password: '',
+    realName: row?.realName || '',
+    phone: row?.phone || '',
+    roles: parseRoles(row?.role),
+  })
+  showStaffDialog.value = true
+}
+
+async function saveStaff() {
+  const valid = await staffFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  staffSaving.value = true
+  try {
+    if (editingStaff.value) {
+      await request.put(`/admin/staff/${editingStaff.value.id}`, { realName: staffForm.realName, phone: staffForm.phone, roles: staffForm.roles })
+    } else {
+      await request.post('/admin/staff', staffForm)
+    }
+    ElMessage.success('保存成功')
+    showStaffDialog.value = false
+    loadStaff()
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存失败')
+  } finally {
+    staffSaving.value = false
+  }
+}
+
+async function deleteStaff(row: any) {
+  try {
+    await request.delete(`/admin/staff/${row.id}`)
+    ElMessage.success('删除成功')
+    loadStaff()
+  } catch (err: any) {
+    ElMessage.error(err.message || '删除失败')
+  }
+}
+
+function parseRoles(role?: string): string[] {
+  return String(role || '').split(',').map((s) => s.trim()).filter(Boolean)
+}
+function roleLabel(r: string) {
+  return staffRoleOptions.find((o) => o.value === r)?.label || r
+}
+function roleTagType(r: string) {
+  return r === 'admin' ? 'danger' : r === 'moderator' ? 'warning' : 'primary'
+}
+
+// ========== 重置密码 ==========
+const showResetPwd = ref(false)
+const resetTarget = ref<any>(null)
+const resetSaving = ref(false)
+const resetFormRef = ref<FormInstance>()
+const resetForm = reactive({ newPassword: '', confirmPassword: '' })
+const resetRules: FormRules = {
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 32, message: '密码长度为6-32位', trigger: 'blur' },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d).+$/, message: '密码需同时包含字母和数字', trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (_r: any, v: string, cb: (e?: Error) => void) => {
+        if (v !== resetForm.newPassword) cb(new Error('两次输入的密码不一致'))
+        else cb()
+      },
+      trigger: 'blur',
+    },
+  ],
+}
+function openResetPwd(row: any) {
+  resetTarget.value = row
+  resetForm.newPassword = ''
+  resetForm.confirmPassword = ''
+  showResetPwd.value = true
+}
+async function saveResetPwd() {
+  const valid = await resetFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  resetSaving.value = true
+  try {
+    await request.put(`/admin/staff/${resetTarget.value.id}/password`, resetForm)
+    ElMessage.success('密码重置成功')
+    showResetPwd.value = false
+  } catch (err: any) {
+    ElMessage.error(err.message || '重置失败')
+  } finally {
+    resetSaving.value = false
+  }
+}
+
+// ========== 角色权限 ==========
+const roleLoading = ref(false)
+const roleSaving = ref(false)
+const roleList = ref<any[]>([])
+const selectedRole = ref('')
+const permissionCatalog = ref<any[]>([])
+const currentRolePerms = ref<string[]>([])
+
+const currentRole = computed(() => roleList.value.find((r) => r.code === selectedRole.value) || null)
+const permissionGroups = computed(() => {
+  const groups: Record<string, any[]> = {}
+  permissionCatalog.value.forEach((p) => {
+    ;(groups[p.group] = groups[p.group] || []).push(p)
+  })
+  return Object.entries(groups).map(([group, items]) => ({ group, items }))
+})
+
+async function loadRolePermissions() {
+  roleLoading.value = true
+  try {
+    const [roles, perms] = await Promise.all([
+      request.get('/admin/role-permissions') as Promise<any>,
+      request.get('/admin/permissions') as Promise<any>,
+    ])
+    roleList.value = roles || []
+    permissionCatalog.value = perms || []
+    const target = roleList.value.find((r) => r.code !== 'admin') || roleList.value[0]
+    if (target) {
+      selectedRole.value = target.code
+      syncCurrentRolePerms()
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载角色失败')
+  } finally {
+    roleLoading.value = false
+  }
+}
+
+function syncCurrentRolePerms() {
+  const role = roleList.value.find((r) => r.code === selectedRole.value)
+  currentRolePerms.value = role ? [...(role.permissions || [])] : []
+}
+watch(selectedRole, () => syncCurrentRolePerms())
+
+function checkAllCurrent() {
+  currentRolePerms.value = permissionGroups.value.flatMap((g) => g.items.map((p) => p.code))
+}
+
+async function saveRolePermission() {
+  if (!currentRole.value) return
+  roleSaving.value = true
+  try {
+    await request.put(`/admin/role-permissions/${currentRole.value.code}`, { permissions: currentRolePerms.value })
+    ElMessage.success('权限保存成功')
+    loadRolePermissions()
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存失败')
+  } finally {
+    roleSaving.value = false
+  }
+}
+
+// ========== 操作日志 ==========
+const logList = ref<any[]>([])
+const logLoading = ref(false)
+const logKeyword = ref('')
+const logModule = ref('')
+const logPage = ref(1)
+const logSize = ref(20)
+const logTotal = ref(0)
+const logModules = [
+  { value: 'system', label: '系统' },
+  { value: 'role', label: '角色权限' },
+  { value: 'user', label: '用户' },
+  { value: 'activity', label: '活动' },
+  { value: 'business', label: '商机' },
+  { value: 'order', label: '订单' },
+  { value: 'product', label: '商品' },
+]
+const logModuleLabel = (m: string) => logModules.find((x) => x.value === m)?.label || m
+const actionLabelMap: Record<string, string> = {
+  change_password: '修改密码',
+  create_admin: '新增账号',
+  update_admin: '编辑账号',
+  delete_admin: '删除账号',
+  reset_password: '重置密码',
+  update_role_permission: '更新角色权限',
+}
+const actionLabel = (a: string) => actionLabelMap[a] || a
+
+async function loadLogs() {
+  logLoading.value = true
+  try {
+    const data: any = await request.get('/admin/operation-logs', { params: { page: logPage.value, size: logSize.value, keyword: logKeyword.value, module: logModule.value } })
+    logList.value = data?.list || []
+    logTotal.value = data?.total || 0
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载日志失败')
+  } finally {
+    logLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadConfigs()
   loadVipRules()
@@ -671,6 +1133,9 @@ onMounted(() => {
   loadBanners()
   loadVersions()
   loadAboutUs()
+  loadStaff()
+  loadRolePermissions()
+  loadLogs()
 })
 </script>
 
@@ -685,5 +1150,62 @@ onMounted(() => {
 .about-actions {
   margin-top: 16px;
   display: flex; justify-content: flex-end; gap: 10px;
+}
+/* 角色权限布局 */
+.role-layout {
+  display: flex;
+  gap: 16px;
+  min-height: 320px;
+}
+.role-list {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 1px solid #f0f0f0;
+  padding-right: 12px;
+}
+.role-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+.role-item:hover { background: #f5f7fa; }
+.role-item.active {
+  background: #ecf5ff;
+  border-color: #409eff;
+}
+.role-item-name { font-size: 14px; font-weight: 600; color: #303133; }
+.role-item-desc { font-size: 12px; color: #909399; margin-top: 4px; line-height: 1.4; }
+.role-perms {
+  flex: 1;
+  min-width: 0;
+}
+.role-perms-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.role-perms-title { font-size: 15px; font-weight: 600; color: #303133; }
+.perm-group {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+.perm-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: 10px;
+  padding-left: 8px;
+  border-left: 3px solid #409eff;
+}
+.perm-group-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
 }
 </style>

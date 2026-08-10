@@ -48,15 +48,24 @@
         </template>
       </el-table-column>
       <el-table-column prop="createdAt" label="创建时间" width="180" />
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <el-button size="small" type="primary" @click="openEdit(row)">编辑</el-button>
           <el-button size="small" @click="toggleEnable(row)">
             {{ row.enabled === 1 ? '停用' : '启用' }}
           </el-button>
-          <el-popconfirm title="确定删除该规则？" @confirm="handleDelete(row.id)">
-            <template #reference><el-button size="small" type="danger">删除</el-button></template>
-          </el-popconfirm>
+          <el-dropdown trigger="click" @command="(cmd: string) => handleRowCommand(cmd, row)">
+            <el-button size="small">
+              <el-icon><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="delete" divided>
+                  <el-icon><Delete /></el-icon> 删除
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>
@@ -124,8 +133,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, MoreFilled, Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import request from '@/api/request'
 
@@ -259,6 +268,18 @@ async function toggleEnable(row: any) {
     fetchList()
   } catch (err: any) {
     ElMessage.error(err.message || '操作失败')
+  }
+}
+
+function handleRowCommand(cmd: string, row: any) {
+  if (cmd === 'delete') {
+    ElMessageBox.confirm('确定删除该积分规则？删除后不可恢复。', '删除确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+      .then(() => handleDelete(row.id))
+      .catch(() => {})
   }
 }
 
