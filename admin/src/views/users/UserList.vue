@@ -14,7 +14,9 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="头像" width="80">
           <template #default="{ row }">
-            <el-avatar :size="40" :src="row.avatarUrl" />
+            <el-avatar :size="40" shape="circle" :src="normalizeImageUrl(row.avatarUrl)">
+              {{ avatarText(row) }}
+            </el-avatar>
           </template>
         </el-table-column>
         <el-table-column prop="nickname" label="昵称" width="150" />
@@ -260,7 +262,9 @@
     <el-dialog v-model="roleDialogVisible" title="角色管理" width="520px">
       <div class="role-dialog-body">
         <div class="role-target-info">
-          <el-avatar :size="40" :src="roleTargetUser?.avatarUrl" />
+          <el-avatar :size="40" shape="circle" :src="normalizeImageUrl(roleTargetUser?.avatarUrl)">
+            {{ roleTargetUser ? avatarText(roleTargetUser) : '' }}
+          </el-avatar>
           <div>
             <div class="role-target-name">{{ roleTargetUser?.nickname || `用户 #${roleTargetUser?.id}` }}</div>
             <div class="role-target-phone">{{ roleTargetUser?.phone || '' }}</div>
@@ -324,6 +328,15 @@ import { ref, reactive, computed, nextTick } from 'vue'
 import { ElMessage, type FormInstance, ElMessageBox } from 'element-plus'
 import { Select } from '@element-plus/icons-vue'
 import request from '@/api/request'
+import { normalizeImageUrl } from '@/utils/image'
+
+/** 无头像时展示首字占位（优先昵称首个字符，否则用用户ID） */
+function avatarText(row: any): string {
+  if (row.avatarUrl) return ''
+  const nick = row.nickname || ''
+  if (nick) return nick.charAt(0).toUpperCase()
+  return `#${row.id ?? ''}`
+}
 
 // ==================== 系统预定义角色列表（与后端 VALID_ROLES 保持一致） ====================
 interface SystemRole {
