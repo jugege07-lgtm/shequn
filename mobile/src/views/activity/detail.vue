@@ -14,9 +14,27 @@
       </div>
     </div>
     <div class="main-scroll">
-      <!-- Cover -->
-      <div class="activity-cover-hero" :style="{background: activity.cover}">
-        <span v-if="activity.emoji" class="cover-emoji">{{ activity.emoji }}</span>
+      <!-- 主图 Hero：宽度100%撑满、高度按原比例自适应、无左右边距、加载占位 + 懒加载 -->
+      <div class="activity-cover-hero" :style="coverRatioStyle">
+        <!-- 占位骨架屏（图片加载前，防止布局跳动） -->
+        <div v-show="!coverLoaded" class="cover-placeholder">
+          <div class="cover-skeleton"></div>
+        </div>
+        <!-- 主图 -->
+        <img
+          v-if="coverSrc && !coverError"
+          ref="coverImgEl"
+          :src="coverSrc"
+          class="cover-main-img"
+          :style="{ opacity: coverLoaded ? 1 : 0 }"
+          :alt="activity.title"
+          loading="lazy"
+          decoding="async"
+          @load="onCoverLoad"
+          @error="onCoverError"
+        />
+        <!-- 无图 / 加载失败兜底 -->
+        <div v-else-if="!coverSrc || coverError" class="cover-fallback"></div>
         <span class="cover-status" :class="{ free: activity.isFree }">{{ activity.statusText }}</span>
       </div>
       <!-- Info -->
@@ -82,13 +100,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getActivityDetail, signupActivity, getActivitySignupStatus } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
+import { normalizeImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
+
+// ===== 主图自适应 =====
+const coverImgEl = ref<HTMLImageElement | null>(null)
+const coverLoaded = ref(false)
+const coverError = ref(false)
+// 图片原始宽高比（如 '1920 / 1080'），加载后按原比例自适应高度
+const coverAspect = ref<string | null>(null)
+
+// 封面图 URL（统一规范化：绝对 /uploads/ 地址转成 /api/uploads/ 相对路径，避免手机端 localhost 失败）
+const coverSrc = computed(() => normalizeImageUrl(rawActivity.value?.coverImage))
+
+// 主图容器宽高比样式：宽度撑满屏幕，高度按比例计算，无左右边距不变形
+const coverRatioStyle = computed(() => ({
+  aspectRatio: coverAspect.value || '3 / 2',
+}))
+
+// 图片加载完成：按自然尺寸计算真实宽高比，避免布局跳动与变形
+function onCoverLoad(e: Event) {
+  const el = e.target as HTMLImageElement
+  if (el && el.naturalWidth > 0 && el.naturalHeight > 0) {
+    coverAspect.value = `${el.naturalWidth} / ${el.naturalHeight}`
+  }
+  coverLoaded.value = true
+  coverError.value = false
+}
+
+// 图片加载失败：回退到渐变占位
+function onCoverError() {
+  coverError.value = true
+  coverLoaded.value = false
+}
+
+// 横竖屏切换 / 屏幕尺寸变化时，按图片原始尺寸重新计算宽高比
+function handleResize() {
+  const el = coverImgEl.value
+  if (el && el.naturalWidth > 0 && el.naturalHeight > 0) {
+    coverAspect.value = `${el.naturalWidth} / ${el.naturalHeight}`
+  }
+}
 
 interface ActivityInfo {
   id: number
@@ -109,6 +167,13 @@ interface ActivityInfo {
 const rawActivity = ref<ActivityInfo | null>(null)
 const loading = ref(true)
 const submitting = ref(false)
+
+// 封面地址变化时重置加载状态与占位比例（rawActivity 已初始化后再 watch，避免 TDZ 报错）
+watch(coverSrc, () => {
+  coverLoaded.value = false
+  coverError.value = false
+  coverAspect.value = null
+})
 const signupStatus = ref<{ isSignedUp: boolean; status: string | null; orderNo: string | null }>({
   isSignedUp: false,
   status: null,
@@ -207,12 +272,21 @@ onMounted(async () => {
   await loadSignupStatus()
   loading.value = false
 
+  // 监听屏幕尺寸变化 / 横竖屏切换，重新适配主图宽高比
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('orientationchange', handleResize)
+
   // 从支付成功页返回时刷新状态
   if (route.query.paid === '1') {
     showToast('支付成功，报名已确认')
     await loadSignupStatus()
     await loadActivity()
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('orientationchange', handleResize)
 })
 
 const handleSignup = async () => {
@@ -264,14 +338,38 @@ function showToast(msg: string) {
 @import '@/styles/global.css';
 
 .activity-cover-hero {
-  height: 200px; position: relative; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
   background-color: #f0f0f5;
-  background-size: contain !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
+  line-height: 0; /* 消除内联元素底部间隙 */
 }
-.cover-emoji { font-size: 80px; color: #fff; opacity: 0.8; }
+.cover-main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 容器比例与图片一致，故不裁剪不变形 */
+  display: block;
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.3s ease;
+}
+.cover-placeholder {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, #ececf1 25%, #f7f7fa 37%, #ececf1 63%);
+  background-size: 400% 100%;
+  animation: cover-shimmer 1.4s ease infinite;
+}
+.cover-skeleton { position: absolute; inset: 0; }
+@keyframes cover-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.cover-fallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #818cf8, #6366f1);
+}
 .cover-status {
   position: absolute; top: 16px; left: 16px;
   font-size: 12px; font-weight: 700; color: #fff;

@@ -111,6 +111,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getBusinessDetail, unlockBusiness, getBusinessUnlockStatus } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
+import { normalizeImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -140,14 +141,8 @@ const unlockStatus = ref<{ isUnlocked: boolean; feePaid: number; orderNo: string
   orderNo: null,
 })
 
-// 封面图 URL（拼接 /api 前缀）
-const coverImageUrl = computed(() => {
-  const url = rawBusiness.value?.coverImage || ''
-  if (!url) return ''
-  if (url.startsWith('http')) return url
-  if (url.startsWith('/api/')) return url
-  return '/api' + url
-})
+// 封面图 URL（统一规范化：绝对 /uploads/ 地址转成 /api/uploads/ 相对路径，避免手机端 localhost 失败）
+const coverImageUrl = computed(() => normalizeImageUrl(rawBusiness.value?.coverImage))
 
 // 封面图背景（有图片时用图片，无图片时用渐变色占位）
 const coverBg = computed(() => {

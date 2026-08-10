@@ -1,11 +1,18 @@
 /**
  * 规范化图片 URL
  * - 空值直接返回空字符串
- * - 已以 http/https 开头的完整地址直接返回
+ * - 绝对地址指向本服务 /uploads/ 时（如 http://localhost:3000/uploads/xxx），
+ *   转为相对 /api/uploads/xxx 路径，经 Caddy 代理到后端静态服务，避免手机端访问 localhost 失败
+ * - 其他 http/https 全地址（外部 CDN 等）原样返回
  * - 后端上传接口返回的 /uploads/xxx 转换为 /api/uploads/xxx，以便在 dev server 代理到后端
  */
 export function normalizeImageUrl(url: string | undefined | null): string {
   if (!url) return ''
+  // 绝对地址且路径含 /uploads/ → 提取成相对路径并补 /api 前缀
+  if (/^https?:\/\/[^/]+\/uploads\//i.test(url)) {
+    const idx = url.indexOf('/uploads/')
+    return '/api' + url.substring(idx)
+  }
   if (/^https?:\/\//i.test(url)) return url
   if (url.startsWith('/uploads/')) return url.replace('/uploads/', '/api/uploads/')
   if (url.startsWith('//')) return 'https:' + url
