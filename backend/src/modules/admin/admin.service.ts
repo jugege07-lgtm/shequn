@@ -543,7 +543,7 @@ export class AdminService {
     return { success: true };
   }
 
-  /** 初始化系统预定义角色及默认权限 */
+  /** 初始化系统预定义角色及默认权限（仅内置 4 个后台角色） */
   private async seedRoles() {
     const defaults: Record<string, string[]> = {
       admin: AdminService.PERMISSION_CATALOG.map((p) => p.code),
@@ -557,14 +557,12 @@ export class AdminService {
         'coupon:manage', 'point:manage', 'message:manage', 'banner:manage',
         'announcement:manage', 'version:manage',
       ],
-      user: [],
     };
     const meta: Record<string, { name: string; description: string; isSystem: number; sortOrder: number }> = {
       admin: { name: '管理员', description: '拥有后台全部管理权限', isSystem: 1, sortOrder: 1 },
       editor: { name: '内容编辑', description: '可管理活动、商机、商品等内容', isSystem: 1, sortOrder: 2 },
       moderator: { name: '审核员', description: '可审核活动、商机等提交内容', isSystem: 1, sortOrder: 3 },
       operator: { name: '运营', description: '可管理优惠券、积分、订单、消息等运营功能', isSystem: 1, sortOrder: 4 },
-      user: { name: '普通用户', description: '基础浏览权限', isSystem: 1, sortOrder: 5 },
     };
     for (const code of Object.keys(defaults)) {
       await this.prisma.adminRole.upsert({
