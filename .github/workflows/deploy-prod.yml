@@ -25,7 +25,7 @@ env:
 
 jobs:
   # ============================================================
-  # Job 1: 全量部署（后端 pm2 + 管理端 + 移动端，均在服务器上构建）
+  # Job 1: 打包 + 上传 + 部署（在 GitHub Runner 上打包，通过 SCP 推送到服务器）
   # ============================================================
   deploy:
     name: Build & Deploy (pm2+Caddy)
@@ -48,7 +48,40 @@ jobs:
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Deploy via SSH
+      - name: Package source code
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          # 打包源码（排除 node_modules、dist、.env 等）
+          cd $GITHUB_WORKSPACE
+          tar -czf /tmp/shequn-src.tar.gz \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='.next' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='backend/uploads' \
+            --exclude='deploy/logs' \
+            --exclude='.git' \
+            .
+          echo "打包完成: $(du -h /tmp/shequn-src.tar.gz | cut -f1)"
+          echo "$GITHUB_SHA" > /tmp/deploy_sha.txt
+
+      - name: Upload source to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # 将源码包和部署脚本上传到服务器 /tmp
+          scp -o StrictHostKeyChecking=yes \
+            /tmp/shequn-src.tar.gz \
+            ${SSH_USER}@${SSH_HOST}:/tmp/shequn-src.tar.gz
+          scp -o StrictHostKeyChecking=yes \
+            deploy/scripts/deploy.sh \
+            ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh
+          echo "源码上传完成"
+
+      - name: Deploy on server
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -56,10 +89,6 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REF: ${{ github.ref }}
         run: |
-          # 将 deploy.sh 复制到 /tmp 再执行，避免脚本内 git reset 替换正在运行的自身
-          scp -o StrictHostKeyChecking=yes \
-            deploy/scripts/deploy.sh \
-            ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh
           ssh -o StrictHostKeyChecking=yes ${SSH_USER}@${SSH_HOST} \
             "bash /tmp/deploy.sh \
               '${GITHUB_REF}' \

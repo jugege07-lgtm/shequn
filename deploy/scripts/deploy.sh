@@ -3,6 +3,9 @@
 #  shequn 生产部署脚本（被 GitHub Actions 通过 SSH 调用）
 #  适配环境：pm2 + Caddy + 本地 MySQL（项目位于 /home/ubuntu/shequn）
 #  用法：deploy.sh <GITHUB_REF> <GITHUB_SHA> <FORCE_REBUILD> <SKIP_MIGRATE>
+#
+#  说明：源码由 GitHub Actions 打包为 /tmp/shequn-src.tar.gz 并上传到服务器，
+#       本脚本负责解压、构建、重启服务（避免服务器直接访问 GitHub）。
 # =============================================================================
 set -euo pipefail
 
@@ -14,9 +17,10 @@ SKIP_MIGRATE="${4:-false}"
 
 # -------- 路径 --------
 PROJECT_DIR="/home/ubuntu/shequn"
-LOG_DIR="/home/ubuntu/shequn/deploy/logs"
+LOG_DIR="$PROJECT_DIR/deploy/logs"
 mkdir -p "$LOG_DIR"
 DEPLOY_LOG="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
+SRC_TAR="/tmp/shequn-src.tar.gz"
 
 # -------- 颜色输出 --------
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -26,39 +30,52 @@ fail() { echo -e "${RED}[$(date +%H:%M:%S)] FAIL${NC} $*" | tee -a "$DEPLOY_LOG"
 
 # -------- 前置检查 --------
 [ -d "$PROJECT_DIR" ]        || fail "项目目录不存在: $PROJECT_DIR"
-command -v git  >/dev/null   || fail "git 未安装"
+[ -f "$SRC_TAR" ]            || fail "源码包不存在: $SRC_TAR (请先由 GitHub Actions 上传)"
 command -v npm  >/dev/null   || fail "npm 未安装"
 command -v pm2 >/dev/null    || fail "pm2 未安装"
 
-cd "$PROJECT_DIR"
-
 log "=========================================="
-log " 部署开始 (pm2/Caddy)"
+log " 部署开始 (pm2/Caddy + 源码上传模式)"
 log "  REF:           $GITHUB_REF"
 log "  SHA:           ${GITHUB_SHA:0:8}"
 log "  FORCE_REBUILD: $FORCE_REBUILD"
 log "  SKIP_MIGRATE:  $SKIP_MIGRATE"
 log "=========================================="
 
-# -------- 1. 拉取最新代码（tag 或分支）--------
-if [[ "$GITHUB_REF" =~ ^refs/tags/v ]]; then
-  TAG_NAME="${GITHUB_REF#refs/tags/}"
-  log "检出 tag: $TAG_NAME"
-  git fetch --tags --force
-  git checkout -f "$TAG_NAME"
-else
-  BRANCH="${GITHUB_REF#refs/heads/}"
-  log "检出分支: $BRANCH"
-  git fetch origin "$BRANCH"
-  git checkout -f "$BRANCH" 2>/dev/null || git checkout -f -B "$BRANCH" "origin/$BRANCH"
-  git reset --hard "origin/$BRANCH"
-fi
-CURRENT_SHA=$(git rev-parse --short HEAD)
-log "当前 HEAD: $CURRENT_SHA"
+# -------- 1. 解压源码（保留 .env 和 uploads 等本地文件）--------
+log "解压源码到 $PROJECT_DIR ..."
+# 先备份需要保留的本地文件/目录
+BACKUP_DIR="/tmp/shequn-backup-$(date +%s)"
+mkdir -p "$BACKUP_DIR"
+# 备份 .env（后端配置）
+[ -f "$PROJECT_DIR/backend/.env" ] && cp -f "$PROJECT_DIR/backend/.env" "$BACKUP_DIR/backend.env" || true
+# 备份 uploads（用户上传文件）
+[ -d "$PROJECT_DIR/backend/uploads" ] && cp -rf "$PROJECT_DIR/backend/uploads" "$BACKUP_DIR/uploads" || true
+# 备份 pm2 生态文件（如有）
+[ -f "$PROJECT_DIR/ecosystem.config.js" ] && cp -f "$PROJECT_DIR/ecosystem.config.js" "$BACKUP_DIR/" || true
 
-# backend/.env 不入库，重置不影响；校验存在
+# 清空项目目录（保留 deploy/logs）
+log "清理旧代码（保留 deploy/logs）..."
+cd "$PROJECT_DIR"
+find . -maxdepth 1 ! -name 'deploy' ! -name '.' -exec rm -rf {} + 2>/dev/null || true
+
+# 解压新源码
+log "解压源码包..."
+tar -xzf "$SRC_TAR" -C "$PROJECT_DIR"
+log "解压完成"
+
+# 恢复本地文件
+[ -f "$BACKUP_DIR/backend.env" ] && cp -f "$BACKUP_DIR/backend.env" "$PROJECT_DIR/backend/.env" && log "已恢复 backend/.env" || true
+[ -d "$BACKUP_DIR/uploads" ] && cp -rf "$BACKUP_DIR/uploads" "$PROJECT_DIR/backend/uploads" && log "已恢复 backend/uploads" || true
+[ -f "$BACKUP_DIR/ecosystem.config.js" ] && cp -f "$BACKUP_DIR/ecosystem.config.js" "$PROJECT_DIR/" && log "已恢复 ecosystem.config.js" || true
+rm -rf "$BACKUP_DIR"
+
+# backend/.env 校验
 [ -f backend/.env ] || fail "backend/.env 不存在，请先创建（可参考 .env.example）"
 grep -q "DATABASE_URL" backend/.env || fail "backend/.env 缺 DATABASE_URL"
+
+CURRENT_SHA="${GITHUB_SHA:0:8}"
+log "当前版本: $CURRENT_SHA"
 
 # -------- 2. 部署后端 --------
 log "--- 后端 ---"
@@ -75,7 +92,6 @@ else
 fi
 
 # 补齐全量种子图（若服务器 uploads 缺失则由仓库 seed-assets 补充）
-# 商机封面 / 商城商品图 / 活动图，统一同步到 backend/uploads
 SEED_DIRS="business-covers product-covers activity-covers"
 for dir in $SEED_DIRS; do
   if [ -d "$PROJECT_DIR/backend/seed-assets/$dir" ]; then
@@ -121,7 +137,11 @@ for i in 1 2 3 4 5; do
   fi
 done
 
-# -------- 6. 完成 --------
+# -------- 6. 清理临时文件 --------
+rm -f "$SRC_TAR"
+log "已清理临时源码包"
+
+# -------- 7. 完成 --------
 log "=========================================="
 log " 部署完成！ Commit: $CURRENT_SHA"
 log " 日志: $DEPLOY_LOG"
