@@ -7,6 +7,7 @@ const routes = [
   { path: '/login', name: 'Login', component: () => import('@/views/login/index.vue'), meta: { guestOnly: true } },
   { path: '/register', name: 'Register', component: () => import('@/views/register/index.vue'), meta: { guestOnly: true } },
   { path: '/forgot-password', name: 'ForgotPassword', component: () => import('@/views/forgot-password/index.vue'), meta: { guestOnly: true } },
+  { path: '/app-download', name: 'AppDownload', component: () => import('@/views/app-download/index.vue') },
   { path: '/activity/list', name: 'ActivityList', component: () => import('@/views/activity/list.vue'), meta: { requiresAuth: true } },
   { path: '/activity/detail/:id', name: 'ActivityDetail', component: () => import('@/views/activity/detail.vue'), meta: { requiresAuth: true } },
   { path: '/activity/publish', name: 'ActivityPublish', component: () => import('@/views/activity/publish.vue'), meta: { requiresAuth: true } },

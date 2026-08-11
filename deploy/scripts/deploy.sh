@@ -155,6 +155,13 @@ install_deps mobile
 npm run build 2>&1 | tail -3
 log "移动端构建完成 → mobile/dist  (Caddy 自动读取)"
 
+# 恢复 App APK（由 build-apk 工作流部署到 deploy/app/，该目录在部署时被保留）
+if [ -f "$PROJECT_DIR/deploy/app/shequn.apk" ]; then
+  mkdir -p "$PROJECT_DIR/mobile/dist/app"
+  cp -f "$PROJECT_DIR/deploy/app/shequn.apk" "$PROJECT_DIR/mobile/dist/app/shequn.apk"
+  log "已恢复 App APK → mobile/dist/app/shequn.apk"
+fi
+
 # -------- 5. 健康检查 --------
 log "健康检查..."
 sleep 5
