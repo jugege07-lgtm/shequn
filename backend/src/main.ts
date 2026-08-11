@@ -43,7 +43,8 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: ['http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5175', 'http://localhost:3002', 'http://localhost:3003', 'https://admin.yourdomain.com'],
+    // 包含 Capacitor 原生 App WebView 来源（androidScheme: https → https://localhost），否则原生 App 登录等请求会被 CORS 拦截报 Network Error
+    origin: ['http://localhost:5174', 'http://localhost:5175', 'http://127.0.0.1:5175', 'http://localhost:3002', 'http://localhost:3003', 'https://admin.yourdomain.com', 'https://localhost', 'capacitor://localhost'],
     credentials: true,
   });
 
