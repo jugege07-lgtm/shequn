@@ -20,7 +20,7 @@
     <div class="scroll-area">
       <!-- Logo -->
       <div class="reg-logo">
-        <div class="logo-circle">群</div>
+        <img class="logo-circle" :src="logoUrl" alt="聚格软件" />
         <h1>加入聚格软件</h1>
         <p>连接人脉 · 共享商机 · 共同成长</p>
       </div>
@@ -163,10 +163,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { register } from '@/api'
+import { register, sendCode } from '@/api'
 import { useUserStore } from '@/store/user'
 
 const router = useRouter()
+const logoUrl = `${import.meta.env.BASE_URL}logo.jpg`
 const route = useRoute()
 const userStore = useUserStore()
 let timer: ReturnType<typeof setInterval> | null = null
@@ -240,16 +241,15 @@ async function sendCode() {
   if (countdown.value > 0 || sending.value) return
   sending.value = true
   try {
-    // Demo: 模拟发送成功
-    await new Promise(r => setTimeout(r, 500))
+    await sendCode(form.phone)
     countdown.value = 60
     timer = setInterval(() => {
       countdown.value--
       if (countdown.value <= 0) { clearInterval(timer!); timer = null }
     }, 1000)
     toast('验证码已发送')
-  } catch {
-    toast('发送失败，请重试')
+  } catch (err: any) {
+    toast(err?.message || '发送失败，请重试')
   } finally {
     sending.value = false
   }
@@ -336,12 +336,10 @@ async function handleRegister() {
   text-align: center; padding: 24px 20px 16px;
 }
 .logo-circle {
-  width: 56px; height: 56px; border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(12px);
+  width: 56px; height: 56px; border-radius: 14px;
+  object-fit: cover;
   border: 2px solid rgba(255,255,255,0.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px; color: #fff; font-weight: 800;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
   margin: 0 auto 10px;
 }
 .reg-logo h1 {

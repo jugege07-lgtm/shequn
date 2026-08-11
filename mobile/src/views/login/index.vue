@@ -8,7 +8,7 @@
     <div class="login-content">
       <!-- Logo -->
       <div class="login-logo">
-        <div class="logo-circle">群</div>
+        <img class="logo-circle" :src="logoUrl" alt="聚格软件" />
         <h1>聚格软件</h1>
         <p class="login-subtitle">连接人脉 · 共享商机 · 共同成长</p>
       </div>
@@ -163,6 +163,7 @@ import { useUserStore } from '@/store/user'
 
 const router = useRouter()
 const route = useRoute()
+const logoUrl = `${import.meta.env.BASE_URL}logo.jpg`
 const userStore = useUserStore()
 
 // 登录/注册成功后统一跳转：优先回跳到 redirect 查询参数指向的页面，否则进入主界面
@@ -395,12 +396,10 @@ const showPrivacyModal = ref(false)
 /* Logo */
 .login-logo { text-align: center; margin-bottom: 32px; }
 .logo-circle {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(12px);
+  width: 64px; height: 64px; border-radius: 16px;
+  object-fit: cover;
   border: 2px solid rgba(255,255,255,0.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px; color: #fff; font-weight: 800;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
   margin: 0 auto 12px;
 }
 .login-logo h1 {

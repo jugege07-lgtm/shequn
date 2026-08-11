@@ -26,7 +26,7 @@ const businesses = [
     title: '软件开发外包需求',
     categoryCode: 'it',
     contactName: '张经理',
-    contactPhone: '138****1234',
+    contactPhone: '13812341234',
     contactWechat: 'zhang_dev_2024',
     description: '某大型互联网公司急需 Java 后端开发团队，承接电商平台二期建设。项目周期 6 个月，预算充足，要求团队有电商系统开发经验。',
     unlockFee: 0,
@@ -37,7 +37,7 @@ const businesses = [
     title: '品牌推广渠道对接',
     categoryCode: 'marketing',
     contactName: '李总监',
-    contactPhone: '139****5678',
+    contactPhone: '13956785678',
     contactWechat: 'li_marketing',
     description: '新消费品牌寻找抖音/小红书达人推广渠道，预算 50 万/月。需有食品饮料类目推广经验的 MCN 机构或达人团队对接。',
     unlockFee: 19.9,
@@ -48,7 +48,7 @@ const businesses = [
     title: '投融资项目对接',
     categoryCode: 'finance',
     contactName: '王总',
-    contactPhone: '136****9012',
+    contactPhone: '13690129012',
     contactWechat: 'wang_invest',
     description: '新能源创业项目寻求 A 轮融资，融资金额 2000 万。已获天使轮，产品已上线，月活 10 万+。寻找关注新能源赛道的投资机构。',
     unlockFee: 0,
@@ -59,7 +59,7 @@ const businesses = [
     title: '在线教育招生合作',
     categoryCode: 'education',
     contactName: '陈校长',
-    contactPhone: '137****3456',
+    contactPhone: '13734563456',
     contactWechat: 'chen_edu',
     description: '职业教育机构寻找招生渠道合作，CPA/CPS 模式均可。主打 IT 技能培训和职业考证，客单价 3000-8000 元，佣金丰厚。',
     unlockFee: 29.9,
@@ -70,7 +70,7 @@ const businesses = [
     title: '医疗器械渠道合作',
     categoryCode: 'healthcare',
     contactName: '刘经理',
-    contactPhone: '135****7890',
+    contactPhone: '13578907890',
     contactWechat: 'liu_medical',
     description: '二类医疗器械厂家寻找区域代理商和医院渠道。产品包括家用呼吸机、制氧机等，已有医疗器械注册证，利润空间大。',
     unlockFee: 0,
@@ -81,7 +81,7 @@ const businesses = [
     title: '房产中介客户转介绍',
     categoryCode: 'realestate',
     contactName: '赵店长',
-    contactPhone: '186****2345',
+    contactPhone: '18623452345',
     contactWechat: 'zhao_house',
     description: '上海高端房产中介寻找企业客户转介绍渠道。主营豪宅和商业地产，单客佣金 10 万起，介绍费 1% 起，上不封顶。',
     unlockFee: 39.9,
@@ -92,7 +92,7 @@ const businesses = [
     title: '供应链采购对接',
     categoryCode: 'manufacturing',
     contactName: '孙工',
-    contactPhone: '188****6789',
+    contactPhone: '18867896789',
     contactWechat: 'sun_factory',
     description: '大型家电制造企业寻找精密注塑件供应商，年采购量 500 万+。要求供应商有 ISO9001 认证，能配合开模打样。',
     unlockFee: 0,
@@ -103,7 +103,7 @@ const businesses = [
     title: '电商运营资源对接',
     categoryCode: 'ecommerce',
     contactName: '周运营',
-    contactPhone: '187****0123',
+    contactPhone: '18701230123',
     contactWechat: 'zhou_ec',
     description: '天猫 TOP 美妆品牌寻找代运营团队和直播带货渠道。年销 5000 万+，有成熟供应链和品牌力，寻求运营升级合作。',
     unlockFee: 49.9,
@@ -177,10 +177,10 @@ async function main() {
       created++;
       continue;
     }
-    // 已存在：对比主图是否变化，有变化则更新
-    if (exists.coverImage !== data.coverImage) {
+    // 已存在：对比主图/联系方式是否变化，有变化则更新
+    if (exists.coverImage !== data.coverImage || exists.contactPhone !== data.contactPhone || exists.contactWechat !== data.contactWechat) {
       await prisma.business.update({ where: { id: exists.id }, data });
-      console.log(`  ↻ 更新主图: ${biz.title} → ${data.coverImage}`);
+      console.log(`  ↻ 更新商机字段: ${biz.title}`);
       updated++;
     } else {
       console.log(`  - 无需更新: ${biz.title}`);

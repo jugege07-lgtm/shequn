@@ -5,6 +5,7 @@ import { ActivityService } from '../activity/activity.service';
 import { BusinessService } from '../business/business.service';
 import { VipService } from '../vip/vip.service';
 import { UserService } from '../user/user.service';
+import { BalanceService } from '../balance/balance.service';
 import * as fs from 'fs';
 import WxPay = require('wechatpay-node-v3');
 
@@ -57,6 +58,7 @@ export class PaymentService {
     private readonly businessService: BusinessService,
     private readonly vipService: VipService,
     private readonly userService: UserService,
+    private readonly balanceService: BalanceService,
   ) {}
 
   async getPaymentConfig(): Promise<PaymentConfig> {
@@ -320,6 +322,8 @@ export class PaymentService {
         }
       } else if (order.orderType === 'vip') {
         await this.vipService.fulfillVip(order.orderNo);
+      } else if (order.orderType === 'recharge') {
+        await this.balanceService.fulfillRecharge(order.orderNo);
       }
       // product 类型订单无需额外履约，订单状态已更新
     } catch (err: any) {

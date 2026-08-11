@@ -13,8 +13,8 @@ export class BalanceService {
     };
   }
 
-  /** 充值 - 直接入账并生成充值记录（模拟支付成功） */
-  async recharge(userId: number, amount: number) {
+  /** 创建余额充值订单（待支付），需通过微信支付完成充值 */
+  async createRechargeOrder(userId: number, amount: number) {
     const amt = Number(amount);
     if (!amt || isNaN(amt)) throw new BadRequestException('充值金额无效');
     if (amt <= 0) throw new BadRequestException('充值金额必须大于0');
@@ -23,25 +23,54 @@ export class BalanceService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('用户不存在');
 
-    const newBalance = Math.round(((user.balance ?? 0) + amt) * 100) / 100;
+    const orderNo = `RECHARGE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const order = await this.prisma.order.create({
+      data: {
+        orderNo,
+        userId,
+        orderType: 'recharge',
+        totalAmount: amt,
+        discountAmount: 0,
+        payAmount: amt,
+        status: 'pending_payment',
+        remark: '余额充值',
+      },
+    });
+
+    return { orderId: order.id, orderNo: order.orderNo, payAmount: order.payAmount };
+  }
+
+  /** 微信支付成功后，将充值金额入账（幂等） */
+  async fulfillRecharge(orderNo: string) {
+    const order = await this.prisma.order.findUnique({ where: { orderNo } });
+    if (!order || order.orderType !== 'recharge' || order.status !== 'paid') return null;
+
+    // 幂等：该订单已有充值记录则跳过，避免微信回调重复入账
+    const existing = await this.prisma.balanceLog.findFirst({
+      where: { userId: order.userId, type: 'recharge', remark: `余额充值 ${order.orderNo}` },
+    });
+    if (existing) return { balance: Number(existing.balance), amount: order.payAmount };
+
+    const user = await this.prisma.user.findUnique({ where: { id: order.userId } });
+    const newBalance = Math.round(((user?.balance ?? 0) + order.payAmount) * 100) / 100;
 
     await this.prisma.$transaction([
       this.prisma.user.update({
-        where: { id: userId },
+        where: { id: order.userId },
         data: { balance: newBalance },
       }),
       this.prisma.balanceLog.create({
         data: {
-          userId,
+          userId: order.userId,
           type: 'recharge',
-          amount: amt,
+          amount: order.payAmount,
           balance: newBalance,
-          remark: '账户充值',
+          remark: `余额充值 ${order.orderNo}`,
         },
       }),
     ]);
 
-    return { balance: newBalance, amount: amt, type: 'recharge' };
+    return { balance: newBalance, amount: order.payAmount };
   }
 
   /**

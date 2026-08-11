@@ -99,7 +99,8 @@ function mapActivity(item: any) {
     date: item.startTime ? new Date(item.startTime).toLocaleDateString() : '待定',
     location: item.location || '待定',
     capacity: item.maxParticipants ? `限${item.maxParticipants}人` : '不限人数',
-    isFree: item.price === 0,
+    price: item.price ?? 0,
+    isFree: (item.price ?? 0) === 0,
     participants: `${item.signupCount || 0}人`,
     views: '1.2k',
   }

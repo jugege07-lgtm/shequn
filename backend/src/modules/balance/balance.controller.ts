@@ -31,9 +31,12 @@ export class BalanceController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('balance/recharge')
-  @ApiOperation({ summary: '余额充值' })
+  @ApiOperation({ summary: '创建余额充值订单（微信支付）' })
   async recharge(@CurrentUser() user: any, @Body('amount') amount: number) {
-    return this.balanceService.recharge(user.userId, Number(amount));
+    return {
+      code: 0,
+      data: await this.balanceService.createRechargeOrder(user.userId, Number(amount)),
+    };
   }
 
   // ===== 管理端接口（需要 admin / operator 角色）=====

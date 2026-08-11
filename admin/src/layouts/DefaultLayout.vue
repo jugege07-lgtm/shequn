@@ -112,7 +112,9 @@
           <!-- User -->
           <el-dropdown>
             <span class="user-info">
-              <el-icon><UserFilled /></el-icon>
+              <el-avatar :size="30" shape="circle" :src="currentUserAvatar" class="user-avatar">
+                <el-icon><UserFilled /></el-icon>
+              </el-avatar>
               <span>{{ currentUserName }}</span>
             </span>
             <template #dropdown>
@@ -138,6 +140,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useThemeStore } from '@/store/theme'
 import { menuVisible, getAdminUser, clearAdminUser } from '@/utils/permission'
+import { normalizeImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -146,6 +149,7 @@ const themeStore = useThemeStore()
 const currentRoute = computed(() => route.path)
 const isCollapsed = computed(() => (route.query.collapsed as string) === '1')
 const currentUserName = computed(() => getAdminUser()?.nickname || '管理员')
+const currentUserAvatar = computed(() => normalizeImageUrl(getAdminUser()?.avatarUrl))
 const breadcrumb = computed(() => {
   const map: Record<string, string> = {
     '/dashboard': '数据看板',
@@ -350,6 +354,10 @@ const handleLogout = () => {
 }
 .user-info:hover {
   background: var(--hover-bg);
+}
+.user-avatar {
+  flex-shrink: 0;
+  background: transparent;
 }
 
 /* ===== Main Content ===== */

@@ -126,7 +126,7 @@ else
 fi
 
 # 补齐全量种子图（若服务器 uploads 缺失则由仓库 seed-assets 补充）
-SEED_DIRS="business-covers product-covers activity-covers"
+SEED_DIRS="business-covers product-covers activity-covers logo"
 for dir in $SEED_DIRS; do
   if [ -d "$PROJECT_DIR/backend/seed-assets/$dir" ]; then
     mkdir -p "$PROJECT_DIR/backend/uploads"
@@ -178,6 +178,15 @@ if npx ts-node prisma/seed-businesses.ts 2>&1 | tee -a "$DEPLOY_LOG"; then
   log "✅ 商机种子数据同步完成"
 else
   warn "商机种子数据同步失败（不影响主流程，可后续手动重试）"
+fi
+
+# -------- 5.6 管理员头像种子（幂等，更新 admin avatarUrl 为 Logo）--------
+log "同步管理员头像..."
+cd "$PROJECT_DIR/backend"
+if npx ts-node prisma/seed-admin.ts 2>&1 | tee -a "$DEPLOY_LOG"; then
+  log "✅ 管理员头像同步完成"
+else
+  warn "管理员头像同步失败（不影响主流程，可后续手动重试）"
 fi
 
 # -------- 6. 清理临时文件 --------

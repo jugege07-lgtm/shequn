@@ -42,10 +42,21 @@ export class PaymentController {
     }
 
     const clientIp = this.extractClientIp(req);
+    // 充值及其他无商品明细的订单，按订单类型生成支付描述
+    const descMap: Record<string, string> = {
+      recharge: '余额充值',
+      activity_signup: '活动报名',
+      business_unlock: '商机解锁',
+      vip: 'VIP会员开通',
+      product: '商品购买',
+    };
+    const description = (order.items || []).length
+      ? order.items.map((i) => i.productName).join(',')
+      : (descMap[order.orderType] || '订单支付');
     const result = await this.paymentService.createUnifiedOrder({
       orderNo: order.orderNo,
       amount: order.payAmount,
-      description: order.items.map((i) => i.productName).join(',').slice(0, 127) || '商品订单',
+      description: description.slice(0, 127),
       openid: payer.openid,
       clientIp,
     });

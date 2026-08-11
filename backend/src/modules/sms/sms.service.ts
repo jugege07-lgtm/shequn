@@ -81,11 +81,11 @@ export class SmsService {
 
   /**
    * SMS 配置是否就绪
+   * 仅校验实际发送所需的字段（SMS_APP_KEY 在腾讯云 SDK 发送流程中未使用，不作为必要项）
    */
   private isConfigured(): boolean {
     return !!(
       process.env.SMS_SDK_APP_ID &&
-      process.env.SMS_APP_KEY &&
       process.env.SMS_SECRET_ID &&
       process.env.SMS_SECRET_KEY &&
       process.env.SMS_SIGN_NAME &&

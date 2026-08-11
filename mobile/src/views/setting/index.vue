@@ -2,13 +2,6 @@
   <div class="phone-frame setting-page">
     <!-- Header -->
     <div class="setting-header">
-      <div class="status-bar">
-        <span>9:41</span>
-        <div class="status-icons">
-          <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="8" width="3" height="4" rx="0.5" fill="#1e1b4b"/><rect x="4.5" y="5" width="3" height="7" rx="0.5" fill="#1e1b4b"/><rect x="9" y="2" width="3" height="10" rx="0.5" fill="#1e1b4b"/><rect x="13.5" y="0" width="2.5" height="12" rx="0.5" fill="#1e1b4b"/></svg>
-          <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M8 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="#1e1b4b" transform="translate(0,-2)"/><path d="M4.5 8.5C5.5 7.2 6.7 6.5 8 6.5s2.5.7 3.5 2" stroke="#1e1b4b" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg>
-        </div>
-      </div>
       <div class="header-title-row">
         <div class="back-btn" @click="$router.back()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -82,15 +75,6 @@ function showLogoutConfirm() {
   padding: 12px 16px 0;
   color: #1e1b4b;
 }
-.status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 14px;
-}
-.status-icons { display: flex; gap: 6px; }
 
 .header-title-row {
   position: relative;

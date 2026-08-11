@@ -104,10 +104,10 @@
             </div>
           </div>
 
-          <button class="recharge-confirm" :disabled="!validAmount" @click="doRecharge">
-            立即充值 ¥{{ finalAmount.toFixed(2) }}
+          <button class="recharge-confirm" :disabled="!validAmount || paying" @click="doRecharge">
+            {{ paying ? '正在发起支付...' : `立即充值 ¥${finalAmount.toFixed(2)}` }}
           </button>
-          <div class="sheet-tip">充值后余额将即时到账并生成充值记录</div>
+          <div class="sheet-tip">将通过微信支付完成充值，支付成功后余额即时到账</div>
         </div>
       </div>
     </transition>
@@ -116,7 +116,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getMyBalance, getMyBalanceLogs, rechargeBalance } from '@/api'
+import { getMyBalance, getMyBalanceLogs, rechargeBalance, createUnifiedOrder } from '@/api'
+import { requestPayment } from '@/utils/pay'
 
 const balance = ref(0)
 const loading = ref(false)
@@ -131,6 +132,7 @@ const rechargeOpen = ref(false)
 const presets = [50, 100, 200, 500, 1000]
 const selectedAmount = ref<number | null>(null)
 const customAmount = ref('')
+const paying = ref(false)
 
 const typeTabs = [
   { label: '全部', value: 'all' },
@@ -218,14 +220,24 @@ function loadMore() {
 async function doRecharge() {
   const amount = finalAmount.value
   if (!amount || amount <= 0) return
+  paying.value = true
   try {
-    await rechargeBalance(amount)
+    // 1. 创建充值订单（待支付）
+    const order: any = await rechargeBalance(amount)
+    if (!order?.orderId) throw new Error('创建充值订单失败')
+    // 2. 获取微信统一下单调起参数
+    const payParams: any = await createUnifiedOrder(order.orderId)
+    if (!payParams?.appId) throw new Error('未获取到有效支付参数')
+    // 3. 调起微信支付（结果由微信回调异步更新余额）
+    await requestPayment(payParams)
     rechargeOpen.value = false
-    showToast('充值成功')
-    await loadBalance()
-    await fetchLogs(true)
+    showToast('支付请求已发起，请完成支付')
   } catch (e: any) {
     showToast(e?.message || '充值失败')
+  } finally {
+    paying.value = false
+    await loadBalance()
+    await fetchLogs(true)
   }
 }
 

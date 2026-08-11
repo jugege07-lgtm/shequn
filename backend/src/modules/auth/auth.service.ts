@@ -40,7 +40,7 @@ export class AuthService {
         data: {
           openid: 'admin_fixed_' + Date.now(),
           nickname: ADMIN_USERNAME,
-          avatarUrl: '',
+          avatarUrl: '/uploads/logo.jpg',
           role: 'admin',
           adminLevel: 1,
           password: hashedPassword,
@@ -99,7 +99,7 @@ export class AuthService {
         data: {
           openid: 'admin_fixed_' + Date.now(),
           nickname: ADMIN_USERNAME,
-          avatarUrl: '',
+          avatarUrl: '/uploads/logo.jpg',
           role: 'admin',
           adminLevel: 1,
           password: hashedPassword,
