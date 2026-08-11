@@ -25,7 +25,7 @@
           <label class="form-label">验证码</label>
           <div class="code-row">
             <input v-model="form.code" class="form-input code-input" type="text" placeholder="请输入验证码" maxlength="6" />
-            <button class="code-btn" :disabled="countdown > 0 || sending" @click="sendCode">
+            <button class="code-btn" :disabled="countdown > 0 || sending" @click="sendVerificationCode">
               {{ countdown > 0 ? `${countdown}s` : sending ? '发送中...' : '获取验证码' }}
             </button>
           </div>
