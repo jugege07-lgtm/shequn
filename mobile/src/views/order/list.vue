@@ -104,7 +104,7 @@ async function loadOrders() {
     const list = Array.isArray(data) ? data : data?.list || []
     orders.value = list
   } catch (err: any) {
-    showToast(err.message || '加载失败')
+    showToast(err.userMessage || err.message || '加载失败')
   } finally {
     loading.value = false
   }
@@ -126,7 +126,7 @@ async function confirmReceive(id: number) {
     showToast('确认收货成功')
     loadOrders()
   } catch (err: any) {
-    showToast(err.message || '确认失败')
+    showToast(err.userMessage || err.message || '确认失败')
   }
 }
 

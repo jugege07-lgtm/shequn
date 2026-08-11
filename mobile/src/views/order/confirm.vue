@@ -297,7 +297,7 @@ async function loadAddresses() {
     addresses.value = list
     selectedAddress.value = list.find((a: any) => a.isDefault) || list[0] || null
   } catch (err: any) {
-    showToast(err.message || '加载地址失败')
+    showToast(err.userMessage || err.message || '加载地址失败')
   }
 }
 
@@ -332,7 +332,7 @@ async function loadGoods() {
       }
     }
   } catch (err: any) {
-    showToast(err.message || '加载商品失败')
+    showToast(err.userMessage || err.message || '加载商品失败')
   } finally {
     loading.value = false
   }
@@ -372,7 +372,8 @@ async function handleSubmit() {
     }
     router.push(`/order/pay/${orderId}`)
   } catch (err: any) {
-    showToast(err.message || '提交失败')
+    // 优先展示后端返回的中文业务错误（如"积分不足"），避免显示英文 axios 错误
+    showToast(err.userMessage || err.message || '提交失败')
   } finally {
     submitting.value = false
   }

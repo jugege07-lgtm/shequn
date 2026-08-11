@@ -158,7 +158,7 @@ async function loadOrder() {
       showToast('该订单无需支付')
     }
   } catch (err: any) {
-    showToast(err.message || '加载订单失败')
+    showToast(err.userMessage || err.message || '加载订单失败')
   } finally {
     loading.value = false
   }
@@ -192,7 +192,7 @@ async function handlePay() {
     router.replace(`/order/success?orderId=${orderId}&amount=${order.value.payAmount}`)
   } catch (err: any) {
     console.error('支付失败', err)
-    showToast(err.message || '支付失败')
+    showToast(err.userMessage || err.message || '支付失败')
   } finally {
     paying.value = false
   }
@@ -211,7 +211,7 @@ async function confirmBalancePay(payPassword: string) {
     }
     router.replace(`/order/success?orderId=${orderId}&amount=${order.value.payAmount}`)
   } catch (err: any) {
-    showToast(err.message || '支付失败')
+    showToast(err.userMessage || err.message || '支付失败')
   } finally {
     paying.value = false
   }
