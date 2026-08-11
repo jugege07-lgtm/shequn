@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { PhonePasswordLoginDto } from './dto/phone-password-login.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { User } from '@prisma/client';
 import { PointService } from '../point/point.service';
 import { SmsService } from '../sms/sms.service';
@@ -259,6 +260,29 @@ export class AuthService {
       // 仅在未配置腾讯云 SMS 的非生产环境返回，便于联调
       devCode: result.devCode,
     };
+  }
+
+  // ========== 忘记密码：校验验证码后重设密码 ==========
+  async resetPassword(dto: ResetPasswordDto): Promise<{ success: boolean; message: string }> {
+    // 校验手机号用户是否存在
+    const user = await this.prisma.user.findFirst({ where: { phone: dto.phone } });
+    if (!user) {
+      throw new BadRequestException('该手机号未注册');
+    }
+
+    // 校验短信验证码（与注册一致，由 SmsService 校验内存中的下发记录）
+    if (!this.smsService.verify(dto.phone, dto.code)) {
+      throw new BadRequestException('验证码错误或已过期');
+    }
+
+    // 重设密码
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    return { success: true, message: '密码重置成功' };
   }
 
   // ========== 微信登录 ==========

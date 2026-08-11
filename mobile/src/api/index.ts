@@ -63,6 +63,10 @@ export async function sendCode(phone: string) {
   return request.post('/api/auth/send-code', { phone })
 }
 
+export async function resetPassword(data: { phone: string; code: string; password: string }) {
+  return request.post('/api/auth/reset-password', data)
+}
+
 // ==================== 用户接口 ====================
 
 export async function getCurrentUser() {

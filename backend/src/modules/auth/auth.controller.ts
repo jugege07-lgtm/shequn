@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { PhonePasswordLoginDto } from './dto/phone-password-login.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('认证')
 @Controller('api/auth')
@@ -71,5 +72,13 @@ export class AuthController {
   @ApiOperation({ summary: '发送手机验证码（演示/mock）' })
   async sendCode(@Body('phone') phone: string) {
     return await this.authService.sendCode(phone);
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  @ApiOperation({ summary: '忘记密码：校验验证码后重设密码' })
+  @ApiBody({ type: ResetPasswordDto })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return await this.authService.resetPassword(dto);
   }
 }

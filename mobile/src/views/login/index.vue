@@ -30,16 +30,29 @@
           <div class="form-group">
             <label class="form-label">密码</label>
             <div class="password-input-wrapper">
-              <input v-model="loginForm.password" class="form-input" :type="showPassword ? 'text' : 'password'" placeholder="请输入密码" />
+              <input v-model="loginForm.password" class="form-input" :type="showPassword ? 'text' : 'password'" placeholder="请输入密码" @keyup.enter="handleLogin" />
               <span class="eye-btn" @click="showPassword = !showPassword">{{ showPassword ? '👁️' : '👁️‍🗨️' }}</span>
             </div>
             <span v-if="loginErrors.password" class="field-error">{{ loginErrors.password }}</span>
           </div>
-          <button class="submit-btn" :class="{ loading: loginLoading }" @click="handleLogin">登 录</button>
+          <div class="login-actions">
+            <button class="submit-btn" :class="{ loading: loginLoading }" @click="handleLogin">登 录</button>
+            <span class="forgot-password" @click="$router.push('/forgot-password')">忘记密码?</span>
+          </div>
           <div class="divider"><span>其他登录方式</span></div>
-          <div class="wechat-btn" @click="handleWechatLogin">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05a6.329 6.329 0 0 1-.235-1.665c0-3.627 3.272-6.566 7.31-6.566.524 0 1.03.063 1.523.173C16.842 4.599 13.074 2.188 8.691 2.188zm-2.6 4.177c.585 0 1.061.476 1.061 1.061s-.476 1.061-1.061 1.061S5.03 7.907 5.03 7.326s.476-1.061 1.061-1.061zm5.213 0c.585 0 1.061.476 1.061 1.061s-.476 1.061-1.061 1.061-1.061-.476-1.061-1.061.476-1.061 1.061-1.061zm4.58 3.848c-3.487 0-6.315 2.466-6.315 5.507 0 3.04 2.828 5.506 6.315 5.506a7.68 7.68 0 0 0 2.226-.33.724.724 0 0 1 .598.082l1.585.927a.27.27 0 0 0 .138.045c.133 0 .24-.11.24-.245 0-.06-.024-.118-.04-.176l-.325-1.233a.493.493 0 0 1 .176-.553C21.958 19.175 23 17.36 23 15.326c0-3.041-2.828-5.507-6.316-5.507h-.1z"/></svg>
-            <span>微信快捷登录</span>
+          <div class="login-methods">
+            <div class="method-item" @click="handleWechatLogin">
+              <div class="method-avatar wechat-avatar">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05a6.329 6.329 0 0 1-.235-1.665c0-3.627 3.272-6.566 7.31-6.566.524 0 1.03.063 1.523.173C16.842 4.599 13.074 2.188 8.691 2.188zm-2.6 4.177c.585 0 1.061.476 1.061 1.061s-.476 1.061-1.061 1.061S5.03 7.907 5.03 7.326s.476-1.061 1.061-1.061zm5.213 0c.585 0 1.061.476 1.061 1.061s-.476 1.061-1.061 1.061-1.061-.476-1.061-1.061.476-1.061 1.061-1.061zm4.58 3.848c-3.487 0-6.315 2.466-6.315 5.507 0 3.04 2.828 5.506 6.315 5.506a7.68 7.68 0 0 0 2.226-.33.724.724 0 0 1 .598.082l1.585.927a.27.27 0 0 0 .138.045c.133 0 .24-.11.24-.245 0-.06-.024-.118-.04-.176l-.325-1.233a.493.493 0 0 1 .176-.553C21.958 19.175 23 17.36 23 15.326c0-3.041-2.828-5.507-6.316-5.507h-.1z"/></svg>
+              </div>
+              <span class="method-label">微信登录</span>
+            </div>
+            <div class="method-item" @click="handleOneClickLogin">
+              <div class="method-avatar phone-avatar">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M6.62 10.79a15.053 15.053 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.57a1 1 0 0 1-.24 1.02l-2.21 2.2z"/></svg>
+              </div>
+              <span class="method-label">手机一键登录</span>
+            </div>
           </div>
         </div>
 
@@ -359,6 +372,11 @@ async function handleWechatLogin() {
   }
 }
 
+// ===== 手机一键登录（预留，待后续配置启用） =====
+function handleOneClickLogin() {
+  showToast('手机一键登录功能开发中，敬请期待')
+}
+
 // ===== Modals =====
 const showAgreementModal = ref(false)
 const showPrivacyModal = ref(false)
@@ -499,7 +517,8 @@ const showPrivacyModal = ref(false)
 /* Field error */
 .field-error { font-size: 11px; color: var(--color-danger); margin-top: 2px; }
 
-/* Submit button */
+/* Submit button & actions */
+.login-actions { display: flex; flex-direction: column; gap: 10px; }
 .submit-btn {
   width: 100%; padding: 14px;
   background: var(--color-primary); color: #fff;
@@ -509,6 +528,13 @@ const showPrivacyModal = ref(false)
 }
 .submit-btn:active { transform: scale(0.98); background: var(--color-primary-dark); }
 .submit-btn.loading { opacity: 0.7; pointer-events: none; }
+.forgot-password {
+  align-self: flex-end;
+  font-size: 12px; color: var(--color-text-secondary);
+  cursor: pointer; padding: 2px 4px;
+  transition: color 0.2s;
+}
+.forgot-password:active { color: var(--color-primary); }
 
 /* Divider */
 .divider {
@@ -519,15 +545,27 @@ const showPrivacyModal = ref(false)
   content: ''; width: 40px; height: 1px; background: rgba(0,0,0,0.08);
 }
 
-/* WeChat button */
-.wechat-btn {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  background: #07c160; color: #fff;
-  border: none; border-radius: 12px;
-  padding: 14px 24px; font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: all 0.2s ease;
+/* Login methods (avatar style) */
+.login-methods {
+  display: flex; align-items: flex-start; justify-content: center; gap: 36px;
+  padding: 2px 0 4px;
 }
-.wechat-btn:active { transform: scale(0.98); background: #06ad56; }
+.method-item {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; transition: transform 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.method-item:active { transform: scale(0.92); }
+.method-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+.wechat-avatar { background: #07c160; }
+.phone-avatar {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+.method-label { font-size: 12px; color: var(--color-text-secondary); }
 
 /* Agreement */
 .agreement { display: flex; flex-direction: column; gap: 4px; }
