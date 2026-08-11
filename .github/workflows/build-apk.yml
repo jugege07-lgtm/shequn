@@ -1,14 +1,12 @@
 name: Build Android APK
 
 # 触发条件：
-# 1. 手动触发（推荐，避免每次 push 都构建）
-# 2. 推送 main 分支（自动构建，便于更新下载页的 APK）
+# 1. 手动触发（可在 Actions 页面点击）
+# 2. 推送 main 分支（自动构建，确保下载页的 APK 始终最新）
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - 'mobile/**'
 
 concurrency:
   group: build-apk
