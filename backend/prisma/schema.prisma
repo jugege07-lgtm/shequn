@@ -34,6 +34,7 @@ model User {
   referrals     User[]            @relation("UserReferral")
   activities    Activity[]
   signups       ActivitySignup[]
+  favorites     ActivityFavorite[]
   unlocks       BusinessUnlock[]
   businesses    Business[]
   cartItems     CartItem[]
@@ -107,6 +108,8 @@ model Activity {
   endTime         DateTime         @map("end_time")
   maxParticipants Int?             @map("max_participants")
   signupCount     Int              @default(0) @map("signup_count")
+  viewCount       Int              @default(0) @map("view_count")
+  favoriteCount   Int              @default(0) @map("favorite_count")
   status          String           @default("pending")
   rejectReason    String           @default("") @map("reject_reason")
   publisherId     Int              @map("publisher_id")
@@ -115,12 +118,26 @@ model Activity {
   updatedAt       DateTime         @updatedAt @map("updated_at")
   publisher       User             @relation(fields: [publisherId], references: [id])
   signups         ActivitySignup[]
+  favorites       ActivityFavorite[]
   orders          Order[]
 
   @@index([status])
   @@index([publisherId])
   @@index([startTime, endTime])
   @@map("activities")
+}
+
+model ActivityFavorite {
+  id         Int      @id @default(autoincrement())
+  activityId Int      @map("activity_id")
+  userId     Int      @map("user_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id])
+  activity   Activity @relation(fields: [activityId], references: [id])
+
+  @@unique([activityId, userId])
+  @@index([userId])
+  @@map("activity_favorites")
 }
 
 model ActivitySignup {

@@ -76,13 +76,108 @@ export class ActivityService {
   }
 
   async getActivityDetail(id: number) {
-    return this.prisma.activity.findUnique({
+    const activity = await this.prisma.activity.findUnique({
       where: { id },
       include: {
         publisher: { select: { nickname: true, avatarUrl: true } },
-        signups: { select: { userId: true } },
+        signups: {
+          where: { status: 'confirmed' },
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+          select: {
+            userId: true,
+            user: { select: { nickname: true, avatarUrl: true } },
+          },
+        },
       },
     });
+    if (!activity) throw new NotFoundException('活动不存在');
+
+    const signupUsers = activity.signups
+      .map((s) => ({
+        userId: s.userId,
+        nickname: s.user.nickname,
+        avatarUrl: s.user.avatarUrl,
+      }))
+      .filter((u) => u.avatarUrl);
+
+    return {
+      ...activity,
+      signupUsers,
+      viewCount: activity.viewCount ?? 0,
+      favoriteCount: activity.favoriteCount ?? 0,
+    };
+  }
+
+  /** 记录一次浏览量（每次打开详情页调用） */
+  async recordView(id: number) {
+    await this.prisma.activity.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+    });
+    const updated = await this.prisma.activity.findUnique({
+      where: { id },
+      select: { viewCount: true },
+    });
+    return { viewCount: updated?.viewCount ?? 0 };
+  }
+
+  /** 获取当前用户收藏状态 */
+  async getFavoriteStatus(activityId: number, userId: number) {
+    const [activity, favorite] = await Promise.all([
+      this.prisma.activity.findUnique({
+        where: { id: activityId },
+        select: { favoriteCount: true },
+      }),
+      this.prisma.activityFavorite.findUnique({
+        where: { activityId_userId: { activityId, userId } },
+      }),
+    ]);
+    if (!activity) throw new NotFoundException('活动不存在');
+    return {
+      favorited: !!favorite,
+      favoriteCount: activity.favoriteCount ?? 0,
+    };
+  }
+
+  /** 收藏 / 取消收藏（切换） */
+  async toggleFavorite(activityId: number, userId: number) {
+    const activity = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+      select: { id: true },
+    });
+    if (!activity) throw new NotFoundException('活动不存在');
+
+    const existing = await this.prisma.activityFavorite.findUnique({
+      where: { activityId_userId: { activityId, userId } },
+    });
+
+    if (existing) {
+      await this.prisma.$transaction([
+        this.prisma.activityFavorite.delete({ where: { id: existing.id } }),
+        this.prisma.activity.update({
+          where: { id: activityId },
+          data: { favoriteCount: { decrement: 1 } },
+        }),
+      ]);
+    } else {
+      await this.prisma.$transaction([
+        this.prisma.activityFavorite.create({ data: { activityId, userId } }),
+        this.prisma.activity.update({
+          where: { id: activityId },
+          data: { favoriteCount: { increment: 1 } },
+        }),
+      ]);
+    }
+
+    const updated = await this.prisma.activity.findUnique({
+      where: { id: activityId },
+      select: { favoriteCount: true },
+    });
+    return {
+      favorited: !existing,
+      favoriteCount: updated?.favoriteCount ?? 0,
+    };
   }
 
   async getMyActivities(userId: number, params?: { page?: number; size?: number }) {

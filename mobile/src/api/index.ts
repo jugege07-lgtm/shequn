@@ -125,6 +125,18 @@ export async function getActivitySignupStatus(activityId: number) {
   return request.get(`/api/activities/${activityId}/signup-status`)
 }
 
+export async function recordActivityView(activityId: number) {
+  return request.post(`/api/activities/${activityId}/view`)
+}
+
+export async function getActivityFavoriteStatus(activityId: number) {
+  return request.get(`/api/activities/${activityId}/favorite-status`)
+}
+
+export async function toggleActivityFavorite(activityId: number) {
+  return request.post(`/api/activities/${activityId}/favorite`)
+}
+
 export async function getMyActivities(params?: { page?: number; size?: number }) {
   return request.get('/api/activities/my', { params })
 }

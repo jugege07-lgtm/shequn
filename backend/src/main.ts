@@ -6,7 +6,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { OperationLogInterceptor } from './common/interceptors/operation-log.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { PrismaService } from './common/prisma/prisma.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
@@ -29,6 +31,7 @@ async function bootstrap() {
   );
 
   app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalInterceptors(new OperationLogInterceptor(app.get(PrismaService)));
   app.useGlobalFilters(new HttpExceptionFilter());
 
   app.use((_req: any, res: any, next: any) => {

@@ -2,28 +2,6 @@
   <div class="settings-page">
     <el-card header="系统配置" style="margin-bottom: 20px;">
       <el-tabs v-model="activeTab">
-        <el-tab-pane label="基本设置" name="basic">
-          <el-form label-width="120px" style="max-width: 600px;" v-loading="loading">
-            <el-form-item v-for="item in configList" :key="item.key" :label="getLabel(item.key)">
-              <el-input
-                v-if="item.key !== 'maintenance_mode'"
-                v-model="item.value"
-                :placeholder="item.description"
-              />
-              <el-switch
-                v-else
-                v-model="item.value"
-                active-value="true"
-                inactive-value="false"
-                active-text="开启"
-                inactive-text="关闭"
-              />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="saveConfigs" :loading="saving">保存配置</el-button>
-            </el-form-item>
-          </el-form>
-        </el-tab-pane>
         <el-tab-pane label="VIP权限" name="vip">
           <el-form label-width="160px" style="max-width: 640px;" v-loading="vipLoading">
             <el-alert type="warning" :closable="false" style="margin-bottom: 16px;">
@@ -138,38 +116,6 @@
               <template #default="{ row }">
                 <el-button size="small" @click="editAnnouncement(row)">编辑</el-button>
                 <el-popconfirm title="确定删除？" @confirm="deleteAnnouncement(row.id)">
-                  <template #reference>
-                    <el-button size="small" type="danger">删除</el-button>
-                  </template>
-                </el-popconfirm>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-        <el-tab-pane label="版本管理" name="versions">
-          <div style="margin-bottom: 12px;">
-            <el-button type="primary" @click="showVersionDialog = true; editingVersion = null">新增版本</el-button>
-          </div>
-          <el-table :data="versions" border stripe v-loading="verLoading">
-            <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="platform" label="平台" width="80" />
-            <el-table-column prop="version" label="版本号" width="100" />
-            <el-table-column prop="versionCode" label="版本编码" width="100" />
-            <el-table-column prop="title" label="标题" />
-            <el-table-column label="强制更新" width="90">
-              <template #default="{ row }">
-                <el-tag :type="row.forceUpdate === 1 ? 'danger' : 'info'">{{ row.forceUpdate === 1 ? '是' : '否' }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="80">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '禁用' }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="180">
-              <template #default="{ row }">
-                <el-button size="small" @click="editVersion(row)">编辑</el-button>
-                <el-popconfirm title="确定删除？" @confirm="deleteVersion(row.id)">
                   <template #reference>
                     <el-button size="small" type="danger">删除</el-button>
                   </template>
@@ -314,28 +260,6 @@
       </template>
     </el-dialog>
 
-    <!-- 版本对话框 -->
-    <el-dialog v-model="showVersionDialog" :title="editingVersion ? '编辑版本' : '新增版本'" width="500px">
-      <el-form :model="verForm" label-width="100px">
-        <el-form-item label="平台"><el-input v-model="verForm.platform" placeholder="mobile" /></el-form-item>
-        <el-form-item label="版本号"><el-input v-model="verForm.version" placeholder="1.0.0" /></el-form-item>
-        <el-form-item label="版本编码"><el-input-number v-model="verForm.versionCode" :min="1" /></el-form-item>
-        <el-form-item label="更新标题"><el-input v-model="verForm.title" /></el-form-item>
-        <el-form-item label="更新内容"><el-input v-model="verForm.content" type="textarea" :rows="3" /></el-form-item>
-        <el-form-item label="下载地址"><el-input v-model="verForm.downloadUrl" /></el-form-item>
-        <el-form-item label="强制更新">
-          <el-switch v-model="verForm.forceUpdate" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-switch v-model="verForm.status" :active-value="1" :inactive-value="0" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showVersionDialog = false">取消</el-button>
-        <el-button type="primary" @click="saveVersion" :loading="saving">保存</el-button>
-      </template>
-    </el-dialog>
-
     <!-- 新增/编辑后台账号对话框 -->
     <el-dialog v-model="showStaffDialog" :title="editingStaff ? '编辑账号' : '新增账号'" width="520px">
       <el-form :model="staffForm" :rules="staffRules" ref="staffFormRef" label-width="90px">
@@ -390,8 +314,7 @@ import '@wangeditor/editor/dist/css/style.css'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import type { IDomEditor, IEditorConfig } from '@wangeditor/editor'
 
-const activeTab = ref('basic')
-const loading = ref(false)
+const activeTab = ref('vip')
 const saving = ref(false)
 
 
@@ -482,41 +405,6 @@ async function saveAboutUs() {
   } finally {
     aboutSaving.value = false
   }
-}
-
-// ========== 系统配置 ==========
-const configList = ref<any[]>([])
-const labelMap: Record<string, string> = {
-  app_name: '应用名称',
-  app_description: '应用描述',
-  contact_phone: '客服电话',
-  contact_email: '客服邮箱',
-  maintenance_mode: '维护模式',
-  maintenance_message: '维护提示语',
-}
-function getLabel(key: string) { return labelMap[key] || key }
-
-async function loadConfigs() {
-  loading.value = true
-  try {
-    const data: any = await request.get('/admin/configs')
-    configList.value = (data || []).filter((c: any) =>
-      !c.key.startsWith('pay_') &&
-      !c.key.startsWith('payment_') &&
-      c.key !== 'about_us'
-    )
-  } catch (err: any) { ElMessage.error(err.message || '操作失败') }
-  finally { loading.value = false }
-}
-
-async function saveConfigs() {
-  saving.value = true
-  try {
-    await request.post('/admin/configs', configList.value)
-    ElMessage.success('配置保存成功')
-  } catch (err: any) {
-    ElMessage.error(err.message || '保存失败')
-  } finally { saving.value = false }
 }
 
 // ========== VIP权限配置 ==========
@@ -711,53 +599,6 @@ async function deleteAnnouncement(id: number) {
     await request.delete(`/admin/announcements/${id}`)
     ElMessage.success('删除成功')
     loadAnnouncements()
-  } catch (err: any) {
-    ElMessage.error(err.message || '删除失败')
-  }
-}
-
-// ========== 版本 ==========
-const versions = ref<any[]>([])
-const verLoading = ref(false)
-const showVersionDialog = ref(false)
-const editingVersion = ref<any>(null)
-const verForm = reactive({ platform: 'mobile', version: '', versionCode: 1, title: '', content: '', downloadUrl: '', forceUpdate: 0, status: 1 })
-
-async function loadVersions() {
-  verLoading.value = true
-  try {
-    versions.value = await request.get('/admin/versions') || []
-  } catch (err: any) { ElMessage.error(err.message || '操作失败') }
-  finally { verLoading.value = false }
-}
-
-function editVersion(row: any) {
-  editingVersion.value = row
-  Object.assign(verForm, { platform: row.platform, version: row.version, versionCode: row.versionCode, title: row.title, content: row.content, downloadUrl: row.downloadUrl, forceUpdate: row.forceUpdate, status: row.status })
-  showVersionDialog.value = true
-}
-
-async function saveVersion() {
-  saving.value = true
-  try {
-    if (editingVersion.value) {
-      await request.put(`/admin/versions/${editingVersion.value.id}`, verForm)
-    } else {
-      await request.post('/admin/versions', verForm)
-    }
-    ElMessage.success('保存成功')
-    showVersionDialog.value = false
-    loadVersions()
-  } catch (err: any) {
-    ElMessage.error(err.message || '保存失败')
-  } finally { saving.value = false }
-}
-
-async function deleteVersion(id: number) {
-  try {
-    await request.delete(`/admin/versions/${id}`)
-    ElMessage.success('删除成功')
-    loadVersions()
   } catch (err: any) {
     ElMessage.error(err.message || '删除失败')
   }
@@ -978,6 +819,58 @@ const actionLabelMap: Record<string, string> = {
   create_role: '新增角色',
   update_role: '编辑角色',
   delete_role: '删除角色',
+  // 系统配置
+  update_config: '更新配置',
+  delete_config: '删除配置',
+  update_payment_config: '更新支付配置',
+  create_banner: '新增Banner',
+  update_banner: '编辑Banner',
+  delete_banner: '删除Banner',
+  create_announcement: '新增公告',
+  update_announcement: '编辑公告',
+  delete_announcement: '删除公告',
+  create_version: '新增版本',
+  update_version: '编辑版本',
+  delete_version: '删除版本',
+  create_notification: '发送通知',
+  create_vip_plan: '新增VIP套餐',
+  update_vip_plan: '编辑VIP套餐',
+  delete_vip_plan: '删除VIP套餐',
+  update_vip_plan_status: '更新VIP套餐状态',
+  // 用户
+  update_user: '编辑用户',
+  delete_user: '删除用户',
+  disable_user: '禁用用户',
+  enable_user: '启用用户',
+  reset_user_password: '重置用户密码',
+  update_user_roles: '修改用户角色',
+  adjust_balance: '调整余额',
+  // 活动
+  create_activity: '发布活动',
+  update_activity: '编辑活动',
+  delete_activity: '删除活动',
+  approve_activity: '审核通过活动',
+  reject_activity: '驳回活动',
+  clear_signups: '清空报名',
+  // 商机
+  create_business: '发布商机',
+  update_business: '编辑商机',
+  delete_business: '删除商机',
+  approve_business: '审核通过商机',
+  reject_business: '驳回商机',
+  update_business_status: '更新商机状态',
+  create_category: '新增分类',
+  update_category: '编辑分类',
+  delete_category: '删除分类',
+  // 商品
+  create_product: '发布商品',
+  update_product: '编辑商品',
+  delete_product: '删除商品',
+  update_product_status: '更新商品状态',
+  // 订单
+  ship_order: '订单发货',
+  approve_refund: '同意退款',
+  reject_refund: '拒绝退款',
 }
 const actionLabel = (a: string) => actionLabelMap[a] || a
 
@@ -995,12 +888,10 @@ async function loadLogs() {
 }
 
 onMounted(() => {
-  loadConfigs()
   loadVipRules()
   loadUnlockCfg()
   loadPaymentConfig()
   loadAnnouncements()
-  loadVersions()
   loadAboutUs()
   loadStaff()
   loadLogs()

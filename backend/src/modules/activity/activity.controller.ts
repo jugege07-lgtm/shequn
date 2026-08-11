@@ -70,6 +70,30 @@ export class ActivityController {
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @Post('activities/:id/view')
+  @ApiOperation({ summary: '记录活动浏览量' })
+  async recordView(@Param('id') id: string) {
+    return { code: 0, data: await this.activityService.recordView(Number(id)) };
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('activities/:id/favorite-status')
+  @ApiOperation({ summary: '获取当前用户活动收藏状态' })
+  async getFavoriteStatus(@Param('id') id: string, @CurrentUser() user: any) {
+    return { code: 0, data: await this.activityService.getFavoriteStatus(Number(id), user.userId) };
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('activities/:id/favorite')
+  @ApiOperation({ summary: '收藏 / 取消收藏活动' })
+  async toggleFavorite(@Param('id') id: string, @CurrentUser() user: any) {
+    return { code: 0, data: await this.activityService.toggleFavorite(Number(id), user.userId) };
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @Post('activities/:id/verify')
   @ApiOperation({ summary: '扫码核销报名' })
   async verifySignup(

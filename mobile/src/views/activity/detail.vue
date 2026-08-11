@@ -8,6 +8,10 @@
         <span class="header-title">活动详情</span>
       </div>
       <div class="header-right">
+        <div class="header-icon" :class="{ 'favorited': favorited }" @click="handleFavorite">
+          <svg v-if="favorited" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
         <div class="header-icon" @click="shareActivity">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </div>
@@ -72,6 +76,33 @@
           <div class="stat-txt">收藏</div>
         </div>
       </div>
+      <!-- 已报名成员头像（折叠/展开） -->
+      <div class="info-card participants-card" v-if="signupUsers.length">
+        <div class="participants-head">
+          <h3 class="section-label">已报名成员</h3>
+          <span class="participants-count">{{ activity.participants }} 人</span>
+        </div>
+        <div class="participants-list" :class="{ collapsed: signupsCollapsed }">
+          <div class="participant" v-for="(u, i) in displaySignups" :key="u.userId">
+            <div class="participant-avatar" :style="{ background: avatarColor(i) }">
+              <img
+                v-if="u.avatar"
+                :src="u.avatar"
+                class="participant-img"
+                alt=""
+                loading="lazy"
+                @error="onAvatarError($event)"
+              />
+              <span v-else>{{ (u.nickname || '成员').charAt(0) }}</span>
+            </div>
+            <div class="participant-name">{{ u.nickname || '成员' }}</div>
+          </div>
+        </div>
+        <div class="participants-toggle" v-if="signupUsers.length > 5" @click="signupsCollapsed = !signupsCollapsed">
+          <span>{{ signupsCollapsed ? '展开全部' : '收起' }}</span>
+          <svg :class="{ expanded: !signupsCollapsed }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
       <!-- Map placeholder -->
       <div class="info-card">
         <h3 class="section-label">活动地点</h3>
@@ -116,7 +147,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getActivityDetail, signupActivity, getActivitySignupStatus } from '@/api'
+import { getActivityDetail, signupActivity, getActivitySignupStatus, recordActivityView, getActivityFavoriteStatus, toggleActivityFavorite } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
 import { recordBrowse } from '@/utils/browseHistory'
@@ -200,6 +231,9 @@ interface ActivityInfo {
   endTime: string
   maxParticipants: number | null
   signupCount: number
+  viewCount: number
+  favoriteCount: number
+  signupUsers?: { userId: number; nickname: string; avatarUrl: string }[]
   status: string
   publisherName: string
 }
@@ -207,6 +241,30 @@ interface ActivityInfo {
 const rawActivity = ref<ActivityInfo | null>(null)
 const loading = ref(true)
 const submitting = ref(false)
+
+// ===== 收藏 =====
+const favorited = ref(false)
+const favoriteLoading = ref(false)
+
+// ===== 已报名成员头像 =====
+const signupUsers = ref<{ userId: number; nickname: string; avatar: string }[]>([])
+const signupsCollapsed = ref(true)
+
+const displaySignups = computed(() => {
+  if (signupUsers.value.length > 5 && signupsCollapsed.value) {
+    return signupUsers.value.slice(0, 5)
+  }
+  return signupUsers.value
+})
+
+const AVATAR_COLORS = ['#ede9fe', '#dbeafe', '#fef3c7', '#fce7f3', '#d1fae5', '#e0e7ff', '#f5f3ff']
+function avatarColor(i: number) {
+  return AVATAR_COLORS[i % AVATAR_COLORS.length]
+}
+function onAvatarError(e: Event) {
+  const img = e.target as HTMLImageElement
+  if (img) img.style.display = 'none'
+}
 
 // 封面地址变化时重置加载状态与占位比例（rawActivity 已初始化后再 watch，避免 TDZ 报错）
 watch(coverSrc, () => {
@@ -255,8 +313,8 @@ const activity = computed(() => {
     desc: a.description,
     sanitizedDesc: sanitizeRichHtml(a.description),
     participants: String(a.signupCount),
-    views: '0',
-    signups: '0',
+    views: String(a.viewCount ?? 0),
+    signups: String(a.favoriteCount ?? 0),
     full,
   }
 })
@@ -286,9 +344,20 @@ async function loadActivity() {
       endTime: data.endTime,
       maxParticipants: data.maxParticipants ?? null,
       signupCount: data.signupCount ?? 0,
+      viewCount: data.viewCount ?? 0,
+      favoriteCount: data.favoriteCount ?? 0,
+      signupUsers: data.signupUsers || [],
       status: data.status || '',
       publisherName: data.publisher?.name || data.publisherName || '',
     }
+    // 已报名成员头像（规范化图片地址）
+    signupUsers.value = (data.signupUsers || [])
+      .map((u: any) => ({
+        userId: u.userId,
+        nickname: u.nickname || '',
+        avatar: normalizeImageUrl(u.avatarUrl),
+      }))
+      .filter((u: any) => u.avatar)
     // 记录浏览历史
     recordBrowse('activity', data.id, data.title || '')
   } catch (err: any) {
@@ -311,10 +380,59 @@ async function loadSignupStatus() {
   }
 }
 
+// 每次进入详情页计入一次浏览量
+async function recordView() {
+  try {
+    const id = Number(route.params.id)
+    const data = await recordActivityView(id)
+    if (data && typeof data.viewCount === 'number' && rawActivity.value) {
+      rawActivity.value.viewCount = data.viewCount
+    }
+  } catch (err: any) {
+    console.error('记录浏览量失败:', err)
+  }
+}
+
+async function loadFavoriteStatus() {
+  try {
+    const id = Number(route.params.id)
+    const data = await getActivityFavoriteStatus(id)
+    favorited.value = data?.favorited || false
+    if (data && typeof data.favoriteCount === 'number' && rawActivity.value) {
+      rawActivity.value.favoriteCount = data.favoriteCount
+    }
+  } catch (err: any) {
+    console.error('获取收藏状态失败:', err)
+  }
+}
+
+async function handleFavorite() {
+  if (favoriteLoading.value || !rawActivity.value) return
+  favoriteLoading.value = true
+  try {
+    const id = Number(route.params.id)
+    const data = await toggleActivityFavorite(id)
+    favorited.value = data?.favorited || false
+    if (data && typeof data.favoriteCount === 'number' && rawActivity.value) {
+      rawActivity.value.favoriteCount = data.favoriteCount
+    }
+    showToast(favorited.value ? '已收藏' : '已取消收藏')
+  } catch (err: any) {
+    showToast(err.message || '操作失败')
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
 onMounted(async () => {
   await loadActivity()
   await loadSignupStatus()
   loading.value = false
+
+  // 每次打开详情页自动计入一次浏览
+  recordView()
+  // 恢复收藏状态
+  loadFavoriteStatus()
 
   // 监听屏幕尺寸变化 / 横竖屏切换，重新适配主图宽高比
   window.addEventListener('resize', handleResize)
@@ -490,6 +608,44 @@ function showToast(msg: string) {
 .stat-box { display: flex; flex-direction: column; align-items: center; }
 .stat-num { font-size: 22px; font-weight: 800; color: var(--color-primary); }
 .stat-txt { font-size: 12px; color: var(--color-text-tertiary); margin-top: 4px; }
+
+/* 收藏按钮高亮 */
+.header-icon.favorited { background: rgba(245,158,11,0.15); }
+.header-icon.favorited svg { color: #f59e0b; }
+
+/* 已报名成员 */
+.participants-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+}
+.participants-head .section-label { margin-bottom: 0; }
+.participants-count { font-size: 12px; color: var(--color-text-tertiary); }
+.participants-list {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px 8px;
+}
+.participants-list.collapsed {
+  max-height: 92px; overflow: hidden;
+}
+.participant {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0;
+}
+.participant-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: #4f46e5;
+  overflow: hidden; flex-shrink: 0;
+}
+.participant-img { width: 100%; height: 100%; object-fit: cover; }
+.participant-name {
+  width: 100%; font-size: 11px; color: var(--color-text-secondary);
+  text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.participants-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05);
+  font-size: 13px; color: var(--color-primary); cursor: pointer;
+}
+.participants-toggle svg { width: 15px; height: 15px; transition: transform 0.2s; }
+.participants-toggle svg.expanded { transform: rotate(180deg); }
 
 .map-placeholder {
   min-height: 72px; border-radius: var(--radius-md);
