@@ -78,7 +78,7 @@ editorConfig.MENU_CONF['uploadImage'] = {
   // 自定义上传
   async customUpload(file: File, insertFn: (url: string, alt?: string, href?: string) => void) {
     try {
-      // 大图自动压缩：最长边 > 1920px 或体积 > 2MB 时压缩，减小上传体积、加快加载（compressImage 内部判断）
+      // 大图自动压缩：最长边 > 1920px 或体积 > 1MB 时压缩，减小上传体积、加快加载（compressImage 内部判断）
       let uploadFile = file
       if (file.type.startsWith('image/')) {
         try {
