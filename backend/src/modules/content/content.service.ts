@@ -52,6 +52,13 @@ export class ContentService {
     });
   }
 
+  // ========== Banner 轮播设置 ==========
+  async getBannerInterval(): Promise<number> {
+    const cfg = await this.prisma.systemConfig.findUnique({ where: { key: 'banner_interval' } });
+    const n = parseInt(cfg?.value || '', 10);
+    return Number.isFinite(n) && n > 0 ? n : 4; // 默认 4 秒
+  }
+
   async getBanner(id: number) {
     return this.prisma.banner.findUnique({ where: { id } });
   }
@@ -142,7 +149,9 @@ export class ContentService {
       category: { name: categoryMap.get(b.categoryId) || '商机' },
     }));
 
-    return { banners, announcements, sections, activities, businesses: businessesWithCategory };
+    const bannerInterval = await this.getBannerInterval();
+
+    return { banners, announcements, sections, activities, businesses: businessesWithCategory, bannerInterval };
   }
 
   // ========== Global search (activities / businesses / products) ==========

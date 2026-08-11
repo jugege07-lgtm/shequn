@@ -308,6 +308,23 @@ export class SystemService {
     return this.prisma.banner.delete({ where: { id } });
   }
 
+  // ========== Banner 轮播设置 ==========
+  async getBannerInterval(): Promise<number> {
+    const cfg = await this.prisma.systemConfig.findUnique({ where: { key: 'banner_interval' } });
+    const n = parseInt(cfg?.value || '', 10);
+    return Number.isFinite(n) && n > 0 ? n : 4; // 默认 4 秒
+  }
+
+  async setBannerInterval(seconds: number): Promise<number> {
+    const n = Math.max(1, Math.min(60, Math.round(seconds || 4)));
+    await this.prisma.systemConfig.upsert({
+      where: { key: 'banner_interval' },
+      update: { value: String(n) },
+      create: { key: 'banner_interval', value: String(n), description: '移动端首页Banner轮播切换间隔（秒）' },
+    });
+    return n;
+  }
+
   // ========== 公告管理 ==========
   async getAnnouncements() {
     return this.prisma.announcement.findMany({ orderBy: { sortOrder: 'asc' } });

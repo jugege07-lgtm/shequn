@@ -1,11 +1,18 @@
 <template>
   <div class="phone-frame">
-    <!-- Banner with Floating Overlay -->
+    <!-- Banner 轮播 -->
     <div class="banner-section">
-      <div class="banner-bg-shapes">
-        <div class="shape s1"></div>
-        <div class="shape s2"></div>
-        <div class="shape s3"></div>
+      <div class="banner-track" :style="{ transform: `translateX(-${bannerIndex * 100}%)` }">
+        <div class="banner-slide" v-for="(b, i) in banners" :key="b.id" @click="onBannerClick(b)">
+          <img v-if="b.imageUrl && !b.imgError" :src="b.imageUrl" class="banner-img" :alt="b.title" loading="lazy" @error="b.imgError = true" />
+          <div v-else class="banner-img banner-fallback" :style="b.fallbackStyle">
+            <span class="banner-fallback-emoji">{{ b.emoji }}</span>
+          </div>
+          <div class="banner-overlay">
+            <h3>{{ b.title }}</h3>
+            <p v-if="b.content">{{ b.content }}</p>
+          </div>
+        </div>
       </div>
       <div class="top-overlay">
         <div class="search-bar" @click="openSearch">
@@ -17,9 +24,14 @@
           <span class="search-btn">搜索</span>
         </div>
       </div>
-      <div class="banner-overlay">
-        <h3>{{ bannerText }}</h3>
-        <p v-if="bannerSubtitle">{{ bannerSubtitle }}</p>
+      <div class="banner-dots" v-if="banners.length > 1">
+        <span
+          v-for="(b, i) in banners"
+          :key="'d' + b.id"
+          class="dot"
+          :class="{ active: i === bannerIndex }"
+          @click="bannerIndex = i"
+        ></span>
       </div>
     </div>
 
@@ -313,6 +325,10 @@ let annRefreshTimer: ReturnType<typeof setInterval> | null = null
 
 const bannerText = ref('2026 社群商业资源峰会')
 const bannerSubtitle = ref('7月15日 · 深圳国际会展中心 · 限额500人')
+const banners = ref<any[]>([])
+const bannerIndex = ref(0)
+const bannerIntervalVal = ref(4) // 秒
+let bannerTimer: ReturnType<typeof setInterval> | null = null
 const loading = ref(false)
 
 // ===== 搜索 =====
@@ -409,6 +425,33 @@ function stopAnnTicker() {
   if (annTimer) { clearInterval(annTimer); annTimer = null }
 }
 
+// ===== Banner 轮播 =====
+function startBannerTicker() {
+  stopBannerTicker()
+  if (banners.value.length <= 1) return
+  const ms = Math.max(1000, bannerIntervalVal.value * 1000)
+  bannerTimer = setInterval(() => {
+    bannerIndex.value = (bannerIndex.value + 1) % banners.value.length
+  }, ms)
+}
+
+function stopBannerTicker() {
+  if (bannerTimer) { clearInterval(bannerTimer); bannerTimer = null }
+}
+
+function onBannerClick(b: any) {
+  if (!b.linkType || !b.linkUrl) return
+  if (b.linkType === 'url') { window.open(b.linkUrl, '_blank'); return }
+  const routes: Record<string, string> = {
+    activity: `/activity/detail/${b.linkUrl}`,
+    business: `/business/detail/${b.linkUrl}`,
+    mall: `/mall/detail/${b.linkUrl}`,
+    vip: `/vip/index`,
+  }
+  if (b.linkType === 'vip') { router.push(routes.vip); return }
+  if (routes[b.linkType]) router.push(routes[b.linkType])
+}
+
 async function loadHomepage() {
   // 优先使用缓存
   const cached = getCache(CACHE_KEY)
@@ -445,10 +488,38 @@ function applyData(data: any) {
 
   // Banner
   if (data.banners?.length) {
-    const firstBanner = data.banners[0]
-    bannerText.value = firstBanner.title
-    bannerSubtitle.value = ''
+    const emojiList = ['🎉', '🎯', '🚀', '💡', '🔥', '🌟']
+    banners.value = data.banners.map((b: any, idx: number) => ({
+      id: b.id || idx,
+      title: b.title || '',
+      content: b.content || '',
+      imageUrl: b.imageUrl ? normalizeImageUrl(b.imageUrl) : '',
+      imgError: false,
+      linkUrl: b.linkUrl || '',
+      linkType: b.linkType || '',
+      fallbackStyle: { background: `hsl(${(idx * 60 + 230) % 360}, 65%, 60%)` },
+      emoji: emojiList[idx % emojiList.length],
+    }))
+    bannerIndex.value = 0
+  } else if (!banners.value.length) {
+    // 无 Banner 时的默认占位，避免首页出现空白
+    banners.value = [{
+      id: 0,
+      title: bannerText.value,
+      content: bannerSubtitle.value,
+      imageUrl: '',
+      imgError: false,
+      linkUrl: '',
+      linkType: '',
+      fallbackStyle: { background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' },
+      emoji: '🎉',
+    }]
+    bannerIndex.value = 0
   }
+  if (data.bannerInterval && data.bannerInterval > 0) {
+    bannerIntervalVal.value = data.bannerInterval
+  }
+  startBannerTicker()
 
   // 转换活动数据
   if (data.activities?.length) {
@@ -537,6 +608,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopAnnTicker()
+  stopBannerTicker()
   if (annRefreshTimer) { clearInterval(annRefreshTimer); annRefreshTimer = null }
 })
 </script>
@@ -546,21 +618,59 @@ onBeforeUnmount(() => {
 .banner-section {
   position: relative;
   height: 200px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
   overflow: hidden;
 }
-.banner-bg-shapes { position: absolute; inset: 0; overflow: hidden; }
-.banner-bg-shapes .shape {
-  position: absolute; border-radius: 50%; opacity: 0.15; background: #fff;
+.banner-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.45s ease;
 }
-.banner-bg-shapes .shape.s1 { width: 200px; height: 200px; top: -60px; right: -40px; }
-.banner-bg-shapes .shape.s2 { width: 140px; height: 140px; bottom: -30px; left: -20px; }
-.banner-bg-shapes .shape.s3 { width: 80px; height: 80px; top: 40px; left: 80px; }
+.banner-slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: pointer;
+}
+.banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.banner-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.banner-fallback-emoji { font-size: 56px; color: rgba(255,255,255,0.9); }
+.banner-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 16px 14px;
+  background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%);
+  color: #fff;
+  text-align: left;
+  pointer-events: none;
+}
+.banner-overlay h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.3px; }
+.banner-overlay p { font-size: 12px; opacity: 0.9; }
+.banner-dots {
+  position: absolute; bottom: 12px; right: 16px;
+  display: flex; gap: 6px; z-index: 12;
+}
+.banner-dots .dot {
+  width: 6px; height: 6px; border-radius: 99px;
+  background: rgba(255,255,255,0.5);
+  transition: all 0.25s ease; cursor: pointer;
+}
+.banner-dots .dot.active {
+  width: 16px; background: #fff;
+}
 
 .top-overlay { position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
 .search-bar {
   margin: 14px 16px 0;
-  background: rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.25);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-radius: 10px; display: flex; align-items: center;
   padding: 10px 14px; gap: 8px;
@@ -576,15 +686,6 @@ onBeforeUnmount(() => {
   flex-shrink: 0; font-size: 13px; font-weight: 600; color: #fff;
   background: rgba(255,255,255,0.25); padding: 4px 12px; border-radius: 99px;
 }
-
-.banner-overlay {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  padding: 20px 16px 14px;
-  background: linear-gradient(to top, rgba(79,70,229,0.7) 0%, transparent 100%);
-  color: #fff;
-}
-.banner-overlay h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.3px; }
-.banner-overlay p { font-size: 12px; opacity: 0.85; }
 
 /* ===== Quick Entry ===== */
 .quick-entry {

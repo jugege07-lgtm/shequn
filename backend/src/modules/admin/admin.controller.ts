@@ -175,6 +175,20 @@ export class AdminController {
     return this.systemService.deleteBanner(+id);
   }
 
+  @Get('banner-settings')
+  @Roles('admin', 'operator')
+  @ApiOperation({ summary: '获取Banner轮播设置' })
+  async getBannerSettings() {
+    return { bannerInterval: await this.systemService.getBannerInterval() };
+  }
+
+  @Put('banner-settings')
+  @Roles('admin', 'operator')
+  @ApiOperation({ summary: '更新Banner轮播设置' })
+  async updateBannerSettings(@Body() body: { bannerInterval?: number }) {
+    return { bannerInterval: await this.systemService.setBannerInterval(body?.bannerInterval || 4) };
+  }
+
   // ============== 公告管理 ==============
   @Get('announcements')
   @Roles('admin', 'operator')
