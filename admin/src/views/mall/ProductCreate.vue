@@ -261,6 +261,7 @@ import { ElMessage, type FormInstance, type UploadRequestOptions } from 'element
 import { ArrowLeft, Plus, Warning } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import { compressImage } from '@/utils/imageCompress'
 
 const route = useRoute()
 const router = useRouter()
@@ -380,10 +381,22 @@ function beforeCoverUpload(file: File): boolean {
   return true
 }
 
-// 上传首图
+// 上传首图（大图自动压缩，减小体积）
 async function uploadCover(options: UploadRequestOptions) {
+  let file = options.file
+  if (file.type.startsWith('image/')) {
+    try {
+      const compressed = await compressImage(file)
+      if (compressed !== file) {
+        console.log(`[Product] 首图已压缩: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
+        file = compressed
+      }
+    } catch (e) {
+      console.warn('[Product] 首图压缩失败，使用原图:', e)
+    }
+  }
   const formData = new FormData()
-  formData.append('file', options.file)
+  formData.append('file', file)
   try {
     const res: any = await request.post('/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

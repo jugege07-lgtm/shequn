@@ -23,7 +23,7 @@ import '@wangeditor/editor/dist/css/style.css'
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import request from '@/api/request'
-import { compressImage, MAX_BYTES } from '@/utils/imageCompress'
+import { compressImage } from '@/utils/imageCompress'
 
 interface Props {
   modelValue?: string
@@ -78,9 +78,9 @@ editorConfig.MENU_CONF['uploadImage'] = {
   // 自定义上传
   async customUpload(file: File, insertFn: (url: string, alt?: string, href?: string) => void) {
     try {
-      // 大图自动压缩：最长边 > 2000px 或体积 > 1.5MB 时压缩，减小上传体积、加快加载
+      // 大图自动压缩：最长边 > 1920px 或体积 > 0.6MB 时压缩，减小上传体积、加快加载（compressImage 内部判断）
       let uploadFile = file
-      if (file.type.startsWith('image/') && file.size > MAX_BYTES) {
+      if (file.type.startsWith('image/')) {
         try {
           uploadFile = await compressImage(file)
           if (uploadFile !== file) {

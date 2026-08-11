@@ -163,6 +163,7 @@ import { ElMessage, type FormInstance, type UploadRequestOptions } from 'element
 import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import { compressImage } from '@/utils/imageCompress'
 
 const router = useRouter()
 const route = useRoute()
@@ -198,10 +199,22 @@ const rules = {
   description: [{ required: true, message: '请输入活动详情', trigger: 'change' }],
 }
 
-// 上传封面图
+// 上传封面图（大图自动压缩，减小体积）
 async function uploadCover(options: UploadRequestOptions) {
+  let file = options.file
+  if (file.type.startsWith('image/')) {
+    try {
+      const compressed = await compressImage(file)
+      if (compressed !== file) {
+        console.log(`[Activity] 封面已压缩: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
+        file = compressed
+      }
+    } catch (e) {
+      console.warn('[Activity] 封面压缩失败，使用原图:', e)
+    }
+  }
   const formData = new FormData()
-  formData.append('file', options.file)
+  formData.append('file', file)
   try {
     const res: any = await request.post('/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -215,10 +228,22 @@ async function uploadCover(options: UploadRequestOptions) {
   }
 }
 
-// 上传活动图片
+// 上传活动图片（大图自动压缩，减小体积）
 async function uploadImage(options: UploadRequestOptions) {
+  let file = options.file
+  if (file.type.startsWith('image/')) {
+    try {
+      const compressed = await compressImage(file)
+      if (compressed !== file) {
+        console.log(`[Activity] 图片已压缩: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
+        file = compressed
+      }
+    } catch (e) {
+      console.warn('[Activity] 图片压缩失败，使用原图:', e)
+    }
+  }
   const formData = new FormData()
-  formData.append('file', options.file)
+  formData.append('file', file)
   try {
     const res: any = await request.post('/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -226,7 +251,7 @@ async function uploadImage(options: UploadRequestOptions) {
     const fullUrl = res.url.startsWith('http') ? res.url : '/api' + res.url
     form.images.push(fullUrl)
     imageFileList.value.push({
-      name: res.originalName || options.file.name,
+      name: res.originalName || file.name,
       url: fullUrl,
     })
     ElMessage.success('图片上传成功')

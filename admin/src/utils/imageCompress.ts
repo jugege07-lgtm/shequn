@@ -1,15 +1,15 @@
 /**
- * 图片压缩工具：针对富文本编辑器上传的大图做自动压缩，减少体积、加快加载。
+ * 图片压缩工具：针对封面上传与富文本编辑器上传的大图做自动压缩，减少体积、加快加载。
  *
  * 策略：
- * - 压缩阈值：图片最长边 > MAX_EDGE(2000px) 或 文件体积 > MAX_BYTES(1.5MB) 时触发压缩
+ * - 压缩阈值：图片最长边 > MAX_EDGE(1920px) 或 文件体积 > MAX_BYTES(0.6MB) 时触发压缩
  * - 压缩比例：canvas 等比缩放后按 JPEG 质量 0.82 导出
  * - 压缩后仍超过 MAX_BYTES 时，逐步降低质量直至达标（下限 0.5）
  * - 透明 PNG 强制转 JPEG 时补白底，避免黑底
  */
 
-export const MAX_EDGE = 2000 // 最长边像素阈值
-export const MAX_BYTES = 1.5 * 1024 * 1024 // 体积阈值 1.5MB
+export const MAX_EDGE = 1920 // 最长边像素阈值
+export const MAX_BYTES = 0.6 * 1024 * 1024 // 体积阈值 0.6MB
 export const INITIAL_QUALITY = 0.82 // 初始压缩质量
 export const MIN_QUALITY = 0.5 // 质量下限
 
@@ -48,16 +48,17 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number):
 
 /**
  * 压缩图片文件。返回压缩后的 Blob（以 File 形式返回），若无需压缩则返回原文件。
+ * 触发条件：最长边 > MAX_EDGE 或 文件体积 > MAX_BYTES，任一满足即压缩。
  */
 export async function compressImage(file: File): Promise<File> {
   const isImage = file.type.startsWith('image/')
-  if (!isImage || file.size <= MAX_BYTES) return file
+  if (!isImage) return file
 
   const isPng = file.type === 'image/png'
   const img = await loadImage(file)
   const edge = Math.max(img.naturalWidth, img.naturalHeight)
 
-  // 尺寸未超阈值且体积未超时，直接返回原文件
+  // 尺寸与体积均未超阈值，无需压缩，直接返回原文件
   if (edge <= MAX_EDGE && file.size <= MAX_BYTES) return file
 
   // 等比缩放
