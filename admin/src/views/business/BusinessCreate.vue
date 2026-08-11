@@ -202,7 +202,7 @@ async function loadCategories() {
 
 // 上传封面图（大图自动压缩，减小体积）
 async function uploadCover(options: UploadRequestOptions) {
-  let file = options.file
+  let file: File = options.file
   // 仅压缩图片文件，非图片直接跳过
   if (file.type.startsWith('image/')) {
     try {

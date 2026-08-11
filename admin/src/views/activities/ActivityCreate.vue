@@ -201,7 +201,7 @@ const rules = {
 
 // 上传封面图（大图自动压缩，减小体积）
 async function uploadCover(options: UploadRequestOptions) {
-  let file = options.file
+  let file: File = options.file
   if (file.type.startsWith('image/')) {
     try {
       const compressed = await compressImage(file)
@@ -230,7 +230,7 @@ async function uploadCover(options: UploadRequestOptions) {
 
 // 上传活动图片（大图自动压缩，减小体积）
 async function uploadImage(options: UploadRequestOptions) {
-  let file = options.file
+  let file: File = options.file
   if (file.type.startsWith('image/')) {
     try {
       const compressed = await compressImage(file)

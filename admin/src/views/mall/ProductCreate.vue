@@ -383,7 +383,7 @@ function beforeCoverUpload(file: File): boolean {
 
 // 上传首图（大图自动压缩，减小体积）
 async function uploadCover(options: UploadRequestOptions) {
-  let file = options.file
+  let file: File = options.file
   if (file.type.startsWith('image/')) {
     try {
       const compressed = await compressImage(file)
