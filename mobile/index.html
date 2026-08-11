@@ -10,9 +10,9 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="社群名片" />
-  <link rel="manifest" href="/h5/manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="/h5/icons/apple-touch-icon.png" />
-  <link rel="icon" type="image/jpeg" href="/h5/logo.jpg" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/jpeg" href="logo.jpg" />
   <title>社群名片</title>
 </head>
 <body>
@@ -22,7 +22,7 @@
     // 注册 Service Worker（PWA：可添加到主屏幕、离线壳）
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/h5/sw.js').catch(function (err) {
+        navigator.serviceWorker.register('sw.js').catch(function (err) {
           console.warn('Service Worker 注册失败:', err)
         })
       })
