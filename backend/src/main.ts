@@ -18,8 +18,15 @@ async function bootstrap() {
   if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(uploadPath, { recursive: true });
   }
-  app.use('/uploads', express.static(uploadPath, { maxAge: '1d' }));
-  app.use('/api/uploads', express.static(uploadPath, { maxAge: '1d' }));
+  // 静态文件也要返回 CORS 头，否则 Capacitor 原生 App（origin 为 https://localhost）跨域加载
+  // /api/uploads/ 下的图片时会被浏览器拦截，导致分享海报等封面图加载失败
+  const staticCors = (_req: any, res: any) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  };
+  app.use('/uploads', express.static(uploadPath, { maxAge: '1d', setHeaders: staticCors }));
+  app.use('/api/uploads', express.static(uploadPath, { maxAge: '1d', setHeaders: staticCors }));
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -1,5 +1,6 @@
 import QRCode from 'qrcode'
 import { normalizeImageUrl } from './image'
+import logoUrl from '@/assets/logo.png'
 
 export type ShareType = 'activity' | 'business' | 'product'
 
@@ -276,22 +277,33 @@ export async function createSharePoster(
   const qrX = W - 20 * S - qrSize
   const qrY = bottomY
 
-  // 品牌
+  // 品牌（logo 圆形头像）
   ctx.textAlign = 'left'
   const brandCircleR = 20 * S
-  const grad = ctx.createLinearGradient(0, 0, brandCircleR * 2, brandCircleR * 2)
-  grad.addColorStop(0, '#6366f1')
-  grad.addColorStop(1, '#8b5cf6')
-  ctx.fillStyle = grad
-  ctx.beginPath()
-  ctx.arc(bodyX + brandCircleR, qrY + brandCircleR, brandCircleR, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillStyle = '#ffffff'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.font = `bold ${20 * S}px "PingFang SC","Microsoft YaHei",sans-serif`
-  ctx.fillText('群', bodyX + brandCircleR, qrY + brandCircleR)
-  ctx.textAlign = 'left'
+  const logoImg = await loadImageResolved(logoUrl)
+  if (logoImg) {
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(bodyX + brandCircleR, qrY + brandCircleR, brandCircleR, 0, Math.PI * 2)
+    ctx.clip()
+    ctx.drawImage(logoImg, bodyX, qrY, brandCircleR * 2, brandCircleR * 2)
+    ctx.restore()
+  } else {
+    // 兜底：紫色圆 + 群字
+    const grad = ctx.createLinearGradient(0, 0, brandCircleR * 2, brandCircleR * 2)
+    grad.addColorStop(0, '#6366f1')
+    grad.addColorStop(1, '#8b5cf6')
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(bodyX + brandCircleR, qrY + brandCircleR, brandCircleR, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#ffffff'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = `bold ${20 * S}px "PingFang SC","Microsoft YaHei",sans-serif`
+    ctx.fillText('群', bodyX + brandCircleR, qrY + brandCircleR)
+    ctx.textAlign = 'left'
+  }
   ctx.font = `bold ${17 * S}px "PingFang SC","Microsoft YaHei",sans-serif`
   ctx.fillStyle = '#1e1b4b'
   ctx.fillText('聚格软件', bodyX + brandCircleR * 2 + 10 * S, qrY)
