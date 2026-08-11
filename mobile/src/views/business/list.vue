@@ -261,7 +261,8 @@ onUnmounted(() => {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.08);
-  padding: 10px 16px 8px;
+  /* 顶部安全区并入 Header，背景向上延伸覆盖状态栏，内容避让 */
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 8px;
 }
 
 /* ===== Hero Card (title + search) ===== */

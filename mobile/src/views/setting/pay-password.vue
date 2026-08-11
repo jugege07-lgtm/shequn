@@ -165,7 +165,9 @@ function showToast(msg: string) {
 @import '@/styles/global.css';
 .pp-setup-page { background: #f5f6fa; }
 .pp-header {
-  background: #ffffff; padding: 12px 16px 0; color: #1e1b4b;
+  background: #ffffff; color: #1e1b4b;
+  /* 顶部安全区并入白色 Header，背景向上延伸覆盖状态栏，内容避让 */
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 0;
 }
 .header-title-row {
   position: relative; display: flex; align-items: center; justify-content: center;

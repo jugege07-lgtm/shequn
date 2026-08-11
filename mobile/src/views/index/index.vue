@@ -655,12 +655,16 @@ onBeforeUnmount(() => {
 /* ===== Banner ===== */
 .banner-section {
   position: relative;
-  height: 200px;
+  /* 背景延伸到状态栏（edge-to-edge 沉浸式），内容用 padding 避让状态栏 */
+  height: calc(200px + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   overflow: hidden;
+  /* 兜底背景，覆盖状态栏区域，保证与 banner 配色连贯 */
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
 }
 .banner-track {
+  position: absolute; inset: 0;
   display: flex;
-  height: 100%;
   transition: transform 0.45s ease;
 }
 .banner-slide {

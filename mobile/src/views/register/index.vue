@@ -312,7 +312,8 @@ async function handleRegister() {
 /* ===== Header ===== */
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; flex-shrink: 0;
+  /* 顶部安全区：渐变背景向上延伸覆盖状态栏，内容避让不被遮挡 */
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px; flex-shrink: 0;
 }
 .back-btn {
   width: 36px; height: 36px; border-radius: 50%;

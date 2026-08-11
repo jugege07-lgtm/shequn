@@ -159,6 +159,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* 状态栏/刘海安全区：渐变背景向上延伸覆盖状态栏，内容居中不受影响 */
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
 }
 .fp-bg-shapes { position: absolute; inset: 0; overflow: hidden; }
 .fp-bg-shapes .shape { position: absolute; border-radius: 50%; opacity: 0.1; background: #fff; }
