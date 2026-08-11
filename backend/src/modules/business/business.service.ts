@@ -111,11 +111,18 @@ export class BusinessService {
     const existing = await this.prisma.businessUnlock.findFirst({
       where: { businessId, userId },
     });
+
+    // 免费商机：已有解锁记录（feePaid=0）即视为已解锁，直接返回，避免重复消耗免费次数
+    if (existing && (!business.unlockFee || business.unlockFee <= 0)) {
+      return { unlock: existing, needPay: false, message: '您已解锁该商机' };
+    }
+
+    // 付费商机：已支付即已解锁，直接返回
     if (existing && existing.feePaid > 0) {
       return { unlock: existing, needPay: false, message: '您已解锁该商机' };
     }
 
-    // 已创建待支付订单：返回待支付订单，避免重复创建
+    // 付费商机：已创建待支付订单则返回待支付订单，避免重复创建
     if (existing && existing.feePaid === 0 && business.unlockFee > 0) {
       const order = await this.prisma.order.findFirst({
         where: { businessId, userId, orderType: 'business_unlock', status: 'pending_payment' },
