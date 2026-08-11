@@ -3,11 +3,12 @@ import { SystemModule } from '../system/system.module';
 import { ActivityModule } from '../activity/activity.module';
 import { BusinessModule } from '../business/business.module';
 import { VipModule } from '../vip/vip.module';
+import { UserModule } from '../user/user.module';
 import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 
 @Module({
-  imports: [SystemModule, ActivityModule, BusinessModule, VipModule],
+  imports: [SystemModule, ActivityModule, BusinessModule, VipModule, UserModule],
   controllers: [PaymentController],
   providers: [PaymentService],
   exports: [PaymentService],

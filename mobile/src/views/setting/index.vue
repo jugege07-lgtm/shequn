@@ -24,6 +24,13 @@
           <span class="setting-label">编辑资料</span>
           <svg class="setting-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </div>
+        <div class="setting-item" @click="$router.push('/setting/pay-password')">
+          <span class="setting-label">支付密码</span>
+          <div class="setting-right">
+            <span class="setting-tag">{{ payStatusText }}</span>
+            <svg class="setting-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
         <div class="setting-item" @click="$router.push('/vip/index')">
           <span class="setting-label">会员中心</span>
           <svg class="setting-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -41,11 +48,22 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { getCurrentUser } from '@/api'
 
 const router = useRouter()
 const userStore = useUserStore()
+const hasPayPassword = ref(false)
+
+const payStatusText = computed(() => hasPayPassword.value ? '已设置' : '未设置')
+
+onMounted(() => {
+  getCurrentUser().then((data: any) => {
+    if (data) hasPayPassword.value = !!data.hasPayPassword
+  }).catch(() => {})
+})
 
 function showLogoutConfirm() {
   if (!confirm('确定要退出登录吗？')) return
@@ -126,6 +144,8 @@ function showLogoutConfirm() {
   font-weight: 500;
 }
 .logout-label { color: #ef4444; }
+.setting-right { display: flex; align-items: center; gap: 8px; }
+.setting-tag { font-size: 12px; color: #9ca3af; }
 .setting-arrow {
   width: 18px; height: 18px;
   color: #9ca3af;

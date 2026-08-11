@@ -4,6 +4,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ActivityService } from '../activity/activity.service';
 import { BusinessService } from '../business/business.service';
 import { VipService } from '../vip/vip.service';
+import { UserService } from '../user/user.service';
 import * as fs from 'fs';
 import WxPay = require('wechatpay-node-v3');
 
@@ -55,6 +56,7 @@ export class PaymentService {
     private readonly activityService: ActivityService,
     private readonly businessService: BusinessService,
     private readonly vipService: VipService,
+    private readonly userService: UserService,
   ) {}
 
   async getPaymentConfig(): Promise<PaymentConfig> {
@@ -162,15 +164,28 @@ export class PaymentService {
   }
 
   /**
-   * 余额支付：扣减用户余额并标记订单已支付（事务一致），随后触发业务履约
+   * 余额支付：校验支付密码后扣减用户余额并标记订单已支付（事务一致），随后触发业务履约
    */
-  async payWithBalance(userId: number, orderNo: string) {
+  async payWithBalance(userId: number, orderNo: string, payPassword?: string) {
     const order = await this.prisma.order.findUnique({ where: { orderNo } });
     if (!order || order.userId !== userId) {
       throw new NotFoundException('订单不存在');
     }
     if (order.status !== 'pending_payment') {
       throw new BadRequestException('订单状态异常，无法支付');
+    }
+
+    // 校验支付密码
+    if (!payPassword) {
+      throw new BadRequestException('请输入支付密码');
+    }
+    const has = await this.userService.hasPayPassword(userId);
+    if (!has) {
+      throw new BadRequestException('尚未设置支付密码，请先前往设置');
+    }
+    const ok = await this.userService.verifyPayPassword(userId, payPassword);
+    if (!ok) {
+      throw new BadRequestException('支付密码错误');
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });

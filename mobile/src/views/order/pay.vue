@@ -94,14 +94,23 @@
         {{ paying ? '支付中...' : '确认支付' }}
       </button>
     </div>
+
+    <PayPasswordPopup
+      v-model="payPopupVisible"
+      :has-password="hasPayPassword"
+      :amount-text="'¥' + (order.payAmount || 0).toFixed(2)"
+      @success="confirmBalancePay"
+      @go-set="goSetPayPassword"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getOrder, createUnifiedOrder, payWithBalance, getMyBalance } from '@/api'
+import { getOrder, createUnifiedOrder, payWithBalance, getMyBalance, getCurrentUser } from '@/api'
 import { requestPayment } from '@/utils/pay'
+import PayPasswordPopup from '@/components/PayPasswordPopup.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -113,6 +122,8 @@ const payMethod = ref('wechat')
 const balance = ref(0)
 const orderType = ref(route.query.type as string || 'product')
 const redirect = ref(route.query.redirect as string || '')
+const hasPayPassword = ref(false)
+const payPopupVisible = ref(false)
 
 const orderTitle = computed(() => {
   const titles: Record<string, string> = {
@@ -155,20 +166,14 @@ async function loadOrder() {
 
 async function handlePay() {
   if (paying.value || order.value.status !== 'pending_payment') return
+  // 余额支付：先弹出支付密码输入框
+  if (payMethod.value === 'balance') {
+    payPopupVisible.value = true
+    return
+  }
+
   paying.value = true
   try {
-    // 余额支付：直接扣减余额并完成履约
-    if (payMethod.value === 'balance') {
-      await payWithBalance(orderId)
-      if (redirect.value) {
-        const sep = redirect.value.includes('?') ? '&' : '?'
-        router.replace(`${redirect.value}${sep}paid=1`)
-        return
-      }
-      router.replace(`/order/success?orderId=${orderId}&amount=${order.value.payAmount}`)
-      return
-    }
-
     // 1. 获取后端统一支付参数
     const payParams = await createUnifiedOrder(orderId)
     if (!payParams || !payParams.appId) {
@@ -193,6 +198,30 @@ async function handlePay() {
   }
 }
 
+// 支付密码校验通过后，执行余额支付
+async function confirmBalancePay(payPassword: string) {
+  if (paying.value) return
+  paying.value = true
+  try {
+    await payWithBalance(orderId, payPassword)
+    if (redirect.value) {
+      const sep = redirect.value.includes('?') ? '&' : '?'
+      router.replace(`${redirect.value}${sep}paid=1`)
+      return
+    }
+    router.replace(`/order/success?orderId=${orderId}&amount=${order.value.payAmount}`)
+  } catch (err: any) {
+    showToast(err.message || '支付失败')
+  } finally {
+    paying.value = false
+  }
+}
+
+// 未设置支付密码 → 跳转设置页
+function goSetPayPassword() {
+  router.push('/setting/index?from=pay')
+}
+
 function showToast(msg: string) {
   if (typeof uni !== 'undefined' && uni.showToast) {
     uni.showToast({ title: msg, icon: 'none' })
@@ -213,6 +242,9 @@ onMounted(() => {
   loadOrder()
   getMyBalance().then((data: any) => {
     if (data) balance.value = Number(data.balance) || 0
+  }).catch(() => {})
+  getCurrentUser().then((data: any) => {
+    if (data) hasPayPassword.value = !!data.hasPayPassword
   }).catch(() => {})
 })
 </script>

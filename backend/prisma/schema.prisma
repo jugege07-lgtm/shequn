@@ -27,6 +27,7 @@ model User {
   createdAt     DateTime          @default(now()) @map("created_at")
   updatedAt     DateTime          @updatedAt @map("updated_at")
   password      String            @default("") @map("password")
+  payPassword   String?           @map("pay_password")
   points        Int               @default(0) @map("points")
   balance       Float             @default(0) @map("balance")
   referrerId    Int?              @map("referrer_id")

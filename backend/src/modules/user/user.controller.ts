@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { AddressService } from './address.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddressDto } from './dto/address.dto';
+import { SetPayPasswordDto } from './dto/pay-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @ApiTags('用户')
@@ -23,17 +24,19 @@ export class UserController {
     const userId = Number(user.userId);
     const u = await this.userService.findById(Number(userId));
     if (!u) return { code: 0, data: null };
-    const { phone, ...rest } = u;
-    const [activityCount, businessCount, couponCount] = await Promise.all([
+    const { phone, payPassword, ...rest } = u;
+    const [activityCount, businessCount, couponCount, hasPayPassword] = await Promise.all([
       this.userService.getActivityCount(userId),
       this.userService.getBusinessCount(userId),
       this.userService.getCouponCount(userId),
+      this.userService.hasPayPassword(userId),
     ]);
     return {
       code: 0,
       data: {
         ...rest,
         phone: phone ? '***' : '',
+        hasPayPassword,
         activityCount,
         businessCount,
         couponCount,
@@ -91,5 +94,31 @@ export class UserController {
   @ApiOperation({ summary: '设为默认地址' })
   async setDefaultAddress(@CurrentUser() user: any, @Param('id') id: string) {
     return { code: 0, data: await this.addressService.setDefault(Number(user.userId), Number(id)) };
+  }
+
+  @Post('pay-password')
+  @ApiOperation({ summary: '设置/修改支付密码（首次设置免验证码，修改需短信验证码）' })
+  async setPayPassword(@CurrentUser() user: any, @Body() dto: SetPayPasswordDto) {
+    const userId = Number(user.userId);
+    const has = await this.userService.hasPayPassword(userId);
+    const result = await this.userService.setPayPassword(userId, dto.payPassword, !has, dto.code);
+    return { code: 0, data: result };
+  }
+
+  @Post('pay-password/code')
+  @ApiOperation({ summary: '发送修改支付密码的短信验证码' })
+  async sendPayPasswordCode(@CurrentUser() user: any) {
+    const result = await this.userService.sendPayPasswordCode(Number(user.userId));
+    return { code: 0, data: result };
+  }
+
+  @Post('pay-password/verify')
+  @ApiOperation({ summary: '校验支付密码（余额支付时调用）' })
+  async verifyPayPassword(@CurrentUser() user: any, @Body() body: { payPassword: string }) {
+    const ok = await this.userService.verifyPayPassword(Number(user.userId), body?.payPassword || '');
+    if (!ok) {
+      throw new BadRequestException('支付密码错误');
+    }
+    return { code: 0, data: { success: true } };
   }
 }

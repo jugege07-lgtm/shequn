@@ -58,10 +58,10 @@ export class PaymentController {
   @ApiOperation({ summary: '余额支付订单' })
   async payWithBalance(
     @CurrentUser() user: any,
-    @Body('orderId') orderId: number,
+    @Body() body: { orderId: number; payPassword?: string },
   ) {
     const order = await this.prisma.order.findUnique({
-      where: { id: Number(orderId) },
+      where: { id: Number(body.orderId) },
     });
     if (!order || String(order.userId) !== String(user.userId)) {
       throw new NotFoundException('订单不存在');
@@ -69,6 +69,7 @@ export class PaymentController {
     const result = await this.paymentService.payWithBalance(
       user.userId,
       order.orderNo,
+      body.payPassword,
     );
     return { code: 0, data: result };
   }

@@ -43,6 +43,7 @@ const routes = [
   { path: '/history/index', name: 'HistoryIndex', component: () => import('@/views/history/index.vue'), meta: { requiresAuth: true } },
   { path: '/cart/index', name: 'CartIndex', component: () => import('@/views/cart/index.vue'), meta: { requiresAuth: true } },
   { path: '/setting/index', name: 'SettingIndex', component: () => import('@/views/setting/index.vue'), meta: { requiresAuth: true } },
+  { path: '/setting/pay-password', name: 'SettingPayPassword', component: () => import('@/views/setting/pay-password.vue'), meta: { requiresAuth: true } },
 ]
 
 // 部署在子路径 /h5/ 下，history 模式必须显式指定 base，否则刷新或 push 会跳到根域导致 404

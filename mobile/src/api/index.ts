@@ -73,6 +73,20 @@ export async function updateProfile(data: { nickname?: string; avatarUrl?: strin
   return request.put('/api/users/profile', data)
 }
 
+// ==================== 支付密码接口 ====================
+
+export async function setPayPassword(data: { payPassword: string; code?: string; phone?: string }) {
+  return request.post('/api/users/pay-password', data)
+}
+
+export async function sendPayPasswordCode() {
+  return request.post('/api/users/pay-password/code')
+}
+
+export async function verifyPayPassword(payPassword: string) {
+  return request.post('/api/users/pay-password/verify', { payPassword })
+}
+
 // ==================== 名片接口 ====================
 
 export async function getMyCard() {
@@ -279,8 +293,8 @@ export async function createUnifiedOrder(orderId: number) {
   return request.post('/api/pay/unified-order', { orderId })
 }
 
-export async function payWithBalance(orderId: number) {
-  return request.post('/api/pay/balance', { orderId })
+export async function payWithBalance(orderId: number, payPassword?: string) {
+  return request.post('/api/pay/balance', { orderId, payPassword })
 }
 
 // ==================== VIP 接口 ====================

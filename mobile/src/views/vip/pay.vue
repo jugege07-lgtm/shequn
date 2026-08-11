@@ -24,17 +24,29 @@
     <div class="bottom-action">
       <button class="confirm-btn" @click="handlePay">确认支付 ¥{{ plan.currentPrice }}</button>
     </div>
+
+    <PayPasswordPopup
+      v-model="payPopupVisible"
+      :has-password="hasPayPassword"
+      :amount-text="'¥' + (plan.currentPrice || 0)"
+      @success="confirmBalancePay"
+      @go-set="goSetPayPassword"
+    />
   </div>
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getVipPlans, subscribeVip, payWithBalance, getMyBalance } from '@/api'
+import { getVipPlans, subscribeVip, payWithBalance, getMyBalance, getCurrentUser } from '@/api'
+import PayPasswordPopup from '@/components/PayPasswordPopup.vue'
 
 const route = useRoute()
 const router = useRouter()
 const selectedPay = ref(1)
 const balance = ref(0)
+const hasPayPassword = ref(false)
+const payPopupVisible = ref(false)
+const pendingOrderId = ref(0)
 
 interface PlanInfo {
   id: number
@@ -76,6 +88,10 @@ onMounted(async () => {
   getMyBalance().then((data: any) => {
     if (data) balance.value = Number(data.balance) || 0
   }).catch(() => {})
+
+  getCurrentUser().then((data: any) => {
+    if (data) hasPayPassword.value = !!data.hasPayPassword
+  }).catch(() => {})
 })
 
 const handlePay = async () => {
@@ -85,10 +101,9 @@ const handlePay = async () => {
     const orderId = result?.order?.id
     if (!orderId) throw new Error('订单创建失败')
     if (selectedPay.value === 2) {
-      // 余额支付
-      await payWithBalance(orderId)
-      showToast('支付成功！')
-      router.push('/vip/index')
+      // 余额支付：先弹出支付密码输入框
+      pendingOrderId.value = orderId
+      payPopupVisible.value = true
       return
     }
     // 微信支付：走统一支付页
@@ -96,6 +111,23 @@ const handlePay = async () => {
   } catch (err: any) {
     showToast(err.message || '支付失败')
   }
+}
+
+// 支付密码校验通过后，执行余额支付
+async function confirmBalancePay(payPassword: string) {
+  try {
+    if (!pendingOrderId.value) throw new Error('订单创建失败')
+    await payWithBalance(pendingOrderId.value, payPassword)
+    showToast('支付成功！')
+    router.push('/vip/index')
+  } catch (err: any) {
+    showToast(err.message || '支付失败')
+  }
+}
+
+// 未设置支付密码 → 跳转设置页
+function goSetPayPassword() {
+  router.push('/setting/index?from=pay')
 }
 
 function showToast(msg: string) {
