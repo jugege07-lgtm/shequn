@@ -160,6 +160,8 @@ onMounted(async () => {
   border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.7);
   font-size: 14px; color: var(--color-text-primary); outline: none;
   transition: border-color 0.2s; font-family: var(--font);
+  /* 强制浅色控件：避免浏览器夜间模式下日期/时间选择器文字与背景对比度过低看不清 */
+  color-scheme: light;
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--color-primary); background: #fff; }
 .form-input::placeholder, .form-textarea::placeholder { color: var(--color-text-tertiary); }

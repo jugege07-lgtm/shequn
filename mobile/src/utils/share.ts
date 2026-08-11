@@ -100,10 +100,25 @@ export function saveCanvasToAlbum(canvas: HTMLCanvasElement, filename: string): 
 
 function loadImageResolved(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
+    const timeout = setTimeout(() => resolve(null), 10000)
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = () => resolve(null)
+    img.onload = () => { clearTimeout(timeout); resolve(img) }
+    img.onerror = () => {
+      clearTimeout(timeout)
+      // 兜底：crossOrigin 加载失败时，改用 fetch 转 blob URL 再加载。
+      // blob URL 同源，既保证封面/logo 能显示，又不会污染 Canvas（保存海报仍可导出）。
+      fetch(src)
+        .then((r) => r.blob())
+        .then((blob) => {
+          const url = URL.createObjectURL(blob)
+          const img2 = new Image()
+          img2.onload = () => { URL.revokeObjectURL(url); resolve(img2) }
+          img2.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+          img2.src = url
+        })
+        .catch(() => resolve(null))
+    }
     img.src = src
   })
 }
