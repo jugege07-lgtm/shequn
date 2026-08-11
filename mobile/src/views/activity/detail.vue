@@ -119,6 +119,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getActivityDetail, signupActivity, getActivitySignupStatus } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
+import { recordBrowse } from '@/utils/browseHistory'
 import { useUserStore } from '@/store/user'
 import ShareSheet from '@/components/ShareSheet.vue'
 import type { ShareContent } from '@/utils/share'
@@ -288,6 +289,8 @@ async function loadActivity() {
       status: data.status || '',
       publisherName: data.publisher?.name || data.publisherName || '',
     }
+    // 记录浏览历史
+    recordBrowse('activity', data.id, data.title || '')
   } catch (err: any) {
     console.error('获取活动详情失败:', err)
     showToast(err.message || '加载失败')

@@ -114,6 +114,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getProduct, addToCart } from '@/api'
 import { useCartStore } from '@/store/cart'
 import { useUserStore } from '@/store/user'
+import { recordBrowse } from '@/utils/browseHistory'
 import ShareSheet from '@/components/ShareSheet.vue'
 import type { ShareContent } from '@/utils/share'
 
@@ -202,6 +203,8 @@ onMounted(async () => {
         res.coverImage = normalizeImageUrl(res.coverImage)
       }
       product.value = res
+      // 记录浏览历史
+      recordBrowse('product', res.id, res.name || '')
     }
   } catch (err: any) {
     console.error('加载商品失败', err)

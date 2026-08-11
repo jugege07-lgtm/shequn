@@ -101,25 +101,25 @@
         </div>
       </div>
 
-      <!-- Recent Activities -->
+      <!-- Browse History -->
       <div class="section-card">
         <div class="section-header-row">
-          <div class="section-title">最近动态</div>
-          <div class="section-more" @click="$router.push('/activity/my')">查看更多</div>
+          <div class="section-title">浏览历史</div>
+          <div class="section-more" @click="$router.push('/history/index')">查看更多</div>
         </div>
-        <div class="activities-list" v-if="activities.length">
-          <div class="activity-item" v-for="(activity, index) in activities" :key="index" @click="handleActivityClick(activity)">
-            <div class="activity-dot" :class="activity.type"></div>
+        <div class="activities-list" v-if="browseHistory.length">
+          <div class="activity-item" v-for="(item, index) in browseHistory" :key="item.type + '-' + item.id" @click="handleHistoryClick(item)">
+            <div class="activity-dot" :class="item.type"></div>
             <div class="activity-content">
-              <div class="activity-title">{{ activity.title }}</div>
-              <div class="activity-desc">{{ activity.desc }}</div>
+              <div class="activity-title">{{ item.title }}</div>
+              <div class="activity-desc">{{ typeName(item.type) }} · {{ formatHistoryTime(item.time) }}</div>
             </div>
-            <div class="activity-time">{{ activity.time }}</div>
+            <div class="activity-time">{{ formatHistoryTime(item.time) }}</div>
           </div>
         </div>
         <div class="empty-state" v-else>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-          <span>暂无最新动态</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+          <span>暂无浏览记录</span>
         </div>
       </div>
 
@@ -179,9 +179,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, getMyCard, getMyActivities, getMyBusinesses, getDajiaConfig, getUnreadMessageCount } from '@/api'
+import { getCurrentUser, getMyCard, getDajiaConfig, getUnreadMessageCount } from '@/api'
 import { useUserStore } from '@/store/user'
 import { normalizeImageUrl } from '@/utils/image'
+import { getBrowseHistory, type BrowseRecord } from '@/utils/browseHistory'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -189,7 +190,7 @@ const userStore = useUserStore()
 const userInfo = ref<any>(userStore.userInfo || null)
 const card = ref<any>({})
 const loading = ref(false)
-const activities = ref<any[]>([])
+const browseHistory = ref<BrowseRecord[]>([])
 const avatarError = ref(false)
 const dajiaMinVipLevel = ref(1)
 const unreadCount = ref(0)
@@ -373,54 +374,50 @@ async function loadDajiaConfig() {
   }
 }
 
-async function loadActivities() {
-  try {
-    const [activityData, businessData] = await Promise.all([
-      getMyActivities({ page: 1, size: 3 }).catch(() => null),
-      getMyBusinesses({ page: 1, size: 3 }).catch(() => null),
-    ])
-
-    const temp: any[] = []
-    if (activityData?.list) {
-      activityData.list.forEach((item: any) => {
-        temp.push({ type: 'activity', title: '报名了活动', desc: item.title || '活动', time: formatTime(item.createdAt), id: item.id })
-      })
-    }
-    if (businessData?.list) {
-      businessData.list.forEach((item: any) => {
-        temp.push({ type: 'business', title: '发布了商机', desc: item.title || '商机', time: formatTime(item.createdAt), id: item.id })
-      })
-    }
-
-    temp.sort((a: any, b: any) => new Date(b.time).getTime() - new Date(a.time).getTime())
-    activities.value = temp.slice(0, 3)
-  } catch {
-    activities.value = []
-  }
+// 读取浏览历史（默认展示最近 5 条）
+const TYPE_NAMES: Record<string, string> = {
+  activity: '活动',
+  business: '商机',
+  product: '商品',
 }
 
-function formatTime(dateStr: string) {
-  if (!dateStr) return '未知'
-  const date = new Date(dateStr)
+function typeName(type: string) {
+  return TYPE_NAMES[type] || '内容'
+}
+
+async function loadBrowseHistory() {
+  browseHistory.value = getBrowseHistory(5)
+}
+
+function formatHistoryTime(time: number) {
+  if (!time) return ''
+  const date = new Date(time)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
   const hours = Math.floor(diff / (1000 * 60 * 60))
-  if (days === 0) return hours === 0 ? '刚刚' : `${hours}小时前`
+  if (days === 0) {
+    if (hours === 0) {
+      const mins = Math.floor(diff / (1000 * 60))
+      return mins <= 1 ? '刚刚' : `${mins}分钟前`
+    }
+    return `${hours}小时前`
+  }
   if (days === 1) return '昨天'
   if (days < 7) return `${days}天前`
   return date.toLocaleDateString()
 }
 
-function handleActivityClick(activity: any) {
-  if (activity.type === 'activity') router.push(`/activity/detail/${activity.id}`)
-  else if (activity.type === 'business') router.push(`/business/detail/${activity.id}`)
+function handleHistoryClick(item: BrowseRecord) {
+  if (item.type === 'activity') router.push(`/activity/detail/${item.id}`)
+  else if (item.type === 'business') router.push(`/business/detail/${item.id}`)
+  else router.push(`/mall/detail/${item.id}`)
 }
 
 onMounted(() => {
   document.title = '个人中心'
   loadUser()
-  loadActivities()
+  loadBrowseHistory()
   loadDajiaConfig()
   loadUnreadCount()
 })
@@ -659,7 +656,7 @@ onMounted(() => {
 }
 .activity-dot.activity { background: #3b82f6; }
 .activity-dot.business { background: #6366f1; }
-.activity-dot.mall { background: #10b981; }
+.activity-dot.product { background: #10b981; }
 .activity-content { flex: 1; }
 .activity-title { font-size: 14px; font-weight: 600; color: #1e1b4b; margin-bottom: 2px; }
 .activity-desc { font-size: 12px; color: #6b7280; }
