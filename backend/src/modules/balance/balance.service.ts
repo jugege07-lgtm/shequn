@@ -81,6 +81,59 @@ export class BalanceService {
     return { balance: newBalance, income, type: 'income' };
   }
 
+  /**
+   * 管理员调整余额（管理端）
+   * type: 'set'=直接设置 | 'add'=增加 | 'subtract'=扣减
+   */
+  async adjustBalance(
+    userId: number,
+    params: { type?: string; amount?: number; remark?: string },
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('用户不存在');
+
+    const type = params?.type || 'set';
+    const input = Number(params?.amount);
+    if (isNaN(input) || input < 0) {
+      throw new BadRequestException('金额无效');
+    }
+
+    const oldBalance = user.balance ?? 0;
+    let newBalance: number;
+    if (type === 'set') {
+      newBalance = Math.round(input * 100) / 100;
+    } else if (type === 'add') {
+      newBalance = Math.round((oldBalance + input) * 100) / 100;
+    } else if (type === 'subtract') {
+      newBalance = Math.round((oldBalance - input) * 100) / 100;
+      if (newBalance < 0) {
+        throw new BadRequestException('余额不足以扣减，当前余额不足以扣除该金额');
+      }
+    } else {
+      throw new BadRequestException('操作类型无效，仅支持 set / add / subtract');
+    }
+
+    const delta = Math.round((newBalance - oldBalance) * 100) / 100;
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { balance: newBalance },
+      }),
+      this.prisma.balanceLog.create({
+        data: {
+          userId,
+          type: 'adjust',
+          amount: delta,
+          balance: newBalance,
+          remark: params?.remark || '管理员调整余额',
+        },
+      }),
+    ]);
+
+    return { balance: newBalance, delta, type };
+  }
+
   /** 获取用户余额明细 */
   async getUserBalanceLogs(userId: number, params?: { page?: number; size?: number; type?: string }) {
     const page = parseInt(String(params?.page ?? 1), 10) || 1;

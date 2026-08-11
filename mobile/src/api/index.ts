@@ -267,6 +267,10 @@ export async function createUnifiedOrder(orderId: number) {
   return request.post('/api/pay/unified-order', { orderId })
 }
 
+export async function payWithBalance(orderId: number) {
+  return request.post('/api/pay/balance', { orderId })
+}
+
 // ==================== VIP 接口 ====================
 
 export async function getVipPlans() {

@@ -44,8 +44,8 @@
         <div v-if="logs.length === 0" class="empty-tip">暂无记录</div>
         <div class="log-item" v-for="log in logs" :key="log.id">
           <div class="log-info">
-            <div class="log-action">{{ log.action }}</div>
-            <div class="log-remark">{{ log.remark }}</div>
+            <div class="log-action">{{ logActionName(log) }}</div>
+            <div class="log-remark" v-if="log.remark && log.remark !== logActionName(log) && !isEnglishCode(log.remark)">{{ log.remark }}</div>
           </div>
           <div class="log-points" :class="log.points > 0 ? 'plus' : 'minus'">
             {{ log.points > 0 ? '+' : '' }}{{ log.points }}
@@ -64,6 +64,32 @@ const points = ref(0)
 const loading = ref(false)
 const logs = ref<any[]>([])
 const rules = ref<any[]>([])
+
+// 积分日志 action 英文代码 → 中文名称映射（明细只展示中文）
+const POINT_ACTION_NAMES: Record<string, string> = {
+  register: '注册奖励',
+  referral_register: '扫码名片注册奖励',
+  invite: '成功邀请好友奖励',
+  activity_signup: '活动报名',
+  publish_business: '发布商机',
+  unlock_business: '解锁商机',
+  adjust: '管理员调整',
+  product_exchange: '积分兑换',
+}
+
+// 判断是否为纯英文代码（如 activity_signup）
+function isEnglishCode(text: string): boolean {
+  return /^[A-Za-z_]+$/.test(text)
+}
+
+// 获取积分明细的中文展示名称
+function logActionName(log: any): string {
+  const mapped = POINT_ACTION_NAMES[log.action]
+  if (mapped) return mapped
+  // 无映射时优先用中文 remark，否则回退到 action
+  if (log.remark && !isEnglishCode(log.remark)) return log.remark
+  return log.action
+}
 
 async function loadPoints() {
   try {

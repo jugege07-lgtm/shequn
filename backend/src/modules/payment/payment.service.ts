@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, UnauthorizedException, Logger } from '@nestjs/common';
 import { SystemService } from '../system/system.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ActivityService } from '../activity/activity.service';
 import { BusinessService } from '../business/business.service';
+import { VipService } from '../vip/vip.service';
 import * as fs from 'fs';
 import WxPay = require('wechatpay-node-v3');
 
@@ -53,6 +54,7 @@ export class PaymentService {
     private readonly prisma: PrismaService,
     private readonly activityService: ActivityService,
     private readonly businessService: BusinessService,
+    private readonly vipService: VipService,
   ) {}
 
   async getPaymentConfig(): Promise<PaymentConfig> {
@@ -160,6 +162,64 @@ export class PaymentService {
   }
 
   /**
+   * 余额支付：扣减用户余额并标记订单已支付（事务一致），随后触发业务履约
+   */
+  async payWithBalance(userId: number, orderNo: string) {
+    const order = await this.prisma.order.findUnique({ where: { orderNo } });
+    if (!order || order.userId !== userId) {
+      throw new NotFoundException('订单不存在');
+    }
+    if (order.status !== 'pending_payment') {
+      throw new BadRequestException('订单状态异常，无法支付');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const balance = user?.balance ?? 0;
+    if (balance < order.payAmount) {
+      throw new BadRequestException(
+        `余额不足，当前余额 ¥${Number(balance).toFixed(2)}，需支付 ¥${Number(order.payAmount).toFixed(2)}`,
+      );
+    }
+
+    const newBalance = Math.round((balance - order.payAmount) * 100) / 100;
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { balance: newBalance },
+      }),
+      this.prisma.order.update({
+        where: { orderNo },
+        data: {
+          status: 'paid',
+          paidAt: new Date(),
+          transactionId: `BAL_${order.orderNo}`,
+        },
+      }),
+      this.prisma.balanceLog.create({
+        data: {
+          userId,
+          type: 'payment',
+          amount: -order.payAmount,
+          balance: newBalance,
+          remark: this.orderPaymentRemark(order),
+        },
+      }),
+    ]);
+
+    await this.fulfillOrder(order);
+    return { balance: newBalance, paidAmount: order.payAmount, orderNo };
+  }
+
+  /** 余额支付流水备注 */
+  private orderPaymentRemark(order: any): string {
+    if (order.orderType === 'activity_signup') return '余额支付 · 活动报名';
+    if (order.orderType === 'business_unlock') return '余额支付 · 商机解锁';
+    if (order.orderType === 'vip') return '余额支付 · VIP会员开通';
+    return '余额支付 · 商城购物';
+  }
+
+  /**
    * 处理微信支付结果通知
    */
   async handleWechatNotify(headers: Record<string, string | string[] | undefined>, rawBody: Buffer | string) {
@@ -243,6 +303,8 @@ export class PaymentService {
         if (o && o.pointsUsed > 0) {
           await this.deductPointsForPaidOrder(o);
         }
+      } else if (order.orderType === 'vip') {
+        await this.vipService.fulfillVip(order.orderNo);
       }
       // product 类型订单无需额外履约，订单状态已更新
     } catch (err: any) {

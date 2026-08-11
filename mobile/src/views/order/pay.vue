@@ -67,17 +67,21 @@
             <svg v-if="payMethod === 'wechat'" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
         </div>
-        <div class="pay-option" :class="{ active: payMethod === 'alipay' }" @click="payMethod = 'alipay'">
-          <div class="pay-icon" style="background:#1677ff">支</div>
-          <div class="pay-name">支付宝</div>
-          <div class="pay-radio" :class="{ checked: payMethod === 'alipay' }">
-            <svg v-if="payMethod === 'alipay'" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="pay-option" :class="{ active: payMethod === 'balance' }" @click="payMethod = 'balance'">
+          <div class="pay-icon" style="background:#d4af7a">余</div>
+          <div class="pay-name">
+            余额支付
+            <div class="pay-balance-tip">当前余额：¥{{ balance.toFixed(2) }}</div>
+          </div>
+          <div class="pay-radio" :class="{ checked: payMethod === 'balance' }">
+            <svg v-if="payMethod === 'balance'" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
         </div>
       </div>
 
       <div class="tip-card">
-        <div class="tip-text">点击“确认支付”后将调起微信支付；支付结果由微信支付回调异步更新订单状态，支付成功后自动{{ orderType === 'product' ? '为您发货' : '确认您的业务权益' }}。</div>
+        <div class="tip-text" v-if="payMethod === 'wechat'">点击“确认支付”后将调起微信支付；支付结果由微信支付回调异步更新订单状态，支付成功后自动{{ orderType === 'product' ? '为您发货' : '确认您的业务权益' }}。</div>
+        <div class="tip-text" v-else>使用账户余额支付，支付成功后将从“我的余额”中扣除并自动{{ orderType === 'product' ? '为您发货' : '确认您的业务权益' }}。</div>
       </div>
     </div>
 
@@ -96,7 +100,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getOrder, createUnifiedOrder } from '@/api'
+import { getOrder, createUnifiedOrder, payWithBalance, getMyBalance } from '@/api'
 import { requestPayment } from '@/utils/pay'
 
 const route = useRoute()
@@ -106,6 +110,7 @@ const order = ref<any>({})
 const loading = ref(false)
 const paying = ref(false)
 const payMethod = ref('wechat')
+const balance = ref(0)
 const orderType = ref(route.query.type as string || 'product')
 const redirect = ref(route.query.redirect as string || '')
 
@@ -114,6 +119,7 @@ const orderTitle = computed(() => {
     activity_signup: '活动报名',
     business_unlock: '商机解锁',
     product: '商品购买',
+    vip: 'VIP会员开通',
   }
   return titles[orderType.value] || '商品购买'
 })
@@ -151,6 +157,18 @@ async function handlePay() {
   if (paying.value || order.value.status !== 'pending_payment') return
   paying.value = true
   try {
+    // 余额支付：直接扣减余额并完成履约
+    if (payMethod.value === 'balance') {
+      await payWithBalance(orderId)
+      if (redirect.value) {
+        const sep = redirect.value.includes('?') ? '&' : '?'
+        router.replace(`${redirect.value}${sep}paid=1`)
+        return
+      }
+      router.replace(`/order/success?orderId=${orderId}&amount=${order.value.payAmount}`)
+      return
+    }
+
     // 1. 获取后端统一支付参数
     const payParams = await createUnifiedOrder(orderId)
     if (!payParams || !payParams.appId) {
@@ -193,6 +211,9 @@ function showToast(msg: string) {
 onMounted(() => {
   document.title = '立即支付'
   loadOrder()
+  getMyBalance().then((data: any) => {
+    if (data) balance.value = Number(data.balance) || 0
+  }).catch(() => {})
 })
 </script>
 
@@ -238,6 +259,7 @@ onMounted(() => {
 .pay-option.active { border-color: var(--color-primary); background: rgba(99,102,241,0.06); }
 .pay-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700; }
 .pay-name { flex: 1; font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
+.pay-balance-tip { font-size: 12px; font-weight: 400; color: var(--color-text-tertiary); margin-top: 2px; }
 .pay-radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--color-text-tertiary); display: flex; align-items: center; justify-content: center; }
 .pay-radio.checked { background: var(--color-primary); border-color: var(--color-primary); }
 .pay-radio svg { width: 12px; height: 12px; }

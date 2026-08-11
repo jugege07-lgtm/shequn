@@ -45,16 +45,22 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
+        <el-table-column label="余额(元)" width="120">
+          <template #default="{ row }">
+            <span class="balance-cell" :class="{ 'balance-zero': !Number(row.balance) }">¥{{ Number(row.balance ?? 0).toFixed(2) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'normal' ? 'success' : 'danger'">{{ row.status === 'normal' ? '正常' : '已禁用' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="注册时间" width="180" />
-        <el-table-column label="操作" width="340" fixed="right">
+        <el-table-column label="操作" width="420" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button size="small" @click="viewDetail(row)">详情</el-button>
+            <el-button size="small" type="success" @click="openBalanceDialog(row)">余额调整</el-button>
             <el-button size="small" type="info" @click="openPasswordDialog(row)">修改密码</el-button>
             <el-popconfirm v-if="row.status === 'normal'" title="确定禁用该用户？" @confirm="disableUser(row.id)">
               <template #reference><el-button size="small" type="warning">禁用</el-button></template>
@@ -320,6 +326,48 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 余额调整弹窗 -->
+    <el-dialog v-model="balanceDialogVisible" title="余额调整" width="460px">
+      <div v-if="balanceTargetUser" class="balance-dialog-body">
+        <div class="balance-target-info">
+          <el-avatar :size="40" shape="circle" :src="normalizeImageUrl(balanceTargetUser.avatarUrl)">
+            {{ balanceTargetUser ? avatarText(balanceTargetUser) : '' }}
+          </el-avatar>
+          <div>
+            <div class="balance-target-name">{{ balanceTargetUser.nickname || `用户 #${balanceTargetUser.id}` }}</div>
+            <div class="balance-target-phone">{{ balanceTargetUser.phone || '' }}</div>
+          </div>
+          <div class="balance-current">当前余额 ¥{{ Number(balanceTargetUser.balance ?? 0).toFixed(2) }}</div>
+        </div>
+
+        <el-form :model="balanceForm" label-width="90px">
+          <el-form-item label="操作方式">
+            <el-radio-group v-model="balanceForm.type">
+              <el-radio-button value="set">直接设置</el-radio-button>
+              <el-radio-button value="add">增加</el-radio-button>
+              <el-radio-button value="subtract">扣减</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item :label="balanceForm.type === 'set' ? '设置后余额' : '金额(元)'">
+            <el-input-number v-model="balanceForm.amount" :min="0" :precision="2" style="width: 100%" />
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input v-model="balanceForm.remark" placeholder="调整原因（可选），将写入余额明细" />
+          </el-form-item>
+          <el-form-item v-if="balanceForm.type === 'set'">
+            <span class="balance-tip">直接设置会将用户余额变为该数值（可大于或小于当前余额）。</span>
+          </el-form-item>
+          <el-form-item v-else-if="balanceForm.type === 'subtract'">
+            <span class="balance-tip">扣减金额不能超过当前余额 ¥{{ Number(balanceTargetUser.balance ?? 0).toFixed(2) }}。</span>
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="balanceDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitBalanceAdjust" :loading="balanceSaving">确认调整</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -452,6 +500,54 @@ const passwordRules = {
       trigger: 'blur',
     },
   ],
+}
+
+// ====== 余额调整相关 ======
+const balanceDialogVisible = ref(false)
+const balanceTargetUser = ref<any>(null)
+const balanceSaving = ref(false)
+const balanceForm = reactive({
+  type: 'add',
+  amount: 0,
+  remark: '',
+})
+
+function openBalanceDialog(row: any) {
+  balanceTargetUser.value = row
+  balanceForm.type = 'add'
+  balanceForm.amount = 0
+  balanceForm.remark = ''
+  balanceDialogVisible.value = true
+}
+
+async function submitBalanceAdjust() {
+  if (!balanceTargetUser.value) return
+  const userId = balanceTargetUser.value.id
+  const currentBalance = Number(balanceTargetUser.value.balance ?? 0)
+  if (balanceForm.type === 'subtract' && balanceForm.amount > currentBalance) {
+    ElMessage.error(`扣减金额不能超过当前余额 ¥${currentBalance.toFixed(2)}`)
+    return
+  }
+  if (balanceForm.type === 'set' && balanceForm.amount < 0) {
+    ElMessage.error('设置金额不能为负数')
+    return
+  }
+  balanceSaving.value = true
+    try {
+      const data: any = await request.post('/admin/balance/adjust', {
+        userId,
+        type: balanceForm.type,
+        amount: balanceForm.amount,
+        remark: balanceForm.remark,
+      })
+      ElMessage.success(`调整成功，当前余额 ¥${Number(data?.balance ?? balanceTargetUser.value.balance).toFixed(2)}`)
+      balanceDialogVisible.value = false
+      fetchUsers()
+    } catch (err: any) {
+      ElMessage.error(err.message || '余额调整失败')
+    } finally {
+      balanceSaving.value = false
+    }
 }
 
 async function fetchUsers() {
@@ -728,4 +824,17 @@ fetchUsers()
 .role-option-header { display: flex; justify-content: space-between; align-items: center; }
 .role-option-name { font-size: 14px; font-weight: 600; color: #374151; }
 .role-option-desc { font-size: 11.5px; color: #9ca3af; margin-top: 4px; line-height: 1.4; }
+
+/* ====== 余额管理 ====== */
+.balance-cell { font-weight: 600; color: #b45309; font-variant-numeric: tabular-nums; }
+.balance-cell.balance-zero { color: #9ca3af; font-weight: 400; }
+.balance-dialog-body { padding: 4px 0; }
+.balance-target-info {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: #f9fafb; border-radius: 10px; margin-bottom: 16px;
+}
+.balance-target-name { font-size: 15px; font-weight: 600; color: #1f2937; }
+.balance-target-phone { font-size: 13px; color: #9ca3af; margin-top: 2px; }
+.balance-current { margin-left: auto; font-size: 14px; font-weight: 700; color: #b45309; }
+.balance-tip { font-size: 12px; color: #9ca3af; line-height: 1.5; }
 </style>

@@ -52,6 +52,27 @@ export class PaymentController {
     return { code: 0, data: result };
   }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('balance')
+  @ApiOperation({ summary: '余额支付订单' })
+  async payWithBalance(
+    @CurrentUser() user: any,
+    @Body('orderId') orderId: number,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: Number(orderId) },
+    });
+    if (!order || String(order.userId) !== String(user.userId)) {
+      throw new NotFoundException('订单不存在');
+    }
+    const result = await this.paymentService.payWithBalance(
+      user.userId,
+      order.orderNo,
+    );
+    return { code: 0, data: result };
+  }
+
   @Post('wechat/notify')
   @ApiOperation({ summary: '微信支付结果通知（公开）' })
   async handleWechatNotify(

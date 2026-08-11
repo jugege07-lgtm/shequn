@@ -91,6 +91,7 @@ export class AdminService {
         select: {
           id: true, nickname: true, avatarUrl: true, phone: true,
           role: true, vipLevel: true, status: true, createdAt: true,
+          balance: true,
         },
       }),
       this.prisma.user.count({ where }),
@@ -268,6 +269,7 @@ export class AdminService {
         select: {
           id: true, nickname: true, realName: true, avatarUrl: true, phone: true,
           role: true, adminLevel: true, status: true, createdAt: true, lastLoginAt: true,
+          balance: true, points: true, vipLevel: true,
         },
       }),
       this.prisma.user.count({ where }),

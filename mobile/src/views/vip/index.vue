@@ -66,7 +66,11 @@ onMounted(async () => {
 const handleSubscribe = async () => {
   if (!selectedPlan.value) return
   try {
-    await subscribeVip(selectedPlan.value)
+    const result = await subscribeVip(selectedPlan.value)
+    if (result?.needPay && result?.order?.id) {
+      router.push(`/order/pay/${result.order.id}?type=vip`)
+      return
+    }
     alert('开通成功')
     router.push('/vip/success')
   } catch (err: any) {

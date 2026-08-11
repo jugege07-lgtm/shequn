@@ -44,7 +44,9 @@
 
         <div class="log-item" v-for="log in logs" :key="log.id">
           <div class="log-icon" :class="log.type">
-            <svg v-if="log.type === 'income'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            <svg v-if="log.type === 'payment'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <svg v-else-if="log.type === 'adjust'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M12 3v18"/></svg>
+            <svg v-else-if="log.type === 'income'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
             <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
           </div>
           <div class="log-info">
@@ -58,7 +60,7 @@
             </div>
           </div>
           <div class="log-amount" :class="log.type">
-            +{{ log.amount.toFixed(2) }}
+            {{ formatAmount(log) }}
           </div>
         </div>
 
@@ -134,6 +136,8 @@ const typeTabs = [
   { label: '全部', value: 'all' },
   { label: '充值', value: 'recharge' },
   { label: '收益', value: 'income' },
+  { label: '支付', value: 'payment' },
+  { label: '调整', value: 'adjust' },
 ]
 
 const finalAmount = computed(() => {
@@ -144,8 +148,21 @@ const finalAmount = computed(() => {
 
 const validAmount = computed(() => finalAmount.value > 0)
 
+const TYPE_LABELS: Record<string, string> = {
+  recharge: '充值',
+  income: '收益',
+  payment: '支付',
+  adjust: '调整',
+}
+
 function typeLabel(type: string) {
-  return type === 'income' ? '收益' : '充值'
+  return TYPE_LABELS[type] || '充值'
+}
+
+function formatAmount(log: any) {
+  const v = Number(log.amount) || 0
+  const sign = v >= 0 ? '+' : ''
+  return sign + v.toFixed(2)
 }
 
 function openRecharge() {
@@ -326,6 +343,8 @@ onMounted(() => {
 .log-icon svg { width: 20px; height: 20px; }
 .log-icon.income { background: #ede9fe; color: #6b5b9e; }
 .log-icon.recharge { background: #fdf3e3; color: #d4a34a; }
+.log-icon.payment { background: #fdecec; color: #d97777; }
+.log-icon.adjust { background: #e8f0fe; color: #4a7bd4; }
 
 .log-info { flex: 1; min-width: 0; }
 .log-title-row { display: flex; align-items: center; gap: 8px; }
@@ -335,12 +354,16 @@ onMounted(() => {
 }
 .log-type-tag.income { background: #ede9fe; color: #6b5b9e; }
 .log-type-tag.recharge { background: #fdf3e3; color: #d4a34a; }
+.log-type-tag.payment { background: #fdecec; color: #d97777; }
+.log-type-tag.adjust { background: #e8f0fe; color: #4a7bd4; }
 .log-sub { font-size: 11px; color: #b0a89a; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .log-detail { font-size: 11px; color: #8a7f6d; margin-top: 3px; }
 
 .log-amount { font-size: 17px; font-weight: 800; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .log-amount.income { color: #6b5b9e; }
 .log-amount.recharge { color: #d4a34a; }
+.log-amount.adjust { color: #4a7bd4; }
+.log-amount.payment { color: #d97777; }
 
 .load-more {
   text-align: center; padding: 14px 0; color: #8a7f6d;

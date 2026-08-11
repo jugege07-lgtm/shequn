@@ -45,4 +45,25 @@ export class BalanceController {
   async getAllBalanceLogs(@Query() query: any) {
     return { code: 0, data: await this.balanceService.getAllBalanceLogs(query) };
   }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'operator')
+  @Post('admin/balance/adjust')
+  @ApiOperation({ summary: '调整用户余额（直接设置/增加/扣减）' })
+  async adjustBalance(
+    @Body() body: { userId: number; type?: string; amount?: number; remark?: string },
+  ) {
+    if (!body.userId) {
+      return { code: 1, message: '缺少用户ID' };
+    }
+    return {
+      code: 0,
+      data: await this.balanceService.adjustBalance(Number(body.userId), {
+        type: body.type,
+        amount: body.amount,
+        remark: body.remark,
+      }),
+    };
+  }
 }

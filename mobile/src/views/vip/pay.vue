@@ -15,8 +15,8 @@
           <div class="radio-dot" :class="{ active: selectedPay === 1 }"></div>
         </div>
         <div class="pay-item" :class="{ active: selectedPay === 2 }" @click="selectedPay = 2">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          <span>支付宝</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 9h6a2 2 0 0 1 0 4H9a2 2 0 0 0 0 4h6"/></svg>
+          <span>余额支付<span class="pay-bal-sub">（当前余额 ¥{{ balance.toFixed(2) }}）</span></span>
           <div class="radio-dot" :class="{ active: selectedPay === 2 }"></div>
         </div>
       </div>
@@ -29,11 +29,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getVipPlans, subscribeVip } from '@/api'
+import { getVipPlans, subscribeVip, payWithBalance, getMyBalance } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
 const selectedPay = ref(1)
+const balance = ref(0)
 
 interface PlanInfo {
   id: number
@@ -71,14 +72,27 @@ onMounted(async () => {
   } catch (err: any) {
     console.error('获取套餐信息失败:', err)
   }
+
+  getMyBalance().then((data: any) => {
+    if (data) balance.value = Number(data.balance) || 0
+  }).catch(() => {})
 })
 
 const handlePay = async () => {
   if (!plan.value.id) return
   try {
-    await subscribeVip(plan.value.id)
-    showToast('支付成功！')
-    router.push('/vip/index')
+    const result = await subscribeVip(plan.value.id)
+    const orderId = result?.order?.id
+    if (!orderId) throw new Error('订单创建失败')
+    if (selectedPay.value === 2) {
+      // 余额支付
+      await payWithBalance(orderId)
+      showToast('支付成功！')
+      router.push('/vip/index')
+      return
+    }
+    // 微信支付：走统一支付页
+    router.replace(`/order/pay/${orderId}?type=vip`)
   } catch (err: any) {
     showToast(err.message || '支付失败')
   }
@@ -102,6 +116,7 @@ function showToast(msg: string) {
 .pay-item { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius-md); background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.5); margin-bottom: 8px; cursor: pointer; }
 .pay-item svg { width: 24px; height: 24px; color: var(--color-primary); }
 .pay-item span { flex: 1; font-size: 14px; color: var(--color-text-primary); }
+.pay-bal-sub { font-size: 12px; color: var(--color-text-secondary); }
 .radio-dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--color-primary-100); }
 .radio-dot.active { background: var(--color-primary); border-color: var(--color-primary); }
 .bottom-action { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; padding: 12px 16px env(safe-area-inset-bottom, 12px); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200; }
