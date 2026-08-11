@@ -31,6 +31,13 @@
       </div>
 
       <div class="setting-group">
+        <div class="setting-item" @click="$router.push('/app-download')">
+          <span class="setting-label">App 下载</span>
+          <svg class="setting-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+      </div>
+
+      <div class="setting-group">
         <div class="setting-item" @click="showLogoutConfirm">
           <span class="setting-label logout-label">退出登录</span>
           <svg class="setting-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
