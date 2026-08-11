@@ -186,13 +186,17 @@ const pointsPlan = computed(() => {
 
   if (payType.value === 'points' && enabled === 1) {
     const required = (Number(p.pointsPrice) || 0) * qty
+    // 纯积分同样受单笔最高积分限制（与后端一致）
+    const maxPointsLimit = Number(p.pointsMaxLimit) || 0
+    const usable = maxPointsLimit > 0 ? Math.min(required, maxPointsLimit) : required
     return {
       mode: 'points',
       pointsUsed: required,
       cashDeduct: totalAmount.toFixed(2),
       payAmount: 0,
       totalAmount: totalAmount.toFixed(2),
-      maxPoints: required,
+      maxPoints: usable,
+      maxPointsLimit,
       minLimit: 0,
     }
   }
@@ -209,9 +213,13 @@ const pointsPlan = computed(() => {
     maxCash = Math.min(maxCash, Math.max(0, totalAmount - 0.01))
 
     const minLimit = Number(p.pointsMinLimit) || 0
-    const maxPoints = Math.ceil(maxCash * rate)
+    // 单笔最高可抵扣现金对应的积分上限（积分上限优先于现金上限折算）
+    const maxPointsLimit = Number(p.pointsMaxLimit) || 0
+    let maxPoints = Math.ceil(maxCash * rate)
+    if (maxPointsLimit > 0) maxPoints = Math.min(maxPoints, maxPointsLimit)
 
     // 用户输入的积分（未输入则默认用满）
+    // 与后端 computePointsPlan 保持一致：先按积分上限截断，再夹取到 [minLimit, maxPoints]
     let want = Number(pointsUsed.value) || 0
     if (want <= 0) want = maxPoints
     want = Math.min(Math.max(want, minLimit), maxPoints)
@@ -228,6 +236,7 @@ const pointsPlan = computed(() => {
       payAmount: payAmount.toFixed(2),
       totalAmount: totalAmount.toFixed(2),
       maxPoints,
+      maxPointsLimit,
       minLimit,
     }
   }

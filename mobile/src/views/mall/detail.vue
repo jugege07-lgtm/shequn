@@ -172,11 +172,16 @@ const maxDeductCash = computed(() => {
 
 /** 组合支付抵扣规则文案 */
 const pointsRuleText = computed(() => {
+  const parts: string[] = []
   if (product.value?.pointsDeductMode === 'ratio') {
     const pct = Number(product.value?.pointsRatioPercent) || 0
-    return `可抵商品价格 ${pct}%`
+    parts.push(`可抵商品价格 ${pct}%`)
+  } else {
+    parts.push(`每 ${pointsRate.value} 积分抵 1 元`)
   }
-  return `每 ${pointsRate.value} 积分抵 1 元`
+  const maxLimit = Number(product.value?.pointsMaxLimit) || 0
+  if (maxLimit > 0) parts.push(`单笔最多 ${maxLimit} 积分`)
+  return parts.join('，')
 })
 
 /** 底部操作栏样式 */
