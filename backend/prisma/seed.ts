@@ -33,8 +33,8 @@ async function main() {
   // Banners
   await prisma.banner.createMany({
     data: [
-      { title: '2026 社群商业资源峰会', imageUrl: '', linkUrl: '/activity/detail/1', linkType: 'activity', position: 'home', sortOrder: 0, status: 1 },
-      { title: 'VIP会员专属福利', imageUrl: '', linkUrl: '/vip/index', linkType: 'vip', position: 'home', sortOrder: 1, status: 1 },
+      { title: '2026 社群商业资源峰会', content: '7月15日 · 深圳国际会展中心 · 限额500人', imageUrl: '', linkUrl: '/activity/detail/1', linkType: 'activity', position: 'home', sortOrder: 0, status: 1 },
+      { title: 'VIP会员专属福利', content: '解锁专属权益 · 享受更多折扣', imageUrl: '', linkUrl: '/vip/index', linkType: 'vip', position: 'home', sortOrder: 1, status: 1 },
     ],
   });
 

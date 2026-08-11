@@ -79,15 +79,25 @@
       </div>
 
       <!-- Announcement -->
-      <div class="announcement-bar" @click="goAnnouncement">
-        <span class="ann-tag">公告</span>
+      <div class="announcement-bar" :class="{ 'has-warning': hasWarningAnn }" @click="goAnnouncement">
+        <span class="ann-tag" :class="tagClass">{{ tagText }}</span>
         <div class="ann-scroll" ref="annScrollRef">
           <div class="ann-marquee" v-if="annList.length" :class="{ animating: annLong }">
             <span ref="annInnerRef" class="ann-inner">
-              <span class="ann-text" v-for="(a, i) in annList" :key="i">{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　　</span></span>
+              <span
+                class="ann-text"
+                v-for="(a, i) in annList"
+                :key="i"
+                :class="annTextClass(a)"
+              ><span class="ann-type-icon" v-if="annTypeIcon(a)">{{ annTypeIcon(a) }}</span>{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　　</span></span>
             </span>
             <span class="ann-inner" v-if="annLong" aria-hidden="true">
-              <span class="ann-text" v-for="(a, i) in annList" :key="'d' + i">{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　　</span></span>
+              <span
+                class="ann-text"
+                v-for="(a, i) in annList"
+                :key="'d' + i"
+                :class="annTextClass(a)"
+              ><span class="ann-type-icon" v-if="annTypeIcon(a)">{{ annTypeIcon(a) }}</span>{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　　</span></span>
             </span>
           </div>
           <span class="ann-text" v-else>欢迎加入聚格软件，连接优质资源，成就商业梦想！</span>
@@ -321,12 +331,39 @@ const CACHE_KEY = 'homepage_data'
 
 const activities = ref<any[]>([])
 const businesses = ref<any[]>([])
-const announcements = ref<{ title: string; content: string }[]>([])
+const announcements = ref<{ title: string; content: string; type?: string }[]>([])
 // 公告内容走横向缓慢滚动（marquee），内容超长时才滚动
 const annList = computed(() => announcements.value)
 const annLong = ref(false)
 const annScrollRef = ref<HTMLElement | null>(null)
 const annInnerRef = ref<HTMLElement | null>(null)
+
+// 按公告类型动态计算标签文本与样式
+const annTypeMap: Record<string, { text: string; cls: string }> = {
+  warning: { text: '警告', cls: 'tag-warning' },
+  notice: { text: '通知', cls: 'tag-notice' },
+  announcement: { text: '公告', cls: 'tag-announcement' },
+}
+const hasWarningAnn = computed(() => annList.value.some((a) => a.type === 'warning'))
+const tagText = computed(() => {
+  const first = annList.value[0]
+  return (first && annTypeMap[first.type]) ? annTypeMap[first.type].text : '公告'
+})
+const tagClass = computed(() => {
+  const first = annList.value[0]
+  return (first && annTypeMap[first.type]) ? annTypeMap[first.type].cls : 'tag-announcement'
+})
+// 每条公告的类型样式 class
+function annTextClass(a: any) {
+  if (a.type === 'warning') return 'ann-warning'
+  if (a.type === 'notice') return 'ann-notice'
+  return ''
+}
+// 每条公告的类型图标（通知沿用公告栏标签区分，警告用警示图标）
+function annTypeIcon(a: any) {
+  if (a.type === 'warning') return '⚠'
+  return ''
+}
 
 const bannerText = ref('2026 社群商业资源峰会')
 const bannerSubtitle = ref('7月15日 · 深圳国际会展中心 · 限额500人')
@@ -717,10 +754,19 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255,255,255,0.5);
   box-shadow: 0 2px 8px rgba(99,102,241,0.06);
 }
+/* 存在警告时整条公告栏红色高亮 */
+.announcement-bar.has-warning {
+  background: rgba(255,245,245,0.9);
+  border-color: rgba(239,68,68,0.35);
+  box-shadow: 0 2px 10px rgba(239,68,68,0.12);
+}
 .ann-tag {
   flex-shrink: 0; background: var(--color-primary); color: #fff;
   font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
 }
+.ann-tag.tag-warning { background: #ef4444; }
+.ann-tag.tag-notice { background: var(--color-primary); }
+.ann-tag.tag-announcement { background: var(--color-primary); }
 .ann-scroll { flex: 1; overflow: hidden; height: 20px; position: relative; }
 .ann-marquee {
   display: inline-flex; align-items: center; height: 100%;
@@ -735,6 +781,15 @@ onBeforeUnmount(() => {
   font-size: 13px; color: var(--color-text-secondary);
   white-space: nowrap;
 }
+/* 警告：红色文字醒目 */
+.ann-text.ann-warning { color: #dc2626; font-weight: 600; }
+/* 通知：深灰色文字区分 */
+.ann-text.ann-notice { color: #4b5563; }
+.ann-type-icon {
+  display: inline-block; margin-right: 4px; font-size: 12px;
+  font-weight: 700; vertical-align: -1px;
+}
+.ann-warning .ann-type-icon { color: #ef4444; }
 .ann-sep { color: var(--color-text-tertiary); }
 @keyframes annMarquee {
   0% { transform: translateX(0); }

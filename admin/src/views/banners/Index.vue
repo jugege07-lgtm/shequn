@@ -75,15 +75,15 @@
           <div class="img-upload-row">
             <el-input v-model="form.imageUrl" placeholder="图片URL" style="flex: 1; margin-right: 12px;" />
             <el-upload
-              action="/api/upload"
-              :headers="uploadHeaders"
               :show-file-list="false"
               accept="image/*"
-              :on-success="(res: any) => form.imageUrl = res.url"
+              :http-request="uploadBannerImage"
+              :before-upload="beforeBannerUpload"
             >
-              <el-button size="small">上传</el-button>
+              <el-button size="small" type="primary" plain>上传图片</el-button>
             </el-upload>
           </div>
+          <div class="upload-tip">建议尺寸 750×300（比例 2.5:1），支持 JPG/PNG，单个文件不超过 5MB</div>
           <el-image v-if="form.imageUrl" :src="form.imageUrl" style="width: 100%; height: 140px; margin-top: 8px; display: block; border-radius: 6px;" fit="cover" />
         </el-form-item>
         <el-form-item label="链接地址"><el-input v-model="form.linkUrl" /></el-form-item>
@@ -114,7 +114,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, type UploadRequestOptions } from 'element-plus'
 import request from '@/api/request'
 
 const banners = ref<any[]>([])
@@ -127,7 +127,34 @@ const editingId = ref(0)
 const bannerInterval = ref(4)
 const form = reactive({ title: '', content: '', imageUrl: '', linkUrl: '', linkType: '', position: 'home', sortOrder: 0, status: 1 })
 
-const uploadHeaders = { Authorization: `Bearer ${localStorage.getItem('admin_token') || ''}` }
+// 上传前校验：尺寸与大小
+function beforeBannerUpload(file: File) {
+  const allowTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowTypes.includes(file.type)) {
+    ElMessage.error('仅支持 JPG/PNG/WebP/GIF 图片')
+    return false
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return false
+  }
+  return true
+}
+
+// 自定义上传：经 axios 统一处理被包装的响应，正确回填图片 URL
+async function uploadBannerImage(options: UploadRequestOptions) {
+  const formData = new FormData()
+  formData.append('file', options.file)
+  try {
+    const res: any = await request.post('/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    form.imageUrl = res.url.startsWith('http') ? res.url : '/api' + res.url
+    ElMessage.success('图片上传成功')
+  } catch (err: any) {
+    ElMessage.error(err.message || '上传失败')
+  }
+}
 
 async function fetchBanners() {
   loading.value = true
@@ -225,4 +252,5 @@ fetchInterval()
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .form-tip { margin-left: 12px; color: #909399; font-size: 12px; }
 .img-upload-row { display: flex; align-items: center; width: 100%; }
+.upload-tip { margin-top: 6px; font-size: 12px; color: #909399; }
 </style>

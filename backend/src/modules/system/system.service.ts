@@ -331,7 +331,8 @@ export class SystemService {
   }
 
   async createAnnouncement(data: any) {
-    return this.prisma.announcement.create({ data });
+    // 公告栏不显示标题，仅使用内容；title 为必填字段，缺省时用空字符串兜底
+    return this.prisma.announcement.create({ data: { ...data, title: data.title ?? '' } });
   }
 
   async updateAnnouncement(id: number, data: any) {

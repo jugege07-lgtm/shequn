@@ -103,8 +103,7 @@
           </div>
           <el-table :data="announcements" border stripe v-loading="annLoading">
             <el-table-column prop="id" label="ID" width="60" />
-            <el-table-column prop="title" label="标题" />
-            <el-table-column prop="content" label="内容" show-overflow-tooltip />
+            <el-table-column prop="content" label="内容" min-width="220" show-overflow-tooltip />
             <el-table-column prop="type" label="类型" width="80" />
             <el-table-column prop="sortOrder" label="排序" width="80" />
             <el-table-column label="状态" width="80">
@@ -244,7 +243,6 @@
     <!-- 公告对话框 -->
     <el-dialog v-model="showAnnDialog" :title="editingAnn ? '编辑公告' : '新增公告'" width="500px">
       <el-form :model="annForm" label-width="80px">
-        <el-form-item label="标题"><el-input v-model="annForm.title" /></el-form-item>
         <el-form-item label="内容"><el-input v-model="annForm.content" type="textarea" :rows="3" /></el-form-item>
         <el-form-item label="类型">
           <el-select v-model="annForm.type"><el-option label="通知" value="notice" /><el-option label="警告" value="warning" /></el-select>
@@ -562,7 +560,7 @@ const announcements = ref<any[]>([])
 const annLoading = ref(false)
 const showAnnDialog = ref(false)
 const editingAnn = ref<any>(null)
-const annForm = reactive({ title: '', content: '', type: 'notice', status: 1, sortOrder: 0 })
+const annForm = reactive({ content: '', type: 'notice', status: 1, sortOrder: 0 })
 
 async function loadAnnouncements() {
   annLoading.value = true
@@ -574,7 +572,7 @@ async function loadAnnouncements() {
 
 function editAnnouncement(row: any) {
   editingAnn.value = row
-  Object.assign(annForm, { title: row.title, content: row.content, type: row.type, status: row.status, sortOrder: row.sortOrder })
+  Object.assign(annForm, { content: row.content, type: row.type, status: row.status, sortOrder: row.sortOrder })
   showAnnDialog.value = true
 }
 
