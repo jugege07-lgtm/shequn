@@ -104,10 +104,12 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          # 将 APK 放到 deploy/app/（deploy.sh 会保留该目录，并在每次部署后恢复到 dist）
-          # 下载页通过 /h5/app/shequn.apk 访问
+          # 1) 保存到 deploy/app/（deploy-prod 部署时保留该目录，并在 deploy.sh 中恢复）
           ssh -o StrictHostKeyChecking=yes ${SSH_USER}@${SSH_HOST} \
-            "mkdir -p /home/ubuntu/shequn/deploy/app"
+            "mkdir -p /home/ubuntu/shequn/deploy/app && mkdir -p /home/ubuntu/shequn/mobile/dist/app"
           scp -o StrictHostKeyChecking=yes "${{ env.APK_PATH }}" \
             ${SSH_USER}@${SSH_HOST}:/home/ubuntu/shequn/deploy/app/shequn.apk
-          echo "✅ APK 已部署到服务器 deploy/app/shequn.apk"
+          # 2) 同时直接放置到移动端当前 dist（Caddy/Nginx 静态服务目录），立即可通过 /h5/app/shequn.apk 下载
+          scp -o StrictHostKeyChecking=yes "${{ env.APK_PATH }}" \
+            ${SSH_USER}@${SSH_HOST}:/home/ubuntu/shequn/mobile/dist/app/shequn.apk
+          echo "✅ APK 已部署到 deploy/app/ 与 mobile/dist/app/"
