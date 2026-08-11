@@ -59,7 +59,11 @@
           <div class="contact-item" v-if="business.phone">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/></svg>
             <span class="contact-label">电话</span>
-            <span class="contact-value">{{ business.phone }}</span>
+            <a class="contact-value contact-phone" :href="`tel:${business.phone}`">{{ business.phone }}</a>
+            <button class="contact-copy-btn" @click="copyPhone" aria-label="复制手机号">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>复制</span>
+            </button>
           </div>
           <div class="contact-item" v-if="business.wechat">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
@@ -418,6 +422,31 @@ function showToast(msg: string) {
   document.body.appendChild(el)
   setTimeout(() => el.remove(), 2200)
 }
+
+// 复制手机号到剪贴板，并给出成功/失败反馈
+async function copyPhone() {
+  const phone = business.value?.phone || ''
+  if (!phone) return
+  try {
+    await navigator.clipboard.writeText(phone)
+    showToast('手机号已复制')
+  } catch (err) {
+    // 降级方案：兼容不支持 Clipboard API 的浏览器/WebView
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = phone
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(ta)
+      showToast(ok ? '手机号已复制' : '复制失败，请长按手动复制')
+    } catch {
+      showToast('复制失败，请长按手动复制')
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -498,6 +527,32 @@ function showToast(msg: string) {
 .contact-item svg { width: 18px; height: 18px; color: var(--color-primary); flex-shrink: 0; }
 .contact-label { font-size: 13px; color: var(--color-text-tertiary); min-width: 44px; }
 .contact-value { font-size: 14px; color: var(--color-text-primary); font-weight: 500; }
+
+/* 手机号点击拨号 */
+.contact-phone {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  margin-right: auto;
+}
+.contact-phone:active { opacity: 0.7; }
+
+/* 复制按钮 */
+.contact-copy-btn {
+  display: flex; align-items: center; gap: 4px;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border: 1px solid rgba(99,102,241,0.35);
+  border-radius: 8px;
+  background: rgba(99,102,241,0.06);
+  color: var(--color-primary);
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.contact-copy-btn svg { width: 14px; height: 14px; color: var(--color-primary); }
+.contact-copy-btn:active { background: rgba(99,102,241,0.15); transform: scale(0.96); }
 
 /* 脱敏样式 */
 .contact-masked { display: flex; flex-direction: column; gap: 0; }
