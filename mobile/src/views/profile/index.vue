@@ -246,7 +246,7 @@ const statsList = computed(() => [
   { label: '我的活动', value: userInfo.value?.activityCount || 0, path: '/activity/my', icon: renderIcon('activity'), bg: '#ede9fe', color: '#7c3aed' },
   { label: '我的商机', value: userInfo.value?.businessCount || 0, path: '/business/my', icon: renderIcon('business'), bg: '#dbeafe', color: '#2563eb' },
   { label: '我的余额', value: (Number(userInfo.value?.balance) || 0).toFixed(2), path: '/balance/index', icon: renderIcon('balance'), bg: '#fef3c7', color: '#d97706' },
-  { label: '优惠券', value: userInfo.value?.couponCount || 0, path: '/coupon/index', icon: renderIcon('coupon'), bg: '#fce7f3', color: '#db2777' },
+  { label: '积分', value: userInfo.value?.points || 0, path: '/points/index', icon: renderIcon('points'), bg: '#dbeafe', color: '#3b82f6' },
 ])
 
 function showToast(msg: string) {
@@ -324,7 +324,7 @@ const quickActions = computed(() => [
   { label: '邀请好友', icon: renderIcon('invite'), bg: '#fce7f3', color: '#db2777', onClick: () => router.push('/card/index') },
   { label: '消息', icon: renderIcon('message'), bg: '#d1fae5', color: '#10b981', onClick: () => router.push('/message/index'), badge: true },
   { label: '订单', icon: renderIcon('order'), bg: '#ede9fe', color: '#6366f1', onClick: () => router.push('/order/list') },
-  { label: '积分', icon: renderIcon('points'), bg: '#dbeafe', color: '#3b82f6', onClick: () => router.push('/points/index') },
+  { label: '优惠券', icon: renderIcon('coupon'), bg: '#fce7f3', color: '#db2777', onClick: () => router.push('/coupon/index') },
   { label: '领券中心', icon: renderIcon('coupon'), bg: '#fef3c7', color: '#f59e0b', onClick: () => router.push('/coupon/claim') },
 ])
 
