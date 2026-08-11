@@ -81,12 +81,17 @@
       <!-- Announcement -->
       <div class="announcement-bar" @click="goAnnouncement">
         <span class="ann-tag">公告</span>
-        <div class="ann-scroll" v-if="annList.length">
-          <div class="ann-track" :style="{ transform: `translateY(${-annIndex * 100}%)` }">
-            <span class="ann-text" v-for="(a, i) in annList" :key="i">{{ a.title }}</span>
+        <div class="ann-scroll" ref="annScrollRef">
+          <div class="ann-marquee" v-if="annList.length" :class="{ animating: annLong }">
+            <span ref="annInnerRef" class="ann-inner">
+              <span class="ann-text" v-for="(a, i) in annList" :key="i">{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　　</span></span>
+            </span>
+            <span class="ann-inner" v-if="annLong" aria-hidden="true">
+              <span class="ann-text" v-for="(a, i) in annList" :key="'d' + i">{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　　</span></span>
+            </span>
           </div>
+          <span class="ann-text" v-else>欢迎加入聚格软件，连接优质资源，成就商业梦想！</span>
         </div>
-        <span class="ann-text" v-else>欢迎加入聚格软件，连接优质资源，成就商业梦想！</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round">
           <path d="M9 18l6-6-6-6"/>
         </svg>
@@ -317,11 +322,11 @@ const CACHE_KEY = 'homepage_data'
 const activities = ref<any[]>([])
 const businesses = ref<any[]>([])
 const announcements = ref<{ title: string; content: string }[]>([])
-// 多公告轮播
+// 公告内容走横向缓慢滚动（marquee），内容超长时才滚动
 const annList = computed(() => announcements.value)
-const annIndex = ref(0)
-let annTimer: ReturnType<typeof setInterval> | null = null
-let annRefreshTimer: ReturnType<typeof setInterval> | null = null
+const annLong = ref(false)
+const annScrollRef = ref<HTMLElement | null>(null)
+const annInnerRef = ref<HTMLElement | null>(null)
 
 const bannerText = ref('2026 社群商业资源峰会')
 const bannerSubtitle = ref('7月15日 · 深圳国际会展中心 · 限额500人')
@@ -329,6 +334,7 @@ const banners = ref<any[]>([])
 const bannerIndex = ref(0)
 const bannerIntervalVal = ref(4) // 秒
 let bannerTimer: ReturnType<typeof setInterval> | null = null
+let annRefreshTimer: ReturnType<typeof setInterval> | null = null
 const loading = ref(false)
 
 // ===== 搜索 =====
@@ -397,32 +403,29 @@ function goProduct(id: number) { closeSearch(); router.push(`/mall/detail/${id}`
 
 function goAnnouncement() {
   if (!announcements.value.length) return
-  const first = announcements.value[annIndex.value]
+  const first = announcements.value[0]
   if (first?.url) window.open(first.url, '_blank')
 }
 
-// ===== 公告定时拉取 + 轮播 =====
+// ===== 公告 =====
 async function loadAnnouncements() {
   try {
     const data = await getAnnouncements()
     if (Array.isArray(data) && data.length) {
       announcements.value = data
+      nextTick(() => updateAnnLong())
     }
   } catch (err) {
     console.error('公告加载失败:', err)
   }
 }
 
-function startAnnTicker() {
-  stopAnnTicker()
-  annTimer = setInterval(() => {
-    const len = announcements.value.length
-    if (len > 1) annIndex.value = (annIndex.value + 1) % len
-  }, 3500)
-}
-
-function stopAnnTicker() {
-  if (annTimer) { clearInterval(annTimer); annTimer = null }
+// 判断公告内容是否超出容器宽度，超出则开启缓慢滚动
+function updateAnnLong() {
+  const inner = annInnerRef.value
+  const container = annScrollRef.value
+  if (!inner || !container) { annLong.value = false; return }
+  annLong.value = inner.offsetWidth > container.clientWidth + 4
 }
 
 // ===== Banner 轮播 =====
@@ -601,13 +604,11 @@ onMounted(() => {
   loadHomepage()
   checkVersion()
   loadAnnouncements()
-  startAnnTicker()
   // 定时拉取公告（每 60 秒），保持最新
   annRefreshTimer = setInterval(loadAnnouncements, 60 * 1000)
 })
 
 onBeforeUnmount(() => {
-  stopAnnTicker()
   stopBannerTicker()
   if (annRefreshTimer) { clearInterval(annRefreshTimer); annRefreshTimer = null }
 })
@@ -721,14 +722,23 @@ onBeforeUnmount(() => {
   font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
 }
 .ann-scroll { flex: 1; overflow: hidden; height: 20px; position: relative; }
-.ann-track {
-  display: flex; flex-direction: column;
-  transition: transform 0.5s ease;
+.ann-marquee {
+  display: inline-flex; align-items: center; height: 100%;
+  white-space: nowrap; will-change: transform;
 }
+.ann-marquee.animating {
+  animation: annMarquee 18s linear infinite;
+}
+.ann-inner { display: inline-flex; flex-shrink: 0; white-space: nowrap; }
 .ann-text {
   flex-shrink: 0; height: 20px; line-height: 20px;
   font-size: 13px; color: var(--color-text-secondary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ann-sep { color: var(--color-text-tertiary); }
+@keyframes annMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 /* ===== VIP Banner ===== */

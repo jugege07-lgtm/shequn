@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <span>消息管理</span>
-          <el-button type="primary" size="small" @click="showDialog = true">发送消息</el-button>
+          <el-button type="primary" size="small" @click="openSend">推送消息</el-button>
         </div>
       </template>
 
@@ -39,14 +39,23 @@
     </el-card>
 
     <!-- 发送消息弹窗 -->
-    <el-dialog v-model="showDialog" title="发送消息" width="500px">
+    <el-dialog v-model="showDialog" title="推送消息" width="500px">
       <el-form :model="form" label-width="80px">
-        <el-form-item label="用户ID"><el-input-number v-model="form.userId" :min="1" /></el-form-item>
+        <el-form-item label="推送给">
+          <el-radio-group v-model="form.target">
+            <el-radio label="all">全部用户</el-radio>
+            <el-radio label="user">指定用户</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="form.target === 'user'" label="用户ID" required>
+          <el-input-number v-model="form.userId" :min="1" />
+        </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="form.type"><el-option label="系统通知" value="system" /><el-option label="营销消息" value="marketing" /></el-select>
         </el-form-item>
-        <el-form-item label="标题"><el-input v-model="form.title" /></el-form-item>
-        <el-form-item label="内容"><el-input v-model="form.content" type="textarea" :rows="3" /></el-form-item>
+        <el-form-item label="内容" required>
+          <el-input v-model="form.content" type="textarea" :rows="4" maxlength="500" show-word-limit placeholder="请输入消息内容（无标题）" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showDialog = false">取消</el-button>
@@ -68,7 +77,7 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const showDialog = ref(false)
-const form = reactive({ userId: 1, title: '', content: '', type: 'system' })
+const form = reactive({ target: 'all', userId: 1, content: '', type: 'system' })
 
 async function fetchMessages() {
   loading.value = true
@@ -80,11 +89,21 @@ async function fetchMessages() {
   finally { loading.value = false }
 }
 
+function openSend() {
+  form.target = 'all'
+  form.userId = 1
+  form.content = ''
+  form.type = 'system'
+  showDialog.value = true
+}
+
 async function sendMessage() {
+  if (!form.content.trim()) { ElMessage.warning('请填写消息内容'); return }
+  if (form.target === 'user' && !form.userId) { ElMessage.warning('请填写用户ID'); return }
   sending.value = true
   try {
-    await request.post('/admin/notifications', form)
-    ElMessage.success('发送成功')
+    const res: any = await request.post('/admin/notifications', form)
+    ElMessage.success(form.target === 'all' ? `已推送给全部用户（${res?.count ?? '—'}人）` : '发送成功')
     showDialog.value = false
     fetchMessages()
   } catch (err: any) { ElMessage.error(err.message || '发送失败') }

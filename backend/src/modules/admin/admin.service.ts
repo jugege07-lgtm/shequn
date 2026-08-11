@@ -1242,7 +1242,38 @@ export class AdminService {
     return { list, total, page, size };
   }
 
-  async createNotification(data: { userId: number; title: string; content: string; type: string }) {
-    return this.prisma.message.create({ data: { ...data, type: data.type || 'system' } });
+  /**
+   * 后台推送消息：可发给指定用户或全部用户。
+   * 消息仅内容文本（无标题），title 统一为「系统通知」用于移动端展示。
+   */
+  async createNotification(data: {
+    target?: string; // 'user' | 'all'
+    userId?: number;
+    content: string;
+    type?: string;
+  }) {
+    const content = (data.content || '').trim();
+    if (!content) throw new BadRequestException('请填写消息内容');
+    const type = data.type || 'system';
+    const title = data.type === 'marketing' ? '营销通知' : '系统通知';
+
+    if (data.target === 'all') {
+      // 推送给全部用户
+      const users = await this.prisma.user.findMany({
+        where: { status: 'normal' },
+        select: { id: true },
+      });
+      if (!users.length) throw new BadRequestException('暂无可用用户');
+      await this.prisma.message.createMany({
+        data: users.map((u) => ({ userId: u.id, type, title, content })),
+      });
+      return { count: users.length };
+    }
+
+    const userId = Number(data.userId || 0);
+    if (!userId) throw new BadRequestException('请指定接收用户');
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('该用户不存在');
+    return this.prisma.message.create({ data: { userId, type, title, content } });
   }
 }
