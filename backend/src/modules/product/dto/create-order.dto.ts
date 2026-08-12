@@ -37,4 +37,9 @@ export class CreateOrderDto {
   @IsOptional()
   @IsNumber()
   pointsUsed?: number;
+
+  @ApiPropertyOptional({ description: '使用的优惠券ID（user_coupons 表 id）' })
+  @IsOptional()
+  @IsNumber()
+  couponId?: number;
 }

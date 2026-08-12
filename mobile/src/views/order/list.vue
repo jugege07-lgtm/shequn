@@ -45,12 +45,13 @@
           </div>
 
           <div class="order-footer">
-            <span>共{{ order.items?.length || 0 }}件 实付：<span class="pay-amount"><span>¥</span>{{ order.payAmount?.toFixed(2) }}</span></span>
+            <span v-if="order.items?.length">{{ order.items.length }}件 实付：<span class="pay-amount"><span>¥</span>{{ order.payAmount?.toFixed(2) }}</span></span>
+            <span v-else>{{ orderTypeText(order.orderType) }} 实付：<span class="pay-amount"><span>¥</span>{{ order.payAmount?.toFixed(2) }}</span></span>
           </div>
 
           <div class="order-actions">
             <button class="action-btn outline" v-if="order.status === 'pending_payment'" @click="goPay(order.id)">去支付</button>
-            <button class="action-btn primary" v-if="order.status === 'shipped'" @click="confirmReceive(order.id)">确认收货</button>
+            <button class="action-btn primary" v-if="order.status === 'shipped' && order.orderType === 'product'" @click="confirmReceive(order.id)">确认收货</button>
             <button class="action-btn outline" @click="viewDetail(order.id)">查看详情</button>
           </div>
         </div>
@@ -79,6 +80,18 @@ const statusMap: Record<string, string> = {
 
 function statusText(status: string) {
   return statusMap[status] || status
+}
+
+const orderTypeMap: Record<string, string> = {
+  product: '商品订单',
+  recharge: '余额充值',
+  business_unlock: '商机解锁',
+  activity_signup: '活动报名',
+  vip: 'VIP会员开通',
+}
+
+function orderTypeText(type: string) {
+  return orderTypeMap[type] || '订单'
 }
 
 function normalizeImageUrl(url: string | undefined): string {
@@ -131,7 +144,7 @@ async function confirmReceive(id: number) {
 }
 
 function viewDetail(id: number) {
-  router.push(`/order/pay/${id}`)
+  router.push(`/order/detail/${id}`)
 }
 
 function showToast(msg: string) {

@@ -49,6 +49,15 @@
           <span>商品总价</span>
           <span>¥{{ totalPrice }}</span>
         </div>
+        <!-- 优惠券入口 -->
+        <div class="summary-row coupon-row" v-if="payType !== 'points'" @click="openCouponPicker">
+          <span>优惠券</span>
+          <span class="coupon-value" :class="{ active: couponInfo }">
+            <template v-if="couponInfo">-¥{{ couponDeduct }}（{{ couponInfo.coupon?.name }}）</template>
+            <template v-else>{{ usableCoupons.length ? `${usableCoupons.length} 张可用` : '暂无可用' }}</template>
+          </span>
+          <svg class="coupon-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
         <!-- 积分抵扣明细 -->
         <template v-if="payType === 'points'">
           <div class="summary-row points-used">
@@ -115,6 +124,43 @@
       </button>
     </div>
 
+    <!-- Coupon Picker -->
+    <div class="picker-mask" v-if="showCouponPicker" @click="showCouponPicker = false">
+      <div class="picker-panel" @click.stop>
+        <div class="picker-header">
+          <span>选择优惠券</span>
+          <span class="picker-close" @click="showCouponPicker = false">关闭</span>
+        </div>
+        <div class="coupon-picker-list">
+          <div class="coupon-picker-item" :class="{ disabled: !c.usable }" v-for="c in usableCoupons" :key="c.id" @click="selectCoupon(c)">
+            <div class="coupon-picker-radio" :class="{ checked: selectedCouponId === c.id }">
+              <svg v-if="selectedCouponId === c.id" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="coupon-picker-preview">
+              <div class="coupon-picker-value">
+                <template v-if="c.coupon.type === 'percent'">
+                  <span class="cp-num">{{ formatPercent(c.coupon.value) }}</span>折
+                </template>
+                <template v-else>
+                  <span class="cp-unit">¥</span><span class="cp-num">{{ c.coupon.value }}</span>
+                </template>
+              </div>
+              <div class="coupon-picker-name">{{ c.coupon.name }}</div>
+              <div class="coupon-picker-cond">{{ c.coupon.minAmount > 0 ? '满¥' + c.coupon.minAmount + '可用' : '无门槛' }}<span v-if="c.coupon.type === 'percent' && c.coupon.discountCap"> · 最高减¥{{ c.coupon.discountCap }}</span></div>
+            </div>
+            <div class="coupon-picker-save" :class="{ active: selectedCouponId === c.id }">-¥{{ c.deduct }}</div>
+          </div>
+          <div class="coupon-picker-item" @click="selectCoupon(null)" v-if="usableCoupons.length && selectedCouponId">
+            <div class="coupon-picker-radio"></div>
+            <div class="coupon-picker-preview">
+              <div class="coupon-picker-name">不使用优惠券</div>
+            </div>
+          </div>
+          <div class="coupon-picker-empty" v-if="!usableCoupons.length">暂无可用优惠券</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Address Picker -->
     <div class="picker-mask" v-if="showAddressPicker" @click="showAddressPicker = false">
       <div class="picker-panel" @click.stop>
@@ -148,7 +194,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   getAddresses, getProduct, getCart,
-  createOrder, createOrderFromCart,
+  createOrder, createOrderFromCart, getUserCoupons,
 } from '@/api'
 
 const route = useRoute()
@@ -175,6 +221,78 @@ const showAddressPicker = ref(false)
 const currentProduct = ref<any>(null)
 // 组合支付时用户实际使用的积分
 const pointsUsed = ref(0)
+
+// ===== 优惠券 =====
+const showCouponPicker = ref(false)
+const allCoupons = ref<any[]>([])
+const selectedCouponId = ref<number | null>(null)
+
+/** 用户可用（未使用、未过期）且满足门槛的优惠券，附带计算好的抵扣金额 */
+const usableCoupons = computed(() => {
+  const base = payType.value === 'cash' ? totalPrice.value : pointsPlan.value.totalAmount
+  const orderAmount = Number(base) || 0
+  return allCoupons.value
+    .filter((c) => c && c.coupon && c.status === 'unused')
+    .map((c) => {
+      const coupon = c.coupon
+      const expired = c.expiresAt && new Date(c.expiresAt).getTime() < Date.now()
+      const meetMin = Number(coupon.minAmount) <= orderAmount
+      let deduct = 0
+      if (coupon.type === 'percent') {
+        deduct = Math.round(orderAmount * Number(coupon.value) * 100) / 100
+        if (coupon.discountCap && Number(coupon.discountCap) > 0) {
+          deduct = Math.min(deduct, Number(coupon.discountCap))
+        }
+      } else {
+        deduct = Math.min(Number(coupon.value), orderAmount)
+      }
+      deduct = Math.round(deduct * 100) / 100
+      return { ...c, usable: !expired && meetMin, expired, deduct }
+    })
+    .sort((a, b) => (a.usable === b.usable ? 0 : a.usable ? -1 : 1))
+})
+
+/** 当前选中的优惠券 */
+const couponInfo = computed(() => {
+  if (!selectedCouponId.value) return null
+  return usableCoupons.value.find((c) => c.id === selectedCouponId.value && c.usable) || null
+})
+
+/** 优惠券抵扣金额 */
+const couponDeduct = computed(() => {
+  const c = couponInfo.value
+  if (!c) return '0.00'
+  return Number(c.deduct || 0).toFixed(2)
+})
+
+function formatPercent(v: number) {
+  const n = Number(v)
+  if (Number.isNaN(n)) return '-'
+  return (n * 10).toFixed(1).replace(/\.0$/, '')
+}
+
+function openCouponPicker() {
+  showCouponPicker.value = true
+}
+
+function selectCoupon(c: any) {
+  if (c && !c.usable) return
+  selectedCouponId.value = c ? c.id : null
+  showCouponPicker.value = false
+}
+
+async function loadCoupons() {
+  try {
+    const data = await getUserCoupons({ status: 'unused', page: 1, size: 50 })
+    allCoupons.value = data?.list || []
+    // 若已选券在重新加载后不再可用，则取消选中
+    if (selectedCouponId.value && !couponInfo.value) {
+      selectedCouponId.value = null
+    }
+  } catch {
+    allCoupons.value = []
+  }
+}
 
 /** 积分支付方案（与后端 computePointsPlan 逻辑保持一致，仅用于展示） */
 const pointsPlan = computed(() => {
@@ -258,11 +376,14 @@ const totalPrice = computed(() => {
     .toFixed(2)
 })
 
-/** 应付现金（组合支付 = 商品价 - 积分抵扣；纯积分 = 0） */
+/** 应付现金（组合支付 = 商品价 - 积分抵扣；纯积分 = 0；均再扣优惠券） */
 const totalPayAmount = computed(() => {
+  let cash: number
   if (payType.value === 'points') return '0.00'
-  if (payType.value === 'points_cash') return pointsPlan.value.payAmount
-  return totalPrice.value
+  if (payType.value === 'points_cash') cash = Number(pointsPlan.value.payAmount) || 0
+  else cash = Number(totalPrice.value) || 0
+  const ded = Number(couponDeduct.value) || 0
+  return Math.max(0, Math.round((cash - ded) * 100) / 100).toFixed(2)
 })
 
 function onPointsInput(e: Event) {
@@ -353,7 +474,12 @@ async function handleSubmit() {
   try {
     let order: any
     if (isCartMode.value) {
-      order = await createOrderFromCart({ cartItemIds: cartItemIds.value, addressId: selectedAddress.value?.id, remark: remark.value })
+      order = await createOrderFromCart({
+        cartItemIds: cartItemIds.value,
+        addressId: selectedAddress.value?.id,
+        remark: remark.value,
+        couponId: selectedCouponId.value || undefined,
+      })
     } else {
       order = await createOrder({
         productId: productId.value,
@@ -362,6 +488,7 @@ async function handleSubmit() {
         remark: remark.value,
         payType: payType.value === 'cash' ? undefined : payType.value,
         pointsUsed: payType.value === 'points_cash' ? pointsPlan.value.pointsUsed : undefined,
+        couponId: selectedCouponId.value || undefined,
       })
     }
     const orderId = order?.id || order?.data?.id
@@ -398,6 +525,7 @@ onMounted(() => {
   document.title = '确认订单'
   loadAddresses()
   loadGoods()
+  loadCoupons()
 })
 </script>
 
@@ -440,6 +568,31 @@ onMounted(() => {
   box-shadow: var(--glass-shadow);
 }
 .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; color: var(--color-text-secondary); }
+.coupon-row { cursor: pointer; }
+.coupon-value { color: var(--color-text-tertiary); font-size: 13px; }
+.coupon-value.active { color: #f59e0b; font-weight: 600; }
+.coupon-arrow { width: 16px; height: 16px; color: var(--color-text-tertiary); flex-shrink: 0; }
+.coupon-picker-list { max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.coupon-picker-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px;
+  border: 1px solid #f3f4f6; border-radius: var(--radius-lg); cursor: pointer;
+}
+.coupon-picker-item.disabled { opacity: 0.5; }
+.coupon-picker-radio {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--color-text-tertiary);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.coupon-picker-radio.checked { background: var(--color-primary); border-color: var(--color-primary); }
+.coupon-picker-radio svg { width: 12px; height: 12px; }
+.coupon-picker-preview { flex: 1; min-width: 0; }
+.coupon-picker-value { font-size: 13px; color: var(--color-primary); font-weight: 700; margin-bottom: 2px; }
+.cp-num { font-size: 18px; font-weight: 800; }
+.cp-unit { font-size: 12px; }
+.coupon-picker-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coupon-picker-cond { font-size: 12px; color: var(--color-text-tertiary); }
+.coupon-picker-save { font-size: 14px; font-weight: 700; color: var(--color-text-tertiary); flex-shrink: 0; }
+.coupon-picker-save.active { color: #f59e0b; }
+.coupon-picker-empty { text-align: center; padding: 40px 0; color: var(--color-text-tertiary); font-size: 14px; }
 .summary-row.total { margin-bottom: 0; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05); }
 .total-amount { font-size: 18px; font-weight: 700; color: var(--color-primary); }
 .total-amount span { font-size: 12px; font-weight: 400; }

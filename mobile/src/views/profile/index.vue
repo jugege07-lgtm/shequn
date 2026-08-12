@@ -112,7 +112,7 @@
             <div class="activity-dot" :class="item.type"></div>
             <div class="activity-content">
               <div class="activity-title">{{ item.title }}</div>
-              <div class="activity-desc">{{ typeName(item.type) }} · {{ formatHistoryTime(item.time) }}</div>
+              <div class="activity-desc">{{ typeName(item.type) }}</div>
             </div>
             <div class="activity-time">{{ formatHistoryTime(item.time) }}</div>
           </div>

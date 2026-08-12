@@ -31,6 +31,7 @@ const routes = [
   { path: '/order/confirm', name: 'OrderConfirm', component: () => import('@/views/order/confirm.vue'), meta: { requiresAuth: true } },
   { path: '/order/pay/:id', name: 'OrderPay', component: () => import('@/views/order/pay.vue'), meta: { requiresAuth: true } },
   { path: '/order/success', name: 'OrderSuccess', component: () => import('@/views/order/success.vue'), meta: { requiresAuth: true } },
+  { path: '/order/detail/:id', name: 'OrderDetail', component: () => import('@/views/order/detail.vue'), meta: { requiresAuth: true } },
   { path: '/order/list', name: 'OrderList', component: () => import('@/views/order/list.vue'), meta: { requiresAuth: true } },
   { path: '/address/edit', name: 'AddressEdit', component: () => import('@/views/address/edit.vue'), meta: { requiresAuth: true } },
   { path: '/opportunity/list', name: 'OpportunityList', component: () => import('@/views/opportunity/list.vue'), meta: { requiresAuth: true } },

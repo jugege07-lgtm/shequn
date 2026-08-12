@@ -168,7 +168,50 @@ export class ProductService {
   }
 
   /**
-   * 创建订单（支持纯积分 / 积分+现金 / 纯现金）
+   * 计算并核销优惠券抵扣（在创建订单的事务内调用）
+   * @param couponId user_coupons 表 id
+   * @returns { deduct, userCouponId } deduct 为优惠金额，userCouponId 为需核销的券 id
+   */
+  private async computeCouponDeduct(
+    tx: any,
+    userId: number,
+    couponId: number,
+    totalAmount: number,
+  ) {
+    const uc = await tx.userCoupon.findFirst({
+      where: { id: couponId, userId, status: 'unused' },
+      include: { coupon: true },
+    });
+    if (!uc || !uc.coupon) {
+      throw new BadRequestException('优惠券不存在或不可用');
+    }
+    if (uc.expiresAt && new Date(uc.expiresAt).getTime() < Date.now()) {
+      throw new BadRequestException('优惠券已过期');
+    }
+    const coupon = uc.coupon;
+    if (coupon.status !== 1) {
+      throw new BadRequestException('优惠券已失效');
+    }
+    if (totalAmount < coupon.minAmount) {
+      throw new BadRequestException(`订单满 ¥${coupon.minAmount} 才可使用该优惠券`);
+    }
+
+    let deduct = 0;
+    if (coupon.type === 'percent') {
+      deduct = Math.round(totalAmount * coupon.value * 100) / 100;
+      if (coupon.discountCap && coupon.discountCap > 0) {
+        deduct = Math.min(deduct, coupon.discountCap);
+      }
+    } else {
+      deduct = Math.min(coupon.value, totalAmount);
+    }
+    deduct = Math.round(deduct * 100) / 100;
+
+    return { deduct, userCouponId: couponId };
+  }
+
+  /**
+   * 创建订单（支持纯积分 / 积分+现金 / 纯现金 + 优惠券）
    * dto.payType: 'cash' | 'points' | 'points_cash'
    * dto.pointsUsed: 组合支付时用户希望使用的积分（可选，默认用满）
    */
@@ -203,14 +246,25 @@ export class ProductService {
       }
 
       const isPointsOrder = payType === 'points';
+
+      // 优惠券抵扣（纯积分兑换订单不支持使用优惠券）
+      let couponDeduct = 0;
+      let userCouponId: number | null = null;
+      if (!isPointsOrder && dto.couponId) {
+        const coupon = await this.computeCouponDeduct(tx, userId, dto.couponId, plan.totalAmount);
+        couponDeduct = coupon.deduct;
+        userCouponId = coupon.userCouponId;
+      }
+      const finalPayAmount = Math.max(0, Math.round((plan.payAmount - couponDeduct) * 100) / 100);
+
       const order = await tx.order.create({
         data: {
           orderNo,
           userId,
           orderType: 'product',
           totalAmount: plan.totalAmount,
-          discountAmount: 0,
-          payAmount: plan.payAmount,
+          discountAmount: couponDeduct,
+          payAmount: finalPayAmount,
           pointsUsed: plan.pointsUsed,
           pointsDeduct: plan.cashDeduct,
           status: isPointsOrder ? 'paid' : 'pending_payment',
@@ -219,6 +273,14 @@ export class ProductService {
           remark: dto.remark || '',
         },
       });
+
+      // 核销优惠券
+      if (userCouponId) {
+        await tx.userCoupon.update({
+          where: { id: userCouponId },
+          data: { status: 'used', orderNo, usedAt: new Date() },
+        });
+      }
 
       await tx.orderItem.create({
         data: {
@@ -288,7 +350,7 @@ export class ProductService {
     });
   }
 
-  async createOrderFromCart(dto: { cartItemIds: number[]; addressId?: number; remark?: string }, userId: number) {
+  async createOrderFromCart(dto: { cartItemIds: number[]; addressId?: number; remark?: string; couponId?: number }, userId: number) {
     const { cartItemIds } = dto;
     if (!cartItemIds || cartItemIds.length === 0) {
       throw new BadRequestException('请选择要结算的商品');
@@ -316,19 +378,37 @@ export class ProductService {
     const orderNo = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     return this.prisma.$transaction(async (tx) => {
+      // 优惠券抵扣
+      let couponDeduct = 0;
+      let userCouponId: number | null = null;
+      if (dto.couponId) {
+        const coupon = await this.computeCouponDeduct(tx, userId, dto.couponId, payAmount);
+        couponDeduct = coupon.deduct;
+        userCouponId = coupon.userCouponId;
+      }
+      const finalPayAmount = Math.max(0, Math.round((payAmount - couponDeduct) * 100) / 100);
+
       const order = await tx.order.create({
         data: {
           orderNo,
           userId,
           orderType: 'product',
           totalAmount: payAmount,
-          discountAmount: 0,
-          payAmount,
+          discountAmount: couponDeduct,
+          payAmount: finalPayAmount,
           status: 'pending_payment',
           addressId: dto.addressId || null,
           remark: dto.remark || '',
         },
       });
+
+      // 核销优惠券
+      if (userCouponId) {
+        await tx.userCoupon.update({
+          where: { id: userCouponId },
+          data: { status: 'used', orderNo, usedAt: new Date() },
+        });
+      }
 
       for (const item of cartItems) {
         await tx.orderItem.create({

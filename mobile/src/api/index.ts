@@ -209,11 +209,11 @@ export async function getProduct(id: number) {
   return request.get(`/api/public/products/${id}`)
 }
 
-export async function createOrder(data: { productId: number; quantity: number; addressId?: number; remark?: string; payType?: string; pointsUsed?: number }) {
+export async function createOrder(data: { productId: number; quantity: number; addressId?: number; remark?: string; payType?: string; pointsUsed?: number; couponId?: number }) {
   return request.post('/api/orders', data)
 }
 
-export async function createOrderFromCart(data: { cartItemIds: number[]; addressId?: number; remark?: string }) {
+export async function createOrderFromCart(data: { cartItemIds: number[]; addressId?: number; remark?: string; couponId?: number }) {
   return request.post('/api/orders/from-cart', data)
 }
 
