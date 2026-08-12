@@ -173,6 +173,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { wechatLogin, register, login, sendCode } from '@/api'
 import { useUserStore } from '@/store/user'
+import { refreshUserAfterLogin } from '@/utils/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -227,7 +228,8 @@ async function handleLogin() {
     const res: any = await login({ phone: loginForm.phone, password: loginForm.password })
     // 通过 user store 统一管理凭证持久化（token + refreshToken + userInfo + loginTime）
     userStore.setToken(res.accessToken, res.refreshToken)
-    userStore.setUserInfo(res.user)
+    // 登录接口返回的 user 不含 vipLevel 等实时字段，需从 /users/me 刷新完整信息
+    await refreshUserAfterLogin(res.user)
     showToast('登录成功')
     redirectAfterAuth()
   } catch (err: any) {
@@ -348,7 +350,8 @@ async function handleRegister() {
     })
     // 通过 user store 统一管理凭证持久化
     userStore.setToken(res.accessToken, res.refreshToken)
-    userStore.setUserInfo(res.user)
+    // 注册后同样刷新完整用户信息（含 vipLevel）
+    await refreshUserAfterLogin(res.user)
     showToast('注册成功')
     redirectAfterAuth()
   } catch (err: any) {
@@ -364,7 +367,7 @@ async function handleWechatLogin() {
     const res: any = await wechatLogin('')
     // 通过 user store 统一管理凭证持久化
     userStore.setToken(res.accessToken, res.refreshToken || '')
-    userStore.setUserInfo(res.user || {})
+    await refreshUserAfterLogin(res.user || {})
     showToast('微信登录成功')
     redirectAfterAuth()
   } catch (err: any) {
@@ -396,7 +399,7 @@ const showPrivacyModal = ref(false)
   align-items: center;
   justify-content: center;
   /* 状态栏/刘海安全区：渐变背景向上延伸覆盖状态栏，内容居中不受影响 */
-  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  padding: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) 0 var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
 }
 .login-bg-shapes { position: absolute; inset: 0; overflow: hidden; }
 .login-bg-shapes .shape {

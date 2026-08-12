@@ -299,7 +299,7 @@ onMounted(() => {
 .tip-text { font-size: 12px; color: var(--color-text-tertiary); line-height: 1.6; }
 .bottom-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px;
-  padding: 10px 16px env(safe-area-inset-bottom, 10px); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
+  padding: 10px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 10px)); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200;
   display: flex; align-items: center; gap: 12px;
 }

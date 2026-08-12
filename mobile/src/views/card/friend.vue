@@ -331,8 +331,8 @@ onMounted(() => {
   background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  margin-top: calc(env(safe-area-inset-top, 0px) * -1);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  margin-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) * -1);
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }
@@ -428,7 +428,7 @@ onMounted(() => {
 .actions-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
   max-width: 430px; margin: 0 auto;
-  display: flex; gap: 12px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  display: flex; gap: 12px; padding: 12px 16px calc(12px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60,60,67,0.1);

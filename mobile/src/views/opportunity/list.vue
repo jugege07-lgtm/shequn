@@ -461,7 +461,7 @@ onUnmounted(() => {
 .fab {
   position: fixed;
   right: 20px;
-  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(84px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   width: 56px;
   height: 56px;
   border-radius: 50%;

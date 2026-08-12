@@ -91,7 +91,7 @@ onMounted(() => {
 .info-row span:last-child { color: var(--color-text-primary); font-weight: 500; }
 .bottom-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px;
-  padding: 12px 16px env(safe-area-inset-bottom, 12px); background: #fff;
+  padding: 12px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 12px)); background: #fff;
   border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200;
   display: flex; gap: 12px;
 }

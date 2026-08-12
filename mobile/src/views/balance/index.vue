@@ -273,7 +273,7 @@ onMounted(() => {
 
 .header {
   position: sticky; top: 0; z-index: 100;
-  background: #f6f4ef; margin-top: calc(env(safe-area-inset-top, 0px) * -1); padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+  background: #f6f4ef; margin-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) * -1); padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 16px 12px;
   display: flex; align-items: center; gap: 12px;
 }
 .back-btn {

@@ -661,8 +661,8 @@ onBeforeUnmount(() => {
 .banner-section {
   position: relative;
   /* 背景延伸到状态栏（edge-to-edge 沉浸式），内容用 padding 避让状态栏 */
-  height: calc(200px + env(safe-area-inset-top, 0px));
-  padding-top: env(safe-area-inset-top, 0px);
+  height: calc(200px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
+  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   overflow: hidden;
   /* 兜底背景，覆盖状态栏区域，保证与 banner 配色连贯 */
   background: linear-gradient(135deg, #4f46e5, #7c3aed);
@@ -967,7 +967,7 @@ onBeforeUnmount(() => {
   display: flex; background: rgba(255,255,255,0.92);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60,60,67,0.1);
-  padding: 6px 0 env(safe-area-inset-bottom, 6px); z-index: 200;
+  padding: 6px 0 var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 6px)); z-index: 200;
 }
 .tab {
   flex: 1; display: flex; flex-direction: column; align-items: center;

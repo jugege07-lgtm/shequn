@@ -247,7 +247,7 @@ function showToast(msg: string) {
 .form-input.error, .form-textarea.error { border-color: #ef4444; background: #fef2f2; }
 .error-text { font-size: 12px; color: #ef4444; margin-top: 6px; }
 .form-textarea { resize: vertical; }
-.bottom-action { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; padding: 12px 16px env(safe-area-inset-bottom, 12px); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200; }
+.bottom-action { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; padding: 12px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 12px)); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200; }
 .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--color-primary); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
 .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 </style>

@@ -80,7 +80,7 @@ function showLogoutConfirm() {
 .setting-header {
   background: #ffffff;
   /* 顶部安全区并入白色 Header，背景向上延伸覆盖状态栏，内容避让 */
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 0;
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 16px 0;
   color: #1e1b4b;
 }
 

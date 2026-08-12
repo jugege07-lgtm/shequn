@@ -262,7 +262,7 @@ onUnmounted(() => {
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.08);
   /* 顶部安全区并入 Header，背景向上延伸覆盖状态栏，内容避让 */
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 8px;
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 8px;
 }
 
 /* ===== Hero Card (title + search) ===== */
@@ -525,7 +525,7 @@ onUnmounted(() => {
 .fab {
   position: fixed;
   right: 20px;
-  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(28px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   width: 56px;
   height: 56px;
   border-radius: 50%;

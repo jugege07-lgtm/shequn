@@ -503,7 +503,7 @@ onMounted(() => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 430px;
-  padding: 12px 16px env(safe-area-inset-bottom, 12px);
+  padding: 12px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 12px));
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60, 60, 67, 0.1);

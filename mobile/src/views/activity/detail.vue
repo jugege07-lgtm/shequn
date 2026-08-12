@@ -674,7 +674,7 @@ function showToast(msg: string) {
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60,60,67,0.1);
-  padding: 12px 16px env(safe-area-inset-bottom, 12px);
+  padding: 12px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 12px));
   display: flex; align-items: center; justify-content: space-between; z-index: 200;
 }
 .price-section { display: flex; flex-direction: column; gap: 2px; }

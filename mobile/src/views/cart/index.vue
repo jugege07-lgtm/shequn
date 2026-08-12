@@ -225,8 +225,8 @@ onMounted(() => {
   background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  margin-top: calc(env(safe-area-inset-top, 0px) * -1);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px; display: flex; align-items: center; justify-content: space-between;
+  margin-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) * -1);
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 10px; display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }
 .back-btn {
@@ -313,7 +313,7 @@ onMounted(() => {
   border-top: 0.5px solid rgba(60,60,67,0.1);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px; z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0));
 }
 .select-all { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #666; cursor: pointer; }
 .summary { display: flex; align-items: center; gap: 12px; }

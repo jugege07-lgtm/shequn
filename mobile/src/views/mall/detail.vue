@@ -313,7 +313,7 @@ const handleComboBuy = () => {
 .stepper-btn { width: 32px; height: 32px; background: #f9fafb; border: none; font-size: 16px; color: var(--color-text-primary); cursor: pointer; }
 .stepper-btn:disabled { color: #d1d5db; cursor: not-allowed; }
 .stepper-value { min-width: 44px; text-align: center; font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
-.bottom-action { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; padding: 12px 16px env(safe-area-inset-bottom, 12px); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200; }
+.bottom-action { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; padding: 12px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 12px)); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200; }
 .bottom-action.dual-action,
 .bottom-action.points-only { display: flex; gap: 12px; }
 .cart-btn { flex: 1; padding: 14px; border: 1px solid var(--color-primary); border-radius: 12px; background: #fff; color: var(--color-primary); font-size: 16px; font-weight: 600; cursor: pointer; }

@@ -184,7 +184,7 @@ watch(
   width: 100%; max-width: 430px;
   background: #fff;
   border-radius: 20px 20px 0 0;
-  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  padding: 20px 20px calc(20px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
   max-height: 86vh;
   display: flex; flex-direction: column;
 }

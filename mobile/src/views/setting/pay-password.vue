@@ -167,7 +167,7 @@ function showToast(msg: string) {
 .pp-header {
   background: #ffffff; color: #1e1b4b;
   /* 顶部安全区并入白色 Header，背景向上延伸覆盖状态栏，内容避让 */
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 0;
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 16px 0;
 }
 .header-title-row {
   position: relative; display: flex; align-items: center; justify-content: center;
@@ -220,7 +220,7 @@ function showToast(msg: string) {
 .form-tip { font-size: 12px; color: #9ca3af; line-height: 1.6; }
 .bottom-action {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 430px; padding: 12px 16px env(safe-area-inset-bottom, 12px);
+  width: 100%; max-width: 430px; padding: 12px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 12px));
   background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200;
 }

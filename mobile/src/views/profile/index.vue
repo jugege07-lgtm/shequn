@@ -712,7 +712,7 @@ onMounted(() => {
   display: flex; background: rgba(255,255,255,0.95);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60,60,67,0.1);
-  padding: 6px 0 env(safe-area-inset-bottom, 6px); z-index: 200;
+  padding: 6px 0 var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 6px)); z-index: 200;
 }
 .tab {
   flex: 1; display: flex; flex-direction: column; align-items: center;

@@ -165,6 +165,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { register, sendCode } from '@/api'
 import { useUserStore } from '@/store/user'
+import { refreshUserAfterLogin } from '@/utils/auth'
 
 const router = useRouter()
 const logoUrl = `${import.meta.env.BASE_URL}logo.jpg`
@@ -274,7 +275,8 @@ async function handleRegister() {
     })
     // 通过 user store 统一管理凭证持久化
     userStore.setToken(res.accessToken, res.refreshToken)
-    userStore.setUserInfo(res.user)
+    // 刷新完整用户信息（含 vipLevel）
+    await refreshUserAfterLogin(res.user)
     toast('注册成功')
     // 注册成功后回跳到 redirect 或主界面
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
@@ -313,7 +315,7 @@ async function handleRegister() {
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
   /* 顶部安全区：渐变背景向上延伸覆盖状态栏，内容避让不被遮挡 */
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px; flex-shrink: 0;
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 16px 12px; flex-shrink: 0;
 }
 .back-btn {
   width: 36px; height: 36px; border-radius: 50%;
@@ -474,7 +476,7 @@ async function handleRegister() {
 .bottom-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 430px;
-  padding: 12px 16px env(safe-area-inset-bottom, 12px);
+  padding: 12px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 12px));
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60,60,67,0.1);

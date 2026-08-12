@@ -240,8 +240,8 @@ onMounted(() => {
   background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  margin-top: calc(env(safe-area-inset-top, 0px) * -1);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  margin-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) * -1);
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

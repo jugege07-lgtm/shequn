@@ -614,7 +614,7 @@ onMounted(() => {
 .points-max { font-size: 12px; color: var(--color-text-tertiary); }
 .bottom-bar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px;
-  padding: 10px 16px env(safe-area-inset-bottom, 10px); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
+  padding: 10px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 10px)); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200;
   display: flex; align-items: center; gap: 12px;
 }
@@ -625,7 +625,7 @@ onMounted(() => {
 .submit-btn { padding: 12px 24px; border: none; border-radius: 99px; background: var(--color-primary); color: #fff; font-size: 15px; font-weight: 600; }
 .submit-btn:disabled { opacity: 0.6; }
 .picker-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; display: flex; align-items: flex-end; }
-.picker-panel { width: 100%; max-width: 430px; margin: 0 auto; background: #fff; border-radius: 20px 20px 0 0; padding: 16px 16px env(safe-area-inset-bottom, 16px); }
+.picker-panel { width: 100%; max-width: 430px; margin: 0 auto; background: #fff; border-radius: 20px 20px 0 0; padding: 16px 16px var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 16px)); }
 .picker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 16px; font-weight: 700; }
 .picker-close { font-size: 14px; color: var(--color-text-secondary); }
 .address-list { max-height: 60vh; overflow-y: auto; }
