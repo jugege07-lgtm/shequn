@@ -117,8 +117,13 @@ const handleSubmit = async () => {
   if (!form.value.coverImage) { alert('请上传活动封面'); return }
   if (!form.value.startTime) { alert('请选择活动时间'); return }
   if (!form.value.location) { alert('请输入活动地点'); return }
+  if (!form.value.desc) { alert('请输入活动介绍'); return }
   submitting.value = true
   try {
+    // datetime-local 可能返回 "2026-08-12T14:30"（无秒），补全秒数以通过后端 ISO 时间校验
+    const normalizeDt = (v: string) =>
+      v && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) ? `${v}:00` : v
+    const startTime = normalizeDt(form.value.startTime)
     await createActivity({
       title: form.value.title,
       coverImage: form.value.coverImage,
@@ -126,8 +131,8 @@ const handleSubmit = async () => {
       type: form.value.type,
       price: Number(form.value.price) || 0,
       location: form.value.location,
-      startTime: form.value.startTime,
-      endTime: form.value.startTime,
+      startTime,
+      endTime: startTime,
       maxParticipants: Number(form.value.maxPeople) || undefined,
     })
     alert('发布成功')

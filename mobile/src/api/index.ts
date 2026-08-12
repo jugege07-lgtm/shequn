@@ -7,7 +7,8 @@ export async function getHomepageData() {
 }
 
 export async function getAnnouncements() {
-  return request.get('/api/public/announcements')
+  // 后台轮询请求：失败时不弹 toast，避免误报网络错误
+  return request.get('/api/public/announcements', { _noToast: true } as any)
 }
 
 export async function globalSearch(keyword: string) {
@@ -23,7 +24,8 @@ export async function getHomeSections() {
 }
 
 export async function checkAppVersion(platform: string, versionCode: number) {
-  return request.get('/api/public/version/check', { params: { platform, versionCode } })
+  // 后台静默检查：失败时不弹 toast，避免误报网络错误
+  return request.get('/api/public/version/check', { params: { platform, versionCode }, _noToast: true } as any)
 }
 
 export async function getSystemConfig(key: string) {

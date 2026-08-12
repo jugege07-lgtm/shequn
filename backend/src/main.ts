@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { ValidationError } from 'class-validator';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as express from 'express';
 import * as path from 'path';
@@ -9,6 +10,38 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { OperationLogInterceptor } from './common/interceptors/operation-log.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { PrismaService } from './common/prisma/prisma.service';
+
+// class-validator 默认提示 → 中文提示 的映射
+const VALIDATION_MESSAGE_ZH: Record<string, string> = {
+  isNotEmpty: '不能为空',
+  isString: '必须为字符串',
+  isNumber: '必须为数字',
+  isInt: '必须为整数',
+  isDateString: '不是有效的时间格式',
+  isBoolean: '必须为布尔值',
+  isArray: '必须为数组',
+  isEnum: '取值不合法',
+  isEmail: '邮箱格式不正确',
+  isPhone: '手机号格式不正确',
+  min: '数值过小',
+  max: '数值过大',
+  minLength: '长度不足',
+  maxLength: '长度超限',
+  isOptional: '不能为可选',
+  isDefined: '不能为空',
+  isObject: '必须为对象',
+  isNumberString: '必须为数字',
+  isUrl: '不是有效的网址',
+};
+
+function toChineseValidationMessage(errors: ValidationError[]): string {
+  const first = errors[0];
+  if (!first) return '参数校验失败';
+  const constraints = first.constraints || {};
+  const key = Object.keys(constraints)[0];
+  const zh = VALIDATION_MESSAGE_ZH[key] || '格式不正确';
+  return `${first.property}${zh}`;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
@@ -34,6 +67,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       stopAtFirstError: true,
+      // 将 class-validator 默认英文提示转换为中文，避免用户看到英文错误
+      exceptionFactory: (errors) => new BadRequestException(toChineseValidationMessage(errors)),
     }),
   );
 

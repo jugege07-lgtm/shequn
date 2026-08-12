@@ -155,16 +155,36 @@ request.interceptors.response.use(
       errorMsg = respData.message
     }
 
-    // 401 已在上方处理，其他状态码才显示 toast
-    if (status !== 401) {
-      showToast(errorMsg, 'none')
+    // 清理错误信息：去掉网址、URL 和 axios 英文技术文案，只保留可读的业务提示
+    const cleaned = cleanErrorMessage(errorMsg)
+
+    // 401 已在上方处理，其他状态码才显示 toast（展示清理后的中文提示）
+    // 后台静默请求（版本检查、公告轮询等 _noToast=true）失败时不弹 toast，避免误报网络错误
+    if (status !== 401 && !originalRequest?._noToast) {
+      showToast(cleaned, 'none')
     }
 
-    // 将错误消息挂载到 error 上，方便调用方读取
-    error.userMessage = errorMsg
+    // 同时覆盖 error.message，避免调用方（如 publish.vue 的 alert(err.message)）
+    // 展示 axios 原始英文提示（如 "Request failed with status code 400"）或包含网址的信息
+    error.message = cleaned
+    error.userMessage = cleaned
     return Promise.reject(error)
   }
 )
+
+// 清理错误信息：过滤网址 / URL / axios 英文技术文案，兜底返回 "请求失败"
+function cleanErrorMessage(msg: unknown): string {
+  if (!msg) return '请求失败'
+  let text = String(msg)
+  text = text
+    .replace(/https?:\/\/\S+/g, '') // 去掉 http(s) 网址
+    .replace(/\/api\/[\w/-]*/g, '') // 去掉接口路径
+    .replace(/Request failed with status code\s*\d*/gi, '') // 去掉 axios 英文技术提示
+    .replace(/Network Error/gi, '')
+    .trim()
+  if (!text) return '请求失败'
+  return text
+}
 
 // 轻量 Toast 工具
 function showToast(msg: string, type: string = 'none') {

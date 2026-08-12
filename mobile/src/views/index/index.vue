@@ -571,7 +571,8 @@ function applyData(data: any) {
       return {
         id: a.id,
         title: a.title,
-        coverImage: a.coverImage || '',
+        // 封面图必须规范化：原生 App 中相对 /uploads/ 需补全绝对 API 地址，否则图片加载失败
+        coverImage: a.coverImage ? normalizeImageUrl(a.coverImage) : '',
         coverError: false,  // <img> 加载失败时翻为 true，触发回退渲染
         coverFallbackStyle: { background: baseColor },
         emoji: emojiList[a.id % emojiList.length],
