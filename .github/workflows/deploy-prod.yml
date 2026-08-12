@@ -74,10 +74,11 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
           # 将源码包和部署脚本上传到服务器 /tmp
-          scp -o StrictHostKeyChecking=yes \
+          # 用 timeout 包裹 scp：服务器无响应时 120s 快速失败，避免挂满整个 job 的 30 分钟预算
+          timeout 120 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
             /tmp/shequn-src.tar.gz \
             ${SSH_USER}@${SSH_HOST}:/tmp/shequn-src.tar.gz
-          scp -o StrictHostKeyChecking=yes \
+          timeout 120 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
             deploy/scripts/deploy.sh \
             ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh
           echo "源码上传完成"
