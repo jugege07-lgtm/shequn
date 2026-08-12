@@ -53,6 +53,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
         run: |
           # 打包源码（排除 node_modules、dist、.env 等）
+          # seed-assets(演示图,约12MB)不打包：服务器 uploads 已有这些图且部署时会备份恢复，排除后可大幅减小包体积
           cd $GITHUB_WORKSPACE
           tar -czf /tmp/shequn-src.tar.gz \
             --exclude='node_modules' \
@@ -64,6 +65,7 @@ jobs:
             --exclude='deploy/logs' \
             --exclude='mobile/android' \
             --exclude='.git' \
+            --exclude='backend/seed-assets' \
             .
           echo "打包完成: $(du -h /tmp/shequn-src.tar.gz | cut -f1)"
           echo "$GITHUB_SHA" > /tmp/deploy_sha.txt
@@ -104,8 +106,8 @@ jobs:
           SRC_BASE="shequn_src.tar.gz"
           CHUNKS_DIR="/tmp/shequn-chunks"
           rm -rf "$CHUNKS_DIR" && mkdir -p "$CHUNKS_DIR"
-          # 切成 4MB 一块（约 5-6 块）
-          split -b 4M /tmp/shequn-src.tar.gz "${CHUNKS_DIR}/part_"
+          # 切成 1MB 一块（约 8 块，链路实测约 30-40KB/s，1MB 约 30-40s，留足余量）
+          split -b 1M /tmp/shequn-src.tar.gz "${CHUNKS_DIR}/part_"
           CHUNK_COUNT=$(ls "${CHUNKS_DIR}"/part_* | wc -l | tr -d ' ')
           echo "已切分 ${CHUNK_COUNT} 块"
           ls -lh "${CHUNKS_DIR}"/part_* | awk '{print $NF, $5}'
@@ -121,7 +123,7 @@ jobs:
             ok=0
             for attempt in 1 2 3 4 5; do
               echo "上传 $base (第 $attempt 次)..."
-              if timeout 120 scp $SCP_OPTS "$f" ${SSH_USER}@${SSH_HOST}:/tmp/shequn-chunks/$base 2>/dev/null; then
+              if timeout 180 scp $SCP_OPTS "$f" ${SSH_USER}@${SSH_HOST}:/tmp/shequn-chunks/$base 2>/dev/null; then
                 # 校验当前块大小是否一致
                 local_sz=$(stat -c%s "$f")
                 remote_sz=$(ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=20 ${SSH_USER}@${SSH_HOST} "stat -c%s /tmp/shequn-chunks/$base" 2>/dev/null)
