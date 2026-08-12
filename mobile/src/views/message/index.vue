@@ -29,7 +29,15 @@ const messages = ref<any[]>([])
 
 function formatTime(input: string | number | Date): string {
   if (!input) return ''
-  const d = new Date(input)
+  let d = new Date(input)
+  // 后端返回的时间若不含时区后缀（如 "2026-08-10 03:04:00" 而非 ISO 的 ...Z/+08:00），
+  // JS 会误当作本地时间解析，导致 UTC 时间未转换。此处统一按 UTC 再转本地时区展示。
+  if (typeof input === 'string') {
+    const hasZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(input.trim())
+    if (!hasZone && !isNaN(d.getTime())) {
+      d = new Date(d.getTime() + d.getTimezoneOffset() * 60000)
+    }
+  }
   if (isNaN(d.getTime())) return String(input)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`

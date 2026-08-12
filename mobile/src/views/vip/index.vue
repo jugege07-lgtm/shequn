@@ -29,15 +29,17 @@
       </div>
     </div>
     <div class="bottom-action">
-      <button class="subscribe-btn" @click="handleSubscribe">立即开通</button>
+      <button class="subscribe-btn" @click="handleSubscribe">{{ subscribeBtnText }}</button>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getVipPlans, subscribeVip } from '@/api'
+import { useUserStore } from '@/store/user'
 const router = useRouter()
+const userStore = useUserStore()
 const selectedPlan = ref<number | null>(null)
 const benefits = ref([
   { id: 1, icon: '🎯', title: '优先报名', desc: '热门活动优先报名权' },
@@ -46,6 +48,16 @@ const benefits = ref([
   { id: 4, icon: '📊', title: '数据看板', desc: '查看名片浏览数据分析' },
 ])
 const plans = ref<any[]>([])
+
+// 当前用户是否已开通 VIP（从数据库实时读取的 userInfo）
+const isVipActive = computed(() => {
+  const u = userStore.userInfo
+  if (!u) return false
+  if ((u.vipLevel || 0) < 1) return false
+  if (u.vipExpireAt && new Date(u.vipExpireAt).getTime() < Date.now()) return false
+  return true
+})
+const subscribeBtnText = computed(() => (isVipActive.value ? '续费' : '立即开通'))
 
 onMounted(async () => {
   try {

@@ -391,10 +391,11 @@ onMounted(() => {
 
 .header {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(255,255,255,0.95);
+  background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  padding: 10px 16px;
+  margin-top: calc(env(safe-area-inset-top, 0px) * -1);
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

@@ -15,7 +15,8 @@ body {
 /* Header */
 .header {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(255,255,255,0.88);
+  /* 实心白：保证向上延伸覆盖状态栏时无明显灰色断层（原生 WebView 下 backdrop-filter 不可靠） */
+  background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
   /* 抵消 phone-frame 的顶部安全区，Header 背景向上延伸覆盖状态栏；

@@ -43,23 +43,25 @@
         <div class="coupon-item-right">
           <div class="coupon-item-name">{{ c.name }}</div>
           <div class="coupon-item-desc" v-if="c.description">{{ c.description }}</div>
-          <div class="coupon-item-info">
-            <span v-if="c.validFrom || c.validTo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-              {{ formatRange(c) }}
-            </span>
-            <span v-else>领后 {{ c.validDays }} 天有效</span>
-            <span class="remaining">剩 {{ c.remaining }} 张</span>
+          <div class="coupon-item-bottom">
+            <div class="coupon-item-info">
+              <span v-if="c.validFrom || c.validTo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                {{ formatRange(c) }}
+              </span>
+              <span v-else>领后 {{ c.validDays }} 天有效</span>
+              <span class="remaining">剩 {{ c.remaining }} 张</span>
+            </div>
+            <button
+              class="claim-btn"
+              :class="['btn-' + claimState(c).code]"
+              :disabled="claimState(c).disabled || claimingId === c.id"
+              @click.stop="handleClaim(c)"
+            >
+              <span v-if="claimingId === c.id">领取中...</span>
+              <span v-else>{{ claimState(c).label }}</span>
+            </button>
           </div>
-          <button
-            class="claim-btn"
-            :class="['btn-' + claimState(c).code]"
-            :disabled="claimState(c).disabled || claimingId === c.id"
-            @click.stop="handleClaim(c)"
-          >
-            <span v-if="claimingId === c.id">领取中...</span>
-            <span v-else>{{ claimState(c).label }}</span>
-          </button>
         </div>
       </div>
     </div>
@@ -173,8 +175,12 @@ onMounted(loadCoupons)
 
 .header {
   position: sticky; top: 0; z-index: 100;
-  background: #fff; border-bottom: 0.5px solid #eee;
-  padding: 10px 16px; display: flex; align-items: center;
+  background: #ffffff;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid #eee;
+  margin-top: calc(env(safe-area-inset-top, 0px) * -1);
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  display: flex; align-items: center;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }
 .back-btn {
@@ -254,17 +260,24 @@ onMounted(loadCoupons)
 }
 .coupon-item-info {
   font-size: 11px; color: #999;
-  display: flex; gap: 12px; flex-wrap: wrap;
-  margin-top: auto; padding-top: 4px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  flex: 1; min-width: 0;
 }
 .coupon-item-info span { display: flex; align-items: center; gap: 3px; }
-.coupon-item-info svg { width: 11px; height: 11px; }
-.coupon-item-info .remaining { color: #ef4444; }
+.coupon-item-info svg { width: 11px; height: 11px; flex-shrink: 0; }
+.coupon-item-info .remaining { color: #ef4444; white-space: nowrap; }
+
+/* ===== 底部条：信息 + 领取按钮（同行 flex 布局，避免小屏遮挡）===== */
+.coupon-item-bottom {
+  margin-top: auto; padding-top: 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+}
 
 /* ===== 领取按钮 ===== */
 .claim-btn {
-  position: absolute; right: 14px; bottom: 10px;
-  padding: 5px 18px; border-radius: 20px; border: none;
+  flex-shrink: 0; white-space: nowrap;
+  padding: 5px 16px; border-radius: 20px; border: none;
   background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
   font-size: 12px; font-weight: 600; cursor: pointer;
   transition: opacity 0.2s, transform 0.15s;
