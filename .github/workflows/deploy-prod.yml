@@ -68,6 +68,25 @@ jobs:
           echo "打包完成: $(du -h /tmp/shequn-src.tar.gz | cut -f1)"
           echo "$GITHUB_SHA" > /tmp/deploy_sha.txt
 
+      - name: Pre-deploy server stabilization
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # 部署前先 SSH 检查服务器资源，清理上次失败部署残留的构建/传输进程，避免内存耗尽导致 scp 挂起
+          ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+            ${SSH_USER}@${SSH_HOST} '
+            echo "=== 内存 ==="; free -m | head -2
+            echo "=== 清理残留 npm/构建进程 ==="
+            pkill -f "npm ci" 2>/dev/null; pkill -f "npm install" 2>/dev/null; pkill -f "ts-node" 2>/dev/null; pkill -f "prisma" 2>/dev/null || true
+            echo "=== 结束陈旧的 scp/sftp 会话 ==="
+            pkill -f "sftp-server" 2>/dev/null; pkill -f "scp" 2>/dev/null || true
+            sync 2>/dev/null || true
+            echo "=== 清理后内存 ==="; free -m | head -2
+            echo "=== 后端 PM2 状态 ==="
+            pm2 jlist 2>/dev/null | node -e "let d=\"\";process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{try{JSON.parse(d).forEach(p=>console.log(p.name,\"| status:\"+p.pm2_env.status,\"| restarts:\"+p.pm2_env.restart_time))}catch(e){console.log(\"parse fail\")}})" 2>/dev/null || pm2 status 2>/dev/null
+          '
+
       - name: Upload source to server
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
