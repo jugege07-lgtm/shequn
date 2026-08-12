@@ -27,6 +27,14 @@ import { getMessages, markMessageRead, respondConnection } from '@/api'
 
 const messages = ref<any[]>([])
 
+function formatTime(input: string | number | Date): string {
+  if (!input) return ''
+  const d = new Date(input)
+  if (isNaN(d.getTime())) return String(input)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function iconClassOf(type: string) {
   if (type === 'activity') return 'green'
   if (type === 'order') return 'orange'
@@ -62,7 +70,7 @@ onMounted(async () => {
         id: m.id,
         title: m.title,
         desc,
-        time: m.createdAt,
+        time: formatTime(m.createdAt),
         iconClass: iconClassOf(m.type),
         isRead: m.isRead,
         type: m.type,

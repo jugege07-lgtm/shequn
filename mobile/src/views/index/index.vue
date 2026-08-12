@@ -439,9 +439,13 @@ function goBusiness(id: number) { closeSearch(); router.push(`/business/detail/$
 function goProduct(id: number) { closeSearch(); router.push(`/mall/detail/${id}`) }
 
 function goAnnouncement() {
-  if (!announcements.value.length) return
+  if (!announcements.value.length) {
+    router.push('/message/index')
+    return
+  }
   const first = announcements.value[0]
   if (first?.url) window.open(first.url, '_blank')
+  else router.push('/message/index')
 }
 
 // ===== 公告 =====

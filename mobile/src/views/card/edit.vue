@@ -120,7 +120,8 @@ onMounted(async () => {
       } else if (typeof tagValue === 'string' && tagValue) {
         try {
           const parsed = JSON.parse(tagValue)
-          form.tags = Array.isArray(parsed) ? parsed.join(',') : tagValue
+          // 兼容空对象/对象字符串（如 "{}"），仅当解析为数组时才展示逗号拼接
+          form.tags = Array.isArray(parsed) ? parsed.join(',') : ''
         } catch {
           form.tags = tagValue
         }

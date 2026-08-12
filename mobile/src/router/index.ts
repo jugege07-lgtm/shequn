@@ -47,6 +47,26 @@ const routes = [
   { path: '/cart/index', name: 'CartIndex', component: () => import('@/views/cart/index.vue'), meta: { requiresAuth: true } },
   { path: '/setting/index', name: 'SettingIndex', component: () => import('@/views/setting/index.vue'), meta: { requiresAuth: true } },
   { path: '/setting/pay-password', name: 'SettingPayPassword', component: () => import('@/views/setting/pay-password.vue'), meta: { requiresAuth: true } },
+
+  // ===== 兼容短路径直达：避免直接访问白屏 =====
+  { path: '/mall', redirect: '/mall/index' },
+  { path: '/message', redirect: '/message/index' },
+  { path: '/about', redirect: '/about/index' },
+  { path: '/order', redirect: '/order/list' },
+  { path: '/activity/create', redirect: '/activity/publish' },
+  { path: '/coupon/my', redirect: '/coupon/index' },
+  { path: '/profile', redirect: '/profile/index' },
+  { path: '/card', redirect: '/card/index' },
+  { path: '/cart', redirect: '/cart/index' },
+  { path: '/coupon', redirect: '/coupon/index' },
+  { path: '/dajia', redirect: '/dajia/index' },
+  { path: '/vip', redirect: '/vip/index' },
+  { path: '/points', redirect: '/points/index' },
+  { path: '/balance', redirect: '/balance/index' },
+  { path: '/history', redirect: '/history/index' },
+  { path: '/setting', redirect: '/setting/index' },
+  // 兜底：未匹配路径一律回首页，杜绝白屏
+  { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 // 部署在子路径 /h5/ 下，history 模式必须显式指定 base，否则刷新或 push 会跳到根域导致 404

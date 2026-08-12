@@ -348,7 +348,7 @@ async function loadActivity() {
       favoriteCount: data.favoriteCount ?? 0,
       signupUsers: data.signupUsers || [],
       status: data.status || '',
-      publisherName: data.publisher?.name || data.publisherName || '',
+      publisherName: data.publisher?.nickname || data.publisher?.name || data.publisherName || '',
     }
     // 已报名成员头像（规范化图片地址）
     signupUsers.value = (data.signupUsers || [])

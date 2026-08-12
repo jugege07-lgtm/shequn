@@ -122,7 +122,9 @@ function validate(): boolean {
   if (!form.password || form.password.length < 6) {
     errors.password = '新密码至少6位'; ok = false
   }
-  if (form.password !== form.confirmPassword) {
+  if (!form.confirmPassword) {
+    errors.confirmPassword = '请再次输入确认密码'; ok = false
+  } else if (form.password !== form.confirmPassword) {
     errors.confirmPassword = '两次密码不一致'; ok = false
   }
   return ok

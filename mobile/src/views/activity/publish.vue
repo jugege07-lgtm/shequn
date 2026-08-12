@@ -64,6 +64,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createActivity, getActivityTypes, uploadFile } from '@/api'
+import { showToast } from '@/utils/toast'
 
 const router = useRouter()
 const form = ref({
@@ -112,12 +113,12 @@ async function onCoverChange(e: Event) {
 }
 
 const handleSubmit = async () => {
-  if (!form.value.title) { alert('请输入活动名称'); return }
-  if (!form.value.type) { alert('请选择活动类型'); return }
-  if (!form.value.coverImage) { alert('请上传活动封面'); return }
-  if (!form.value.startTime) { alert('请选择活动时间'); return }
-  if (!form.value.location) { alert('请输入活动地点'); return }
-  if (!form.value.desc) { alert('请输入活动介绍'); return }
+  if (!form.value.title) { showToast('请输入活动名称'); return }
+  if (!form.value.type) { showToast('请选择活动类型'); return }
+  if (!form.value.coverImage) { showToast('请上传活动封面'); return }
+  if (!form.value.startTime) { showToast('请选择活动时间'); return }
+  if (!form.value.location) { showToast('请输入活动地点'); return }
+  if (!form.value.desc) { showToast('请输入活动介绍'); return }
   submitting.value = true
   try {
     // datetime-local 可能返回 "2026-08-12T14:30"（无秒），补全秒数以通过后端 ISO 时间校验
@@ -135,10 +136,10 @@ const handleSubmit = async () => {
       endTime: startTime,
       maxParticipants: Number(form.value.maxPeople) || undefined,
     })
-    alert('发布成功')
-    router.back()
+    showToast('发布成功')
+    setTimeout(() => router.back(), 600)
   } catch (err: any) {
-    alert(err.message || '发布失败')
+    showToast(err.userMessage || err.message || '发布失败')
   } finally {
     submitting.value = false
   }

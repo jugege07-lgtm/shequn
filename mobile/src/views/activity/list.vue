@@ -96,14 +96,27 @@ function mapActivity(item: any) {
     cover: item.coverImage ? `url(${item.coverImage})` : 'linear-gradient(135deg,#818cf8,#6366f1)',
     statusText: item.status === 'approved' ? '报名中' : item.status === 'pending' ? '待审核' : '已结束',
     statusClass: item.status === 'approved' ? '' : item.status === 'pending' ? '' : 'full',
-    date: item.startTime ? new Date(item.startTime).toLocaleDateString() : '待定',
+    date: formatActivityDate(item.startTime),
     location: item.location || '待定',
     capacity: item.maxParticipants ? `限${item.maxParticipants}人` : '不限人数',
     price: item.price ?? 0,
     isFree: (item.price ?? 0) === 0,
     participants: `${item.signupCount || 0}人`,
-    views: '1.2k',
+    views: formatViews(item.viewCount || 0),
   }
+}
+
+function formatActivityDate(input: string | number | Date | null | undefined): string {
+  if (!input) return '待定'
+  const d = new Date(input)
+  if (isNaN(d.getTime())) return '待定'
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+function formatViews(n: number): string {
+  if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + 'w'
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+  return String(n)
 }
 
 async function loadActivities() {
