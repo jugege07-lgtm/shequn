@@ -1,0 +1,36 @@
+name: Diag - Inspect backend & PM2
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 6
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Add host fingerprint
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+      - name: Inspect backend & PM2
+        env:
+          H: ${{ secrets.SSH_HOST }}
+          U: ${{ secrets.SSH_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=yes "$U@$H" '
+            echo "=== PM2 进程状态 ==="
+            pm2 jlist 2>/dev/null | node -e "let d=\"\";process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{try{const a=JSON.parse(d);a.forEach(p=>console.log(p.name,\"| status:\"+p.pm2_env.status,\"| restarts:\"+p.pm2_env.restart_time,\"| unstable_restarts:\"+p.pm2_env.unstable_restarts,\"| uptime_ms:\"+p.pm2_env.pm_uptime?\"\":\"\",\"| mem:\"+Math.round((p.monit?.memory||0)/1048576)+\"MB\",\"| cpu:\"+Math.round(p.monit?.cpu||0)+\"%\"))}catch(e){console.log(\"jlist parse fail:\",e.message)}})" 2>/dev/null || pm2 status 2>/dev/null
+            echo "=== 内存/磁盘 ==="
+            free -m | head -2
+            df -h /home | tail -1
+            echo "=== 后端最近日志(错误/异常) ==="
+            pm2 logs shequn-backend --lines 300 --nostream 2>/dev/null | grep -iE "error|exception|crash|memory|heap|unhandled|killed|fatal|EADDR|ECONN|prisma|timeout" | tail -40
+            echo "=== 后端最近日志(最后20行) ==="
+            pm2 logs shequn-backend --lines 20 --nostream 2>/dev/null | tail -20
+            echo "=== PM2 全部错误日志 tail ==="
+            tail -50 ~/.pm2/logs/shequn-backend-error*.log 2>/dev/null | tail -40
+          '
