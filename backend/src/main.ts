@@ -53,7 +53,9 @@ async function bootstrap() {
   }
   // 静态文件也要返回 CORS 头，否则 Capacitor 原生 App（origin 为 https://localhost）跨域加载
   // /api/uploads/ 下的图片时会被浏览器拦截，导致分享海报等封面图加载失败
-  const staticCors = (_req: any, res: any) => {
+  // 注意：express.static 的 setHeaders 回调签名为 (res, path, stat)，必须按此顺序接收，
+  //       否则 res 会拿到 path（字符串），调用 res.setHeader 将抛 "res.setHeader is not a function" 崩溃
+  const staticCors = (res: any, _path: string, _stat: any) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
