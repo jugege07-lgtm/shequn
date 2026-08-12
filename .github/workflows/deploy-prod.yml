@@ -30,7 +30,7 @@ jobs:
   deploy:
     name: Build & Deploy (pm2+Caddy)
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -94,31 +94,50 @@ jobs:
         run: |
           # 将源码包和部署脚本上传到服务器 /tmp，并做 sha256 校验，损坏/不完整则重试
           # 服务器因后端崩溃循环而不稳定时，scp 可能返回成功但文件被截断，必须校验
+          # 本机(GitHub Runner/美国)到腾讯云(中国)链路较慢，scp 超时需放宽到 300s，并加 keepalive 防中途断连
+          SCP_OPTS="-o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
           LOCAL_SHA=$(sha256sum /tmp/shequn-src.tar.gz | awk '{print $1}')
           echo "本地 sha256: $LOCAL_SHA"
-          for attempt in 1 2 3 4; do
+          upload_ok=0
+          for attempt in 1 2 3 4 5; do
             echo "上传源码 (第 $attempt 次)..."
-            timeout 90 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+            if timeout 300 scp $SCP_OPTS \
               /tmp/shequn-src.tar.gz \
-              ${SSH_USER}@${SSH_HOST}:/tmp/shequn-src.tar.gz || { echo "scp 源码失败"; sleep 3; continue; }
-            timeout 60 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
-              deploy/scripts/deploy.sh \
-              ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh || { echo "scp 脚本失败"; sleep 3; continue; }
-            REMOTE_SHA=$(ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
-              ${SSH_USER}@${SSH_HOST} "sha256sum /tmp/shequn-src.tar.gz | awk '{print \$1}'" 2>/dev/null)
-            echo "远端 sha256: $REMOTE_SHA"
-            if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
-              echo "源码包校验通过 ✓"
-              break
+              ${SSH_USER}@${SSH_HOST}:/tmp/shequn-src.tar.gz; then
+              echo "scp 源码命令成功，等待落盘..."
+              sleep 2
+              REMOTE_SHA=$(ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=20 ${SSH_USER}@${SSH_HOST} "sha256sum /tmp/shequn-src.tar.gz | awk '{print \$1}'" 2>/dev/null)
+              if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
+                echo "源码包校验通过 ✓"
+                upload_ok=1
+                break
+              else
+                echo "校验不匹配(远端:${REMOTE_SHA:-空})，重试..."
+                sleep 3
+                continue
+              fi
             else
-              echo "校验不匹配，重试..."
+              echo "scp 源码失败(超时/断连)，3s 后重试..."
               sleep 3
             fi
           done
-          if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+          if [ "$upload_ok" != "1" ]; then
             echo "源码包多次上传均校验失败"
             exit 1
           fi
+          # 上传部署脚本（脚本较小，单独传）
+          for attempt in 1 2 3; do
+            echo "上传部署脚本 (第 $attempt 次)..."
+            if timeout 120 scp $SCP_OPTS \
+              deploy/scripts/deploy.sh \
+              ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh; then
+              echo "部署脚本上传成功 ✓"
+              break
+            else
+              echo "scp 脚本失败，3s 后重试..."
+              sleep 3
+            fi
+          done
 
       - name: Deploy on server
         env:
