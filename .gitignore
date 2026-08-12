@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# 注意：package-lock.json 需提交，CI 依赖其执行 npm ci 与依赖缓存
 yarn.lock
 pnpm-lock.yaml
 
