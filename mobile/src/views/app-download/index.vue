@@ -69,6 +69,7 @@
           <span>下载 Android 版</span>
         </a>
         <div class="download-tip">或复制链接到浏览器安装</div>
+        <div class="download-version" v-if="apkVersion">最新版本构建时间：{{ apkVersion }}</div>
       </div>
 
       <!-- PWA tips -->
@@ -114,7 +115,8 @@
 import { ref, onMounted, nextTick } from 'vue'
 import QRCode from 'qrcode'
 
-const apkUrl = `${import.meta.env.BASE_URL || '/h5/'}app/shequn.apk`
+const apkUrl = ref(`${import.meta.env.BASE_URL || '/h5/'}app/shequn.apk`)
+const apkVersion = ref('')
 const logoSrc = `${import.meta.env.BASE_URL || '/h5/'}logo.jpg`
 
 const features = [
@@ -232,7 +234,7 @@ async function handleShare() {
 function handleDownload() {
   // PC 直接跳转下载；移动端记为下载意图提示
   showToast(window.navigator.userAgent ? '开始下载，请稍候...' : '开始下载')
-  window.location.href = apkUrl
+  window.location.href = apkUrl.value
 }
 
 function handleSavePoster() {
@@ -268,8 +270,20 @@ async function handleShareLink() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.title = '下载 App'
+  // 读取服务器上最新版本的构建时间戳，展示并下载带版本号的安装包，便于确认是否为最新
+  try {
+    const base = import.meta.env.BASE_URL || '/h5/'
+    const res = await fetch(`${base}app/latest.txt`)
+    if (res.ok) {
+      const ts = (await res.text()).trim()
+      if (ts) {
+        apkVersion.value = ts
+        apkUrl.value = `${base}app/shequn_${ts}.apk`
+      }
+    }
+  } catch { /* 读取失败时回退到稳定的 shequn.apk 链接 */ }
 })
 </script>
 
@@ -380,6 +394,7 @@ onMounted(() => {
 .download-btn:active { transform: scale(0.96); }
 .download-btn svg { width: 20px; height: 20px; }
 .download-tip { margin-top: 12px; font-size: 11px; color: rgba(255,255,255,0.75); }
+.download-version { margin-top: 8px; font-size: 11px; color: rgba(255,255,255,0.85); font-weight: 600; }
 
 /* PWA */
 .pwa-card {
