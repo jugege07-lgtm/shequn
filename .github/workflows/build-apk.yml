@@ -106,9 +106,10 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          # 1) 保存到 deploy/app/（deploy-prod 部署时保留该目录，并在 deploy.sh 中恢复）
+          # 1) 清理目标目录中的所有旧 APK（确保服务器只保留最新安装包），再保存到 deploy/app/
+          #    （deploy-prod 部署时保留该目录，并在 deploy.sh 中恢复）
           ssh -o StrictHostKeyChecking=yes ${SSH_USER}@${SSH_HOST} \
-            "mkdir -p /home/ubuntu/shequn/deploy/app && mkdir -p /home/ubuntu/shequn/mobile/dist/app"
+            "mkdir -p /home/ubuntu/shequn/deploy/app && mkdir -p /home/ubuntu/shequn/mobile/dist/app && find /home/ubuntu/shequn/deploy/app /home/ubuntu/shequn/mobile/dist/app -maxdepth 1 -iname '*.apk' -delete 2>/dev/null; echo '清理完成，当前 APK 目录:'; ls -lah /home/ubuntu/shequn/deploy/app/ /home/ubuntu/shequn/mobile/dist/app/"
           scp -o StrictHostKeyChecking=yes "${{ env.APK_PATH }}" \
             ${SSH_USER}@${SSH_HOST}:/home/ubuntu/shequn/deploy/app/shequn.apk
           # 2) 同时直接放置到移动端当前 dist（Caddy/Nginx 静态服务目录），立即可通过 /h5/app/shequn.apk 下载
