@@ -73,16 +73,13 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          # 部署前先 SSH 检查服务器资源，清理上次失败部署残留的构建/传输进程，避免内存耗尽导致 scp 挂起
+          # 部署前 SSH 检查服务器资源与进程状态（仅诊断，不做危险 pkill，避免匹配到本脚本自身导致自杀）
           ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
             ${SSH_USER}@${SSH_HOST} '
             echo "=== 内存 ==="; free -m | head -2
-            echo "=== 清理残留 npm/构建进程 ==="
-            pkill -f "npm ci" 2>/dev/null; pkill -f "npm install" 2>/dev/null; pkill -f "ts-node" 2>/dev/null; pkill -f "prisma" 2>/dev/null || true
-            echo "=== 结束陈旧的 scp/sftp 会话 ==="
-            pkill -f "sftp-server" 2>/dev/null; pkill -f "scp" 2>/dev/null || true
-            sync 2>/dev/null || true
-            echo "=== 清理后内存 ==="; free -m | head -2
+            echo "=== 磁盘 ==="; df -h /home | tail -1
+            echo "=== 残留 node 进程(排除当前) ==="
+            ps -eo pid,etime,cmd | grep -E "node.*(shequn|npm|ts-node|prisma)" | grep -v grep | grep -v "bash -c" | head -10 || true
             echo "=== 后端 PM2 状态 ==="
             pm2 jlist 2>/dev/null | node -e "let d=\"\";process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{try{JSON.parse(d).forEach(p=>console.log(p.name,\"| status:\"+p.pm2_env.status,\"| restarts:\"+p.pm2_env.restart_time))}catch(e){console.log(\"parse fail\")}})" 2>/dev/null || pm2 status 2>/dev/null
           '
@@ -93,14 +90,25 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
           # 将源码包和部署脚本上传到服务器 /tmp
-          # 用 timeout 包裹 scp：服务器无响应时 120s 快速失败，避免挂满整个 job 的 30 分钟预算
-          timeout 120 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
-            /tmp/shequn-src.tar.gz \
-            ${SSH_USER}@${SSH_HOST}:/tmp/shequn-src.tar.gz
-          timeout 120 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
-            deploy/scripts/deploy.sh \
-            ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh
-          echo "源码上传完成"
+          # 用 timeout 包裹 scp：服务器无响应时快速失败；失败后自动重试 3 次
+          for attempt in 1 2 3; do
+            echo "上传源码 (第 $attempt 次)..."
+            if timeout 90 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+              /tmp/shequn-src.tar.gz \
+              ${SSH_USER}@${SSH_HOST}:/tmp/shequn-src.tar.gz \
+              && timeout 90 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+                deploy/scripts/deploy.sh \
+                ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh; then
+              echo "源码上传完成"
+              break
+            else
+              echo "第 $attempt 次上传失败，3s 后重试..."
+              sleep 3
+            fi
+          done
+          # 校验上传成功
+          ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+            ${SSH_USER}@${SSH_HOST} "test -s /tmp/shequn-src.tar.gz && echo '远端源码包存在' || echo '远端源码包缺失'"
 
       - name: Deploy on server
         env:
