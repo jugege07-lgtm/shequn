@@ -73,15 +73,18 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          # 部署前 SSH 检查服务器资源与进程状态（仅诊断，不做危险 pkill，避免匹配到本脚本自身导致自杀）
+          # 部署前 SSH 检查服务器资源与进程状态，并临时停掉后端以停止崩溃循环、释放资源
+          # （deploy.sh 部署末尾会 pm2 restart 以新代码重启后端，故此处 stop 安全）
           ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
             ${SSH_USER}@${SSH_HOST} '
             echo "=== 内存 ==="; free -m | head -2
             echo "=== 磁盘 ==="; df -h /home | tail -1
-            echo "=== 残留 node 进程(排除当前) ==="
-            ps -eo pid,etime,cmd | grep -E "node.*(shequn|npm|ts-node|prisma)" | grep -v grep | grep -v "bash -c" | head -10 || true
-            echo "=== 后端 PM2 状态 ==="
+            echo "=== 后端 PM2 状态(停之前) ==="
             pm2 jlist 2>/dev/null | node -e "let d=\"\";process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{try{JSON.parse(d).forEach(p=>console.log(p.name,\"| status:\"+p.pm2_env.status,\"| restarts:\"+p.pm2_env.restart_time))}catch(e){console.log(\"parse fail\")}})" 2>/dev/null || pm2 status 2>/dev/null
+            echo "=== 临时停止后端(停止崩溃循环) ==="
+            pm2 stop shequn-backend 2>/dev/null || true
+            sleep 2
+            echo "=== 停止后内存 ==="; free -m | head -2
           '
 
       - name: Upload source to server
@@ -89,26 +92,33 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          # 将源码包和部署脚本上传到服务器 /tmp
-          # 用 timeout 包裹 scp：服务器无响应时快速失败；失败后自动重试 3 次
-          for attempt in 1 2 3; do
+          # 将源码包和部署脚本上传到服务器 /tmp，并做 sha256 校验，损坏/不完整则重试
+          # 服务器因后端崩溃循环而不稳定时，scp 可能返回成功但文件被截断，必须校验
+          LOCAL_SHA=$(sha256sum /tmp/shequn-src.tar.gz | awk '{print $1}')
+          echo "本地 sha256: $LOCAL_SHA"
+          for attempt in 1 2 3 4; do
             echo "上传源码 (第 $attempt 次)..."
-            if timeout 90 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+            timeout 90 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
               /tmp/shequn-src.tar.gz \
-              ${SSH_USER}@${SSH_HOST}:/tmp/shequn-src.tar.gz \
-              && timeout 90 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
-                deploy/scripts/deploy.sh \
-                ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh; then
-              echo "源码上传完成"
+              ${SSH_USER}@${SSH_HOST}:/tmp/shequn-src.tar.gz || { echo "scp 源码失败"; sleep 3; continue; }
+            timeout 60 scp -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+              deploy/scripts/deploy.sh \
+              ${SSH_USER}@${SSH_HOST}:/tmp/deploy.sh || { echo "scp 脚本失败"; sleep 3; continue; }
+            REMOTE_SHA=$(ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+              ${SSH_USER}@${SSH_HOST} "sha256sum /tmp/shequn-src.tar.gz | awk '{print \$1}'" 2>/dev/null)
+            echo "远端 sha256: $REMOTE_SHA"
+            if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
+              echo "源码包校验通过 ✓"
               break
             else
-              echo "第 $attempt 次上传失败，3s 后重试..."
+              echo "校验不匹配，重试..."
               sleep 3
             fi
           done
-          # 校验上传成功
-          ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
-            ${SSH_USER}@${SSH_HOST} "test -s /tmp/shequn-src.tar.gz && echo '远端源码包存在' || echo '远端源码包缺失'"
+          if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+            echo "源码包多次上传均校验失败"
+            exit 1
+          fi
 
       - name: Deploy on server
         env:
