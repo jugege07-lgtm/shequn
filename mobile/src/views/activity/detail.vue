@@ -117,8 +117,8 @@
           <svg class="map-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </div>
       </div>
-      <!-- Description -->
-      <div class="info-card">
+      <!-- Description（活动介绍卡片：全宽，内部图片铺满屏幕宽度，其他卡片宽度不变） -->
+      <div class="info-card desc-card">
         <h3 class="section-label">活动介绍</h3>
         <div class="desc-text" v-html="activity.sanitizedDesc"></div>
       </div>
@@ -600,6 +600,24 @@ function showToast(msg: string) {
 }
 .desc-text {
   font-size: 14px; color: var(--color-text-secondary); line-height: 1.8;
+}
+
+/* 活动介绍卡片：宽度自适应为手机屏幕宽度（去掉左右边距，仅此卡片全宽，其他卡片不变） */
+.desc-card {
+  margin: 12px 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+/* 活动介绍内富文本图片：铺满全屏宽度（与主图一致），抵消卡片内边距实现边缘到边缘 */
+.desc-card .desc-text img,
+.desc-card .desc-text img[data-role="rich-image"] {
+  width: calc(100% + 32px) !important;
+  max-width: none !important;
+  height: auto !important;
+  margin: 10px -16px !important;
+  border-radius: 0 !important;
+  display: block !important;
 }
 
 .stats-card {
