@@ -53,7 +53,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
         run: |
           # 打包源码（排除 node_modules、dist、.env 等）
-          # seed-assets(演示图,约12MB)不打包：服务器 uploads 已有这些图且部署时会备份恢复，排除后可大幅减小包体积
+          # seed-assets 是种子数据引用的演示图，必须包含，部署时由 deploy.sh 同步到 uploads，不能排除
           cd $GITHUB_WORKSPACE
           tar -czf /tmp/shequn-src.tar.gz \
             --exclude='node_modules' \
@@ -65,7 +65,6 @@ jobs:
             --exclude='deploy/logs' \
             --exclude='mobile/android' \
             --exclude='.git' \
-            --exclude='backend/seed-assets' \
             .
           echo "打包完成: $(du -h /tmp/shequn-src.tar.gz | cut -f1)"
           echo "$GITHUB_SHA" > /tmp/deploy_sha.txt
