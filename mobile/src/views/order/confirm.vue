@@ -239,7 +239,8 @@ const usableCoupons = computed(() => {
       const meetMin = Number(coupon.minAmount) <= orderAmount
       let deduct = 0
       if (coupon.type === 'percent') {
-        deduct = Math.round(orderAmount * Number(coupon.value) * 100) / 100
+        // 折扣为十进制小数，如 9.5 折 ==> value = 0.95，优惠 = 总额 × (1 - value)
+        deduct = Math.round(orderAmount * (1 - Number(coupon.value)) * 100) / 100
         if (coupon.discountCap && Number(coupon.discountCap) > 0) {
           deduct = Math.min(deduct, Number(coupon.discountCap))
         }

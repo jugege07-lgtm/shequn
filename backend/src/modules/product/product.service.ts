@@ -198,7 +198,8 @@ export class ProductService {
 
     let deduct = 0;
     if (coupon.type === 'percent') {
-      deduct = Math.round(totalAmount * coupon.value * 100) / 100;
+      // 折扣为十进制小数，如 9.5 折 ==> value = 0.95，优惠 = 总额 × (1 - value)
+      deduct = Math.round(totalAmount * (1 - coupon.value) * 100) / 100;
       if (coupon.discountCap && coupon.discountCap > 0) {
         deduct = Math.min(deduct, coupon.discountCap);
       }
