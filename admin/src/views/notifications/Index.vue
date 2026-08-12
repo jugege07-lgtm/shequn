@@ -25,7 +25,9 @@
             <el-tag :type="row.isRead ? 'success' : 'warning'">{{ row.isRead ? '已读' : '未读' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="发送时间" width="180" />
+        <el-table-column label="发送时间" width="180">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+        </el-table-column>
       </el-table>
 
       <el-pagination
@@ -69,6 +71,7 @@
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '@/api/request'
+import { formatDateTime } from '@/utils/datetime'
 
 const messages = ref<any[]>([])
 const loading = ref(false)

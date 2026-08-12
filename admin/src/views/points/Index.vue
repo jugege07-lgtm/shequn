@@ -47,7 +47,9 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="创建时间" width="180" />
+      <el-table-column label="创建时间" width="180">
+        <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <el-button size="small" type="primary" @click="openEdit(row)">编辑</el-button>
@@ -137,6 +139,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, MoreFilled, Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 import request from '@/api/request'
+import { formatDateTime } from '@/utils/datetime'
 
 const loading = ref(false)
 const saving = ref(false)

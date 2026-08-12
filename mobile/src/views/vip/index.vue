@@ -43,7 +43,7 @@ const userStore = useUserStore()
 const selectedPlan = ref<number | null>(null)
 const benefits = ref([
   { id: 1, icon: '🎯', title: '优先报名', desc: '热门活动优先报名权' },
-  { id: 2, icon: '💰', title: '专属折扣', desc: '商城商品享8折优惠' },
+  { id: 2, icon: '💰', title: '专属折扣', desc: '商城商品享会员专属折扣' },
   { id: 3, icon: '🔍', title: '商机解锁', desc: '无限解锁商机联系方式' },
   { id: 4, icon: '📊', title: '数据看板', desc: '查看名片浏览数据分析' },
 ])

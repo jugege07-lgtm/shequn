@@ -20,7 +20,7 @@
           <template #default="{ row }">{{ row.user?.nickname || '-' }}</template>
         </el-table-column>
         <el-table-column label="商品" min-width="200">
-          <template #default="{ row }">{{ row.items?.[0]?.productName || '-' }}</template>
+          <template #default="{ row }">{{ getProductName(row) }}</template>
         </el-table-column>
         <el-table-column label="金额" width="120">
           <template #default="{ row }">¥{{ row.payAmount }}</template>
@@ -30,7 +30,9 @@
             <el-tag :type="getOrderStatusType(row.status)">{{ getOrderStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="下单时间" width="180" />
+        <el-table-column label="下单时间" width="180">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button size="small" v-if="row.status === 'paid'" type="primary" @click="shipOrder(row)">发货</el-button>
@@ -69,6 +71,7 @@
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/api/request'
+import { formatDateTime } from '@/utils/datetime'
 
 const statusFilter = ref('')
 const orders = ref<any[]>([])
@@ -89,6 +92,19 @@ const getOrderStatusText = (s: string) => ({
   pending_payment: '待付款', paid: '已付款', shipped: '已发货',
   completed: '已完成', refunding: '退款中', refunded: '已退款', cancelled: '已取消'
 }[s] || s)
+
+// 根据订单类型展示商品名称（活动/VIP/充值/商机类订单无 items，需特殊处理）
+function getProductName(row: any): string {
+  if (row.items && row.items.length > 0) {
+    return row.items.map((it: any) => it.productName).join('、')
+  }
+  const typeMap: Record<string, string> = {
+    activity: '活动报名', vip: 'VIP会员', recharge: '余额充值', business: '商机解锁',
+  }
+  // 优先取备注中的名称（如 "VIP开通: xxx"、"活动报名: xxx"）
+  if (row.remark) return row.remark
+  return typeMap[row.orderType] || '-'
+}
 
 async function fetchOrders() {
   loading.value = true

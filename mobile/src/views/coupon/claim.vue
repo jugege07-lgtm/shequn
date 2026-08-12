@@ -70,7 +70,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { getCoupons, claimCoupon } from '@/api'
+import { useUserStore } from '@/store/user'
+
+const router = useRouter()
+const userStore = useUserStore()
 
 const loading = ref(false)
 const claimingId = ref<number | null>(null)
@@ -145,6 +150,12 @@ async function loadCoupons() {
 async function handleClaim(c: any) {
   const state = claimState(c)
   if (state.disabled || claimingId.value !== null) return
+  // 未登录：提示并跳转登录页
+  if (!userStore.isLoggedIn) {
+    showToast('请先登录')
+    setTimeout(() => router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } }), 600)
+    return
+  }
   claimingId.value = c.id
   try {
     await claimCoupon(c.id)

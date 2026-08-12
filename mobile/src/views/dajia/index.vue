@@ -90,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getDajiaConfig, getDajiaRecommendations, requestConnection } from '@/api'
+import { getDajiaConfig, getDajiaRecommendations, requestConnection, getCurrentUser } from '@/api'
 import { useUserStore } from '@/store/user'
 import { normalizeImageUrl } from '@/utils/image'
 
@@ -136,6 +136,10 @@ async function handleRequest(item: any) {
 async function loadRecommendations() {
   loading.value = true
   try {
+    // 进入页面时刷新用户信息，确保 VIP 等级判断与数据库实时值一致（避免个人中心/列表显示等级不一致）
+    const fresh = await getCurrentUser().catch(() => null)
+    if (fresh) userStore.setUserInfo(fresh)
+
     const config = await getDajiaConfig().catch(() => ({ minVipLevel: 1 }))
     minVipLevel.value = config?.minVipLevel || 1
     if (isVip.value) {

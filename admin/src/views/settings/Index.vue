@@ -159,7 +159,9 @@
                 <el-tag :type="row.status === 'normal' ? 'success' : 'info'">{{ row.status === 'normal' ? '正常' : '禁用' }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="createdAt" label="创建时间" width="160" />
+            <el-table-column label="创建时间" width="160">
+              <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+            </el-table-column>
             <el-table-column label="操作" width="220" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" @click="openStaffDialog(row)">编辑</el-button>
@@ -200,7 +202,9 @@
             </el-table-column>
             <el-table-column prop="detail" label="操作详情" min-width="220" show-overflow-tooltip />
             <el-table-column prop="ip" label="IP" width="130" />
-            <el-table-column prop="createdAt" label="时间" width="170" />
+            <el-table-column label="时间" width="170">
+              <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+            </el-table-column>
           </el-table>
           <el-pagination
             style="margin-top: 14px; justify-content: center;"
@@ -311,6 +315,7 @@ import { compressImage, MAX_BYTES } from '@/utils/imageCompress'
 import '@wangeditor/editor/dist/css/style.css'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import type { IDomEditor, IEditorConfig } from '@wangeditor/editor'
+import { formatDateTime } from '@/utils/datetime'
 
 const activeTab = ref('vip')
 const saving = ref(false)

@@ -22,7 +22,12 @@
           <template #default="{ row }">{{ row.durationDays }}天</template>
         </el-table-column>
         <el-table-column label="折扣" width="100">
-          <template #default="{ row }">{{ (Number(row.discountRate) * 100).toFixed(0) }}折</template>
+          <template #default="{ row }">
+            <template v-if="row.originalPrice > row.currentPrice">
+              {{ (Number(row.currentPrice) / Number(row.originalPrice) * 10).toFixed(row.currentPrice % row.originalPrice === 0 ? 0 : 1) }}折
+            </template>
+            <template v-else>无折扣</template>
+          </template>
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">

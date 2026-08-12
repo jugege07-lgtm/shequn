@@ -55,7 +55,9 @@
             <el-tag :type="row.status === 'normal' ? 'success' : 'danger'">{{ row.status === 'normal' ? '正常' : '已禁用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="注册时间" width="180" />
+        <el-table-column label="注册时间" width="180">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="420" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" @click="openEdit(row)">编辑</el-button>
@@ -194,7 +196,9 @@
               <el-table-column prop="type" label="类型" width="120" />
               <el-table-column prop="points" label="积分" width="100" />
               <el-table-column prop="description" label="说明" />
-              <el-table-column prop="createdAt" label="时间" width="160" />
+              <el-table-column label="时间" width="160">
+                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+              </el-table-column>
             </el-table>
           </div>
           <div class="section-block">
@@ -204,7 +208,9 @@
               <el-table-column prop="coupon.type" label="类型" width="100" />
               <el-table-column prop="coupon.value" label="面值" width="100" />
               <el-table-column prop="status" label="状态" width="100" />
-              <el-table-column prop="createdAt" label="领取时间" width="160" />
+              <el-table-column label="领取时间" width="160">
+                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+              </el-table-column>
             </el-table>
           </div>
         </el-tab-pane>
@@ -217,7 +223,9 @@
               <el-table-column prop="id" label="订单ID" width="80" />
               <el-table-column prop="status" label="状态" width="100" />
               <el-table-column prop="payAmount" label="支付金额" width="100" />
-              <el-table-column prop="createdAt" label="创建时间" width="160" />
+              <el-table-column label="创建时间" width="160">
+                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+              </el-table-column>
             </el-table>
           </div>
           <div class="section-block">
@@ -225,7 +233,9 @@
             <el-table :data="currentUser?.activities || []" size="small" max-height="200" empty-text="暂无活动">
               <el-table-column prop="title" label="标题" />
               <el-table-column prop="status" label="状态" width="100" />
-              <el-table-column prop="createdAt" label="创建时间" width="160" />
+              <el-table-column label="创建时间" width="160">
+                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+              </el-table-column>
             </el-table>
           </div>
           <div class="section-block">
@@ -233,7 +243,9 @@
             <el-table :data="currentUser?.businesses || []" size="small" max-height="200" empty-text="暂无商机">
               <el-table-column prop="title" label="标题" />
               <el-table-column prop="status" label="状态" width="100" />
-              <el-table-column prop="createdAt" label="创建时间" width="160" />
+              <el-table-column label="创建时间" width="160">
+                <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+              </el-table-column>
             </el-table>
           </div>
         </el-tab-pane>
@@ -377,6 +389,7 @@ import { ElMessage, type FormInstance, ElMessageBox } from 'element-plus'
 import { Select } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { normalizeImageUrl } from '@/utils/image'
+import { formatDateTime } from '@/utils/datetime'
 
 /** 无头像时展示首字占位（优先昵称首个字符，否则用用户ID） */
 function avatarText(row: any): string {

@@ -915,7 +915,7 @@ export class AdminService {
         where,
         skip: (page - 1) * size,
         take: size,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { id: 'desc' },
       }),
       this.prisma.product.count({ where }),
     ]);
