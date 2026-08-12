@@ -102,6 +102,21 @@ log "解压完成"
 [ -f "$BACKUP_DIR/backend.env" ] && cp -f "$BACKUP_DIR/backend.env" "$PROJECT_DIR/backend/.env" && log "已恢复 backend/.env" || true
 [ -d "$BACKUP_DIR/uploads" ] && cp -rf "$BACKUP_DIR/uploads" "$PROJECT_DIR/backend/uploads" && log "已恢复 backend/uploads" || true
 [ -f "$BACKUP_DIR/ecosystem.config.js" ] && cp -f "$BACKUP_DIR/ecosystem.config.js" "$PROJECT_DIR/" && log "已恢复 ecosystem.config.js" || true
+
+# backend/.env 校验：若本次备份缺失（服务器 .env 在历史部署中丢失），则从 /tmp 历史备份恢复最新一份
+if [ ! -f "$PROJECT_DIR/backend/.env" ]; then
+  warn "backend/.env 在本目录缺失，尝试从 /tmp 历史部署备份恢复..."
+  # 找出最新的含 backend.env 的备份目录（按时间倒序）
+  latest_backup=$(ls -dt /tmp/shequn-backup-*/ 2>/dev/null | while read dir; do
+    [ -f "$dir/backend.env" ] && echo "$dir"
+  done | head -1)
+  if [ -n "$latest_backup" ] && [ -f "$latest_backup/backend.env" ]; then
+    cp -f "$latest_backup/backend.env" "$PROJECT_DIR/backend/.env"
+    log "已从历史备份恢复 backend/.env: $latest_backup"
+  else
+    warn "未找到历史 .env 备份 /tmp/shequn-backup-*/backend.env"
+  fi
+fi
 rm -rf "$BACKUP_DIR"
 
 # backend/.env 校验
