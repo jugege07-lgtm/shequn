@@ -117,7 +117,7 @@ import QRCode from 'qrcode'
 
 const BASE = import.meta.env.BASE_URL || '/h5/'
 const apkUrl = `${BASE}app/shequn.apk`
-const appVersion = '1.0.7'
+const appVersion = '1.0.8'
 const logoSrc = `${BASE}logo.jpg`
 
 const features = [
