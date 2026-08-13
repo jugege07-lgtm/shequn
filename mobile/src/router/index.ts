@@ -1,12 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { setStatusBarStyle } from '@/utils/statusbar'
 
 const routes = [
   // 默认起始路由：未登录会被守卫重定向到 /login；已登录访问 /login 会被重定向到 /
-  { path: '/', name: 'Index', component: () => import('@/views/index/index.vue'), meta: { requiresAuth: true } },
-  { path: '/login', name: 'Login', component: () => import('@/views/login/index.vue'), meta: { guestOnly: true } },
-  { path: '/register', name: 'Register', component: () => import('@/views/register/index.vue'), meta: { guestOnly: true } },
-  { path: '/forgot-password', name: 'ForgotPassword', component: () => import('@/views/forgot-password/index.vue'), meta: { guestOnly: true } },
+  { path: '/', name: 'Index', component: () => import('@/views/index/index.vue'), meta: { requiresAuth: true, statusBar: 'dark' } },
+  { path: '/login', name: 'Login', component: () => import('@/views/login/index.vue'), meta: { guestOnly: true, statusBar: 'dark' } },
+  { path: '/register', name: 'Register', component: () => import('@/views/register/index.vue'), meta: { guestOnly: true, statusBar: 'dark' } },
+  { path: '/forgot-password', name: 'ForgotPassword', component: () => import('@/views/forgot-password/index.vue'), meta: { guestOnly: true, statusBar: 'dark' } },
   { path: '/app-download', name: 'AppDownload', component: () => import('@/views/app-download/index.vue') },
   { path: '/activity/list', name: 'ActivityList', component: () => import('@/views/activity/list.vue'), meta: { requiresAuth: true } },
   { path: '/activity/detail/:id', name: 'ActivityDetail', component: () => import('@/views/activity/detail.vue'), meta: { requiresAuth: true } },
@@ -90,6 +91,15 @@ router.beforeEach((to, _from, next) => {
   }
 
   next()
+})
+
+// 全局后置守卫：每次路由切换后，按页面顶部背景动态切换状态栏图标明暗。
+// - 深/彩色背景首屏（首页 banner、登录/注册/忘记密码紫渐变）→ 浅色图标（dark）
+// - 其余白底 header 页面 → 深色图标（light，默认）
+// 原生透明状态栏下，图标颜色必须匹配页面顶部背景，否则会看不清或在白条上残留印记。
+router.afterEach((to) => {
+  const style = to.meta.statusBar === 'dark' ? 'dark' : 'light'
+  setStatusBarStyle(style)
 })
 
 export default router
