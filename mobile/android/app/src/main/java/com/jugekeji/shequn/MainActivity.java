@@ -1,31 +1,23 @@
 package com.jugekeji.shequn;
 
-import android.graphics.Color;
 import android.os.Bundle;
-import android.view.View;
-import android.view.Window;
-import androidx.core.view.WindowCompat;
+import androidx.activity.EdgeToEdge;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // edge-to-edge：必须在 super.onCreate()（BridgeActivity 内部 setContentView）
-        // 之前设置，否则 WebView 已按非沉浸式布局，状态栏区域无法被 App 背景覆盖，
-        // 导致顶部出现浅灰色区域、二级页面内容被状态栏压住。
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        // 必须在 super.onCreate()（BridgeActivity 内部 setContentView / WebView 布局）之前启用
+        // edge-to-edge，让 WebView 内容绘制到状态栏/导航栏后面。
+        // Capacitor 8 的 SystemBars 插件会据此计算并注入 --safe-area-inset-* CSS 变量，
+        // 由 H5 端 .header/.phone-frame 用白色背景覆盖状态栏并给内容避让。
+        //
+        // 注意：不要再使用 legacy 的 SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN / LAYOUT_STABLE 等
+        // 全屏布局标志，它们会干扰 ViewCompat 的 WindowInsets 计算，导致 Capacitor 注入的
+        // safe-area 值为 0，从而在 App 顶部露出浅灰色区域，并把二级页面顶部内容压到状态栏下面。
+        // edge-to-edge 统一交给 androidx.activity.EdgeToEdge 处理（兼容 Android 14- 与 Android 15+）。
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
-        // 组合使用 legacy 全屏布局标志，确保各类 Android 版本/厂商系统都能可靠地
-        // 让 WebView 内容绘制到状态栏后面（仅 setDecorFitsSystemWindows 在部分设备上不生效）。
-        //   LAYOUT_FULLSCREEN : 内容延伸到状态栏后面
-        //   LAYOUT_STABLE     : 布局稳定，避免切换时跳动
-        //   LIGHT_STATUS_BAR  : 浅色状态栏图标（适配白色/浅色页面背景）
-        Window w = getWindow();
-        w.setStatusBarColor(Color.TRANSPARENT);
-        w.getDecorView().setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
     }
 }
