@@ -1,6 +1,6 @@
 # 社群资源对接名片小程序
 
-> **当前版本：v2.0 — MySQL 数据库版本**
+> **当前版本：v2.0 — MySQL 数据库版本（App 打包 v1.0.6）**
 >
 > 2.0 在 1.0 基础上完成以下关键升级：
 > - **数据库切换为 MySQL**（Prisma `provider = "mysql"`，已支持 `MySQL 5.7+ / 8.0`）
@@ -9,9 +9,51 @@
 > - 项目代码清理：移除冗余脚本、测试数据与早期 demo
 > - 移动端若干体验优化（封面回退、空态、错误拦截）
 >
-> 部署 MySQL 步骤详见本文档 [九、部署说明](#九部署说明精简)。
+> 部署 MySQL 步骤详见本文档 [九、部署说明](#九部署说明)。
 
 > 本文档基于项目实际代码（`backend` / `admin` / `mobile`）与 `README_V2.md` 的功能描述整理，已同步修正代码中已变更或废弃的内容。
+
+---
+
+## 🚀 快速了解（30 秒看完）
+
+**这是什么？** 社群资源对接平台：活动报名、商机大厅、会员商城、个人名片、消息通知、积分/优惠券。
+
+**技术栈一览**
+
+| 端 | 技术 |
+|---|---|
+| 📱 移动端 | Vue 3 + Vite + **Capacitor 8**（一套代码 → H5 网页 + 安卓 APK） |
+| 🖥️ 管理后台 | Vue 3 + Element Plus + ECharts |
+| ⚙️ 后端 | NestJS (Node.js) + Prisma ORM |
+| 🗄️ 数据库 | MySQL 8.0 |
+
+**三大目录**
+
+```
+backend/  NestJS 后端（API + 数据库 + 上传）
+admin/    管理后台（PC 网页）
+mobile/   移动端（H5 + 安卓 APK 打包）
+```
+
+**三行命令跑起来**
+
+```bash
+# 后端（端口 3000）
+cd backend && cp .env.example .env && npm install && npx prisma db push && npm run start:dev
+
+# 管理后台（端口 5173）
+cd admin && npm install && npm run dev
+
+# 移动端 H5（端口 5175）
+cd mobile && npm install && npm run dev
+```
+
+**生产环境**：腾讯云 CVM（Ubuntu 22.04）+ PM2 + Caddy + 本地 MySQL；`git push main` → GitHub Actions 自动构建部署（H5 / 后台 / APK 一条龙）。
+
+**⚠️ 上线商用前必读**：支付是 Mock、短信验证码固定 `1234`、图片存在服务器本地（详见文末"注意事项"）。
+
+详细文档见下方：技术栈与结构 → 快速启动 → 用户体系 → 核心功能模块 → 管理后台 → 移动端 → API 规范 → 部署说明。
 
 ---
 
@@ -23,30 +65,36 @@
 
 | 端 | 技术 | 备注 |
 |---|---|---|
-| 小程序端 | **uni-app** (Vue 3 + TypeScript) | 编译为微信小程序，同时保留 H5 / history 路由 |
-| PC 管理后台 | **Vue 3 + Element Plus + Vite** | 通过 RESTful API 调用后端服务 |
-| 后端 | **NestJS** (Node.js 18+) | RESTful API，JWT 鉴权，模块化架构 |
+| 移动端 | **Vue 3 + Vite + Capacitor 8**（TypeScript） | 同一套代码：H5 网页（history 路由）+ 打包安卓 APK；API 用 axios 封装 |
+| PC 管理后台 | **Vue 3 + Element Plus + Vite + ECharts + Pinia** | 通过 RESTful API 调用后端服务；ECharts 用于数据大屏 |
+| 后端 | **NestJS** (Node.js 18+，生产 20 LTS) | RESTful API，JWT 鉴权，模块化架构 |
 | 数据库 | **MySQL 5.7+ / 8.0**（v2.0 切换） | Prisma ORM，`.env` 中 `DATABASE_URL` 指向 MySQL |
 | 文件存储 | **本地磁盘** | 图片上传到 `backend/uploads`，返回完整 URL |
+| 短信 | **腾讯云 SMS SDK** | 注册 / 修改支付密码验证码（当前 Mock，固定 `1234`） |
 | 支付 | **Mock 支付** | 未接入真实微信支付/支付宝，仅返回模拟调起参数 |
-| 缓存/Redis | **未接入业务** | `docker-compose.yml` 包含 Redis，但业务代码未调用 |
+| 加密 | **crypto-js** | 用户手机号 AES 加密存储 |
+| 缓存/Redis | **未接入业务** | `ioredis` 依赖已装，但业务代码未调用 |
 
 ### 1.2 项目结构
 
 ```
-D:\DaiMa\shequn/
-├── backend/      # NestJS 后端（SQLite + Prisma）
+shequn/
+├── backend/      # NestJS 后端（MySQL + Prisma）
 │   ├── src/
 │   │   ├── modules/       # 业务模块
 │   │   ├── common/        # 守卫、装饰器、拦截器、Prisma
 │   │   └── app.module.ts
-│   └── prisma/schema.prisma
+│   ├── prisma/schema.prisma
+│   ├── uploads/           # 上传的图片（本地磁盘存储，生产在服务器上）
+│   └── .env               # 环境变量（数据库连接、JWT、短信密钥等，勿提交）
 ├── admin/        # Vue 3 + Element Plus 管理后台
 │   └── src/views/...     # 页面视图
-├── mobile/       # uni-app 小程序端
+├── mobile/       # Vue 3 + Vite + Capacitor 8 移动端
 │   ├── src/views/...     # 业务页面（H5 history 路由）
-│   ├── src/api/index.ts  # API 封装
-│   └── pages.json        # 小程序页面配置
+│   ├── src/api/index.ts  # API 封装（axios）
+│   ├── android/          # Capacitor 安卓原生工程（APK 打包）
+│   └── capacitor.config.ts # Capacitor 配置
+├── deploy/       # 生产部署配置（Caddy 站点、部署脚本）
 └── README.md     ← 本文档
 ```
 
@@ -54,10 +102,15 @@ D:\DaiMa\shequn/
 
 ## 二、快速启动
 
+> 以下命令在项目根目录执行，无需先 `cd` 到 Windows 盘符路径。
+
 ### 2.1 后端 API（默认端口 3000）
 
 ```bash
-cd D:\DaiMa\shequn\backend
+cd backend
+cp .env.example .env   # 首次需要：填写 DATABASE_URL、JWT_SECRET 等
+npm install
+npx prisma db push     # 同步数据库表结构
 npm run start:dev
 ```
 
@@ -66,17 +119,28 @@ npm run start:dev
 ### 2.2 管理后台（默认端口 5173）
 
 ```bash
-cd D:\DaiMa\shequn\admin
+cd admin
+npm install
 npm run dev
 ```
 
 访问：http://localhost:5173
 
-### 2.3 小程序端
+### 2.3 移动端（H5 预览 / 安卓打包）
 
 ```bash
-cd D:\DaiMa\shequn\mobile
-npm run dev:mp-weixin
+cd mobile
+npm install
+
+# H5 开发预览（默认端口 5175，后端代理到 localhost:3000）
+npm run dev
+
+# 构建 H5 产物（部署到服务器 /h5/）
+npm run build
+
+# 打包安卓 APK（需要本地 Android SDK / Android Studio）
+npx cap sync android   # 同步 web 产物到安卓工程
+npx cap open android   # 打开 Android Studio 构建 APK
 ```
 
 ---
@@ -150,7 +214,7 @@ async updateUserRoles(targetUserId: number, operatorId: number, roles: string[])
 
 | 方法 | 路径 | 函数 | 说明 |
 |---|---|---|---|
-| POST | `/api/auth/wechat-login` | `wechatLogin(dto: LoginDto)` | 微信小程序登录 |
+| POST | `/api/auth/wechat-login` | `wechatLogin(dto: LoginDto)` | 微信登录（当前移动端主要使用手机号登录） |
 | POST | `/api/auth/phone-login` | `phoneLogin(dto: LoginDto)` | 手机号登录（演示环境手机号写死） |
 | POST | `/api/auth/register` | `register(dto: RegisterDto)` | 注册并同步创建名片 |
 | POST | `/api/auth/admin-login` | `adminLogin(dto: AdminLoginDto)` | 管理后台登录 |
@@ -786,10 +850,15 @@ admin/src/views/
 
 ## 六、移动端
 
+> 移动端为 Vue 3 + Vite 单页应用（SPA），路由配置在 `mobile/src/router/index.ts`，部署在服务器 `/h5/` 子路径；同时通过 Capacitor 8 打包为安卓 APK。
+
 ### 6.1 页面路由（`mobile/src/views`）
 
 ```
-├── index/index.vue          # 首页
+├── index/index.vue          # 首页（Banner / 热门活动 / 通知）
+├── login/index.vue          # 登录
+├── register/index.vue       # 注册
+├── forgot-password/index.vue# 忘记密码
 ├── about/index.vue          # 关于我们（富文本）
 ├── activity/list.vue        # 活动列表
 ├── activity/detail.vue      # 活动详情
@@ -800,31 +869,43 @@ admin/src/views/
 ├── business/detail.vue      # 商机详情
 ├── business/publish.vue     # 发布商机
 ├── business/my.vue          # 我的商机
+├── opportunity/list.vue     # 商机大厅（分类筛选）
 ├── card/index.vue           # 我的名片
 ├── card/edit.vue            # 编辑名片
 ├── card/share.vue           # 名片分享页（无需登录）
+├── card/friend.vue          # 好友 / 人脉
 ├── mall/index.vue           # 商城首页
 ├── mall/detail.vue          # 商品详情
 ├── cart/index.vue           # 购物车
 ├── order/confirm.vue        # 订单确认
 ├── order/list.vue           # 我的订单
+├── order/detail.vue         # 订单详情
 ├── order/pay.vue            # 支付页
 ├── order/success.vue        # 支付成功
 ├── address/edit.vue         # 地址编辑
-├── vip/index.vue、pay.vue
-├── message/index.vue
-├── coupon/index.vue、claim.vue
-├── points/index.vue
+├── vip/index.vue            # VIP 会员
+├── vip/pay.vue              # VIP 开通支付
+├── message/index.vue        # 消息通知
+├── coupon/index.vue         # 我的优惠券
+├── coupon/claim.vue         # 领券中心
+├── points/index.vue         # 积分
+├── balance/index.vue        # 余额
+├── history/index.vue        # 浏览历史
+├── dajia/index.vue          # 大咖人脉
 ├── profile/index.vue        # 个人中心
-├── setting/index.vue
-├── login/index.vue
-├── register/index.vue
-└── opportunity/list.vue
+├── setting/index.vue        # 设置
+├── setting/pay-password.vue # 支付密码
+├── app-download/index.vue   # App 下载页（APK 分发）
+└── order/confirm.vue        # 订单确认
 ```
 
 ### 6.2 API 封装
 
-移动端 API 统一封装在 `mobile/src/api/index.ts`，基于 `mobile/src/api/request.ts`（`uni.request` 封装）。
+移动端 API 统一封装在 `mobile/src/api/index.ts`，基于 `mobile/src/api/request.ts`（**axios** 实例封装，非 uni.request）。
+
+约定（详见用户记忆中的 baseURL 规范）：
+- 业务代码**显式带 `/api/` 前缀**（如 `request.get('/api/public/businesses')`）
+- `baseURL = ''`（H5 与 APK 双端通用，由 Vite proxy / Caddy 统一转发到后端）
 
 示例函数：
 
@@ -871,7 +952,7 @@ export async function uploadFile(file: File)
 ### 7.2 鉴权
 
 - 登录接口返回 `accessToken` 与 `refreshToken`
-- 小程序端：`uni.setStorageSync('token', accessToken)`
+- 移动端（H5 / APK）：`localStorage.setItem('token', accessToken)`（见 `mobile/src/store/user.ts`）
 - 管理端：`localStorage.setItem('admin_token', accessToken)`
 - 受保护接口 Header：`Authorization: Bearer <accessToken>`
 
@@ -926,49 +1007,77 @@ export async function uploadFile(file: File)
 
 ---
 
-## 九、部署说明（精简）
+## 九、部署说明
 
-### 9.1 后端部署
+### 9.1 生产环境架构（当前线上）
+
+生产部署在**腾讯云 CVM（Ubuntu 22.04）**，采用 **PM2 + Caddy + 本地 MySQL** 方案（非 docker）：
+
+| 组件 | 作用 |
+|---|---|
+| **PM2** | 守护后端进程（`node dist/main`，端口 3000），崩溃自动重启 |
+| **Caddy** | Web 服务器：自动 HTTPS；静态托管 `/admin`、`/h5`；`/api` 反向代理到后端 3000；提供 `/app/shequn.apk` 下载 |
+| **MySQL 8.0** | 数据库 `community_card`（表结构用 `prisma db push` 同步） |
+| **本地磁盘** | 上传图片存 `/home/ubuntu/shequn/backend/uploads` |
+
+代码部署到服务器 `/home/ubuntu/shequn`。
+
+### 9.2 CI 自动部署（推荐）
+
+项目已配置 GitHub Actions（`.github/workflows/`），**push 到 main 分支即自动部署**：
+
+- `ci.yml` — 构建 & 测试
+- `deploy-prod.yml` — 打包源码 → SCP 到 CVM → `deploy/scripts/deploy.sh` 执行（npm install → build → `prisma db push` → PM2 重启）
+- `build-apk.yml` — 构建安卓 APK → 上传 artifact → SCP 到服务器 `/home/ubuntu/shequn/deploy/app/shequn.apk`（下载页指向此文件）
+
+### 9.3 手动部署（新服务器首次）
 
 ```bash
-cd backend
-cp .env.example .env
-# 编辑 DATABASE_URL、JWT_SECRET、WX_APPID 等
+# 1. 服务器安装基础环境
+sudo apt update && sudo apt install -y git curl
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs
+sudo npm install -g pm2
+# Caddy：https://caddyserver.com/docs/install
+sudo apt install -y mysql-server
+
+# 2. 拉取代码
+cd /home/ubuntu && git clone https://github.com/jugege07-lgtm/shequn.git
+
+# 3. 后端配置 + 启动
+cd shequn/backend
+cp .env.example .env && vim .env   # 必填：DATABASE_URL / JWT_SECRET / PHONE_ENCRYPT_KEY / ADMIN 账号密码
 npm install
-npx prisma migrate dev
+npx prisma db push                 # 同步表结构（本项目用 db push，不用 migrate dev）
 npm run build
-npm run start:prod
+pm2 start dist/main.js --name shequn-backend
+
+# 4. 前端构建
+cd ../admin && npm install && npm run build   # 产物 dist → 服务器 /var/www/shequn/admin
+cd ../mobile && npm install && npm run build  # 产物 dist → 服务器 /var/www/shequn/h5
+
+# 5. 配置 Caddy（参考 deploy/nginx/shequn.conf 的对应规则）
+#    - www.jugekeji.com/h5  → 移动端 H5
+#    - www.jugekeji.com/admin → 管理后台
+#    - api.jugekeji.com      → 后端 127.0.0.1:3000（或统一走主域 /api）
 ```
 
-### 9.2 生产数据库迁移
-
-修改 `backend/prisma/schema.prisma`：
-
-```prisma
-datasource db {
-  provider = "mysql"   // 或 postgresql
-  url      = env("DATABASE_URL")
-}
-```
-
-然后执行：
+### 9.4 管理后台与移动端构建
 
 ```bash
-npx prisma migrate dev
-```
-
-### 9.3 管理后台与小程序构建
-
-```bash
-# 管理后台
+# 管理后台（Vue3 + Vite）
 cd admin
 npm install
 npm run build
 
-# 小程序
+# 移动端 H5（Vue3 + Vite）
 cd mobile
 npm install
-npm run build:mp-weixin
+npm run build
+
+# 移动端安卓 APK（需 Android SDK / Android Studio）
+cd mobile
+npx cap sync android
+npx cap open android   # Android Studio 中 Build → Build APK(s)
 ```
 
 ---
@@ -985,4 +1094,4 @@ npm run build:mp-weixin
 ---
 
 > **文档版本**: 基于代码同步更新  
-> **更新日期**: 2026-07-21
+> **更新日期**: 2026-08-13
