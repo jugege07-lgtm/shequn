@@ -690,7 +690,9 @@ onBeforeUnmount(() => {
   width: 16px; background: #fff;
 }
 
-.top-overlay { position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
+/* top: 安全区高度——edge-to-edge 下搜索框避让状态栏（H5 env=0，无影响）。
+   绝对定位不受 .banner-section 的 padding-top 影响，必须显式指定 top。 */
+.top-overlay { position: absolute; top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)); left: 0; right: 0; z-index: 10; }
 .search-bar {
   margin: 14px 16px 0;
   background: rgba(0,0,0,0.25);
@@ -950,7 +952,8 @@ onBeforeUnmount(() => {
 }
 .search-overlay-header {
   display: flex; align-items: center; gap: 8px;
-  padding: 12px 14px; background: #fff;
+  /* padding-top 含安全区：搜索浮层 fixed 覆盖到状态栏后，头部避让状态栏（H5 env=0，等价于 12px 14px） */
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 14px 12px; background: #fff;
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
 }
 .search-back {

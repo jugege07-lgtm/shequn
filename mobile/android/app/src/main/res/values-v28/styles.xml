@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 刘海屏（Android P+，API 28）：状态栏颜色与 H5 页面统一浅蓝灰，与 values/styles.xml 保持一致 -->
+    <!-- 刘海屏（Android P+，API 28）：状态栏透明，配合 EdgeToEdge.enable()，与 values/styles.xml 保持一致 -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        <item name="android:statusBarColor">#f0f2f8</item>
-        <item name="android:navigationBarColor">#f0f2f8</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:forceDarkAllowed">false</item>
     </style>
