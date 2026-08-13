@@ -4,12 +4,14 @@ import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PaymentService } from '../payment/payment.service';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class AdminService {
   constructor(
     private prisma: PrismaService,
     private paymentService: PaymentService,
+    private userService: UserService,
   ) {}
 
   /** 系统预定义角色列表（单一数据源，前后端需保持一致） */
@@ -96,7 +98,11 @@ export class AdminService {
       }),
       this.prisma.user.count({ where }),
     ]);
-    return { list, total, page, size };
+    const decrypted = list.map((u) => ({
+      ...u,
+      phone: u.phone ? this.userService.decryptPhone(String(u.phone)) : null,
+    }));
+    return { list: decrypted, total, page, size };
   }
 
   async getUserDetail(id: number) {
@@ -134,6 +140,7 @@ export class AdminService {
     ]);
     return {
       ...user,
+      phone: user?.phone ? this.userService.decryptPhone(String(user.phone)) : user?.phone ?? null,
       pointLogs,
       coupons,
       orders,

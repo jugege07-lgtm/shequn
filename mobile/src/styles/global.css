@@ -1,7 +1,12 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* html 与 body 双重重置为纯白：
+   - html 兜底 WebView 默认背景（部分 Android 系统/WebView 默认是浅灰，透明时会在顶部露出灰色条）
+   - body 兜底 phone-frame 之外的缝隙 */
+html, body {
+  background: #ffffff;
+}
 body {
   font-family: var(--font);
-  background: var(--color-bg);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
 }
@@ -14,9 +19,13 @@ body {
      若这里再加 padding 会产生：① 顶部露出 phone-frame 的浅灰背景（灰色条）；
      ② 与 top 元素自带的安全区重复（双重安全区，导致顶部出现多余白条）。 */
 }
-/* 无 header 的列表页：.main-scroll 是 phone-frame 第一个子元素，自行并入顶部安全区避让状态栏 */
+/* 无 header 的列表页：.main-scroll 是 phone-frame 第一个子元素，自行并入顶部安全区避让状态栏。
+   用"白色 border-top"代替原来的 padding-top：border 是独立于内容盒的图层，可把顶部安全区
+   铺成纯白，从而盖住 .phone-frame 的 --color-bg(浅蓝灰 #f0f2f8)，彻底消除顶部"灰色条/蓝色印记"；
+   内容区仍展示 --color-bg 页面背景。有 header 或彩色首屏的页面不匹配此规则，不受影响。 */
 .phone-frame > .main-scroll:first-child {
-  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  border-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) solid #ffffff;
+  padding-top: 0;
 }
 /* Header */
 .header {
@@ -26,9 +35,10 @@ body {
   background: #ffffff;
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
   /* 顶部安全区直接并入 padding：内容避让状态栏不被遮挡。
-     max(...) 兜底：即使 Capacitor 未注入 --safe-area-inset-top（值为 0），
-     也保证 header 顶部最少留 34px（≈24px 状态栏 + 10px 间距），避免内容被状态栏压住。 */
-  padding: max(calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px), 34px) 16px 10px;
+     Android 15+ 走 edge-to-edge（Capacitor 注入 --safe-area-inset-top≈状态栏高→padding 自然放大）；
+     Android<15 状态栏已改为纯白、WebView 内容从状态栏下方起算（inset=0→padding 回到普通间距）。
+     不再强制 34px，避免在白色状态栏下把所有 header 撑高。 */
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

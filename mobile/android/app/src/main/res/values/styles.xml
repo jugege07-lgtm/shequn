@@ -12,10 +12,10 @@
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:background">@null</item>
-        <!-- edge-to-edge：状态栏透明，使 WebView 背景向上延伸覆盖状态栏区域，避免顶部露出灰色条 -->
+        <item name="android:background">@android:color/white</item>
+        <!-- 状态栏纯白，与 H5 白色 header 无缝衔接，避免顶部露出灰色条 -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/white</item>
         <item name="android:windowLightStatusBar">true</item>
         <!-- 强制浅色主题并禁用系统 force-dark：防止 WebView 白底/浅色头被自动暗化，导致状态栏区域出现灰色/暗色条 -->
         <item name="android:forceDarkAllowed">false</item>
@@ -24,9 +24,9 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
-        <!-- 启动后 WebView 沿用此主题：状态栏透明 + 浅色图标，避免顶部露出灰色区域 -->
+        <!-- 启动后 WebView 沿用此主题：状态栏纯白 + 浅色图标，避免顶部露出灰色区域 -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/white</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:forceDarkAllowed">false</item>
     </style>

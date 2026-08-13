@@ -19,12 +19,17 @@ export class UserService {
   }
 
   /** AES 解密手机号 */
-  decryptPhone(encrypted: string): string {
+  decryptPhone(input: string): string {
+    if (!input) return '';
+    // 仅在确为 AES 加密串（OpenSSL 加盐前缀 U2FsdGVkX1）时解密；
+    // 历史明文手机号（纯数字）直接原样返回，避免把明文当密文解出乱码。
+    if (!input.startsWith('U2FsdGVkX1')) return input;
     try {
-      const bytes = CryptoJS.AES.decrypt(encrypted, PHONE_ENCRYPT_KEY);
-      return bytes.toString(CryptoJS.enc.Utf8);
+      const bytes = CryptoJS.AES.decrypt(input, PHONE_ENCRYPT_KEY);
+      const out = bytes.toString(CryptoJS.enc.Utf8);
+      return out || input;
     } catch {
-      return '';
+      return input;
     }
   }
 

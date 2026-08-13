@@ -155,6 +155,12 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // 兜底：未匹配 / 旧版本遗留路由一律回数据看板，杜绝白屏
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/dashboard',
+    meta: { requiresAuth: true },
+  },
 ]
 
 const router = createRouter({

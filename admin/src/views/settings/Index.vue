@@ -387,7 +387,8 @@ async function loadAboutUs() {
   aboutLoading.value = true
   try {
     const res: any = await request.get('/admin/config/about_us')
-    aboutContent.value = res?.value || '<p>欢迎使用聚格软件社群小程序！</p>'
+    // 未配置时不写入占位文字，避免误保存把"欢迎使用"占位内容持久化到数据库
+    aboutContent.value = res?.value || ''
   } catch (err: any) {
     ElMessage.error(err.message || '加载关于我们失败')
   } finally {

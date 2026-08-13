@@ -1013,8 +1013,10 @@ async function applyMockData(forceRender = false) {
   const totalUsers = userGrowthTrend[userGrowthTrend.length - 1].total
   const totalOrders = orderRevenueTrend.reduce((s, x) => s + x.orders, 0)
   const totalRevenue = orderRevenueTrend.reduce((s, x) => s + x.revenue, 0)
+  // 总用户数 = 用户来源分布之和（保证与"用户来源"面板一致，且恒大于 VIP 用户数）
+  const userSourceTotal = userSource.reduce((s, x) => s + x.value, 0)
   const overview = {
-    userCount: totalUsers,
+    userCount: userSourceTotal,
     vipCount: 4542 + tickBoost * 8,
     activityCount: 127 + Math.round(tickBoost * 0.2),
     businessCount: 86 + Math.round(tickBoost * 0.1),

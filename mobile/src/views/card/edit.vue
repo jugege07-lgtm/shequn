@@ -188,9 +188,8 @@ const handleSubmit = async () => {
       .split(/[,，]/)
       .map(t => t.trim())
       .filter(Boolean)
-    if (tagsArr.length) {
-      payload.tags = tagsArr
-    }
+    // 始终提交 tags（为空时提交空数组），确保后端清掉历史遗留的 "{}" 占位值
+    payload.tags = tagsArr
 
     await updateMyCard(payload)
 

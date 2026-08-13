@@ -15,13 +15,19 @@
         </div>
       </div>
       <div class="top-overlay">
-        <div class="search-bar" @click="openSearch">
+        <div class="search-bar">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
             <circle cx="11" cy="11" r="8"/>
             <path d="M21 21l-4.35-4.35"/>
           </svg>
-          <input type="text" placeholder="搜索活动、商机、商品" readonly />
-          <span class="search-btn">搜索</span>
+          <input
+            type="text"
+            v-model="searchKeyword"
+            placeholder="搜索活动、商机、商品"
+            @focus="openSearch"
+            @keyup.enter="handleSearch"
+          />
+          <span class="search-btn" @click="handleSearch">搜索</span>
         </div>
       </div>
       <div class="banner-dots" v-if="banners.length > 1">
@@ -81,25 +87,12 @@
       <!-- Announcement -->
       <div class="announcement-bar" :class="{ 'has-warning': hasWarningAnn }" @click="goAnnouncement">
         <span class="ann-tag" :class="tagClass">{{ tagText }}</span>
-        <div class="ann-scroll" ref="annScrollRef">
-          <div class="ann-marquee" v-if="annList.length" :class="{ animating: annLong }">
-            <span ref="annInnerRef" class="ann-inner">
-              <span
-                class="ann-text"
-                v-for="(a, i) in annList"
-                :key="i"
-                :class="annTextClass(a)"
-              ><span class="ann-type-icon" v-if="annTypeIcon(a)">{{ annTypeIcon(a) }}</span>{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　　</span></span>
-            </span>
-            <span class="ann-inner" v-if="annLong" aria-hidden="true">
-              <span
-                class="ann-text"
-                v-for="(a, i) in annList"
-                :key="'d' + i"
-                :class="annTextClass(a)"
-              ><span class="ann-type-icon" v-if="annTypeIcon(a)">{{ annTypeIcon(a) }}</span>{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　　</span></span>
-            </span>
-          </div>
+        <div class="ann-scroll">
+          <span class="ann-text" v-if="annList.length">
+            <template v-for="(a, i) in annList" :key="i">
+              <span class="ann-type-icon" v-if="annTypeIcon(a)">{{ annTypeIcon(a) }}</span>{{ a.content }}<span class="ann-sep" v-if="i < annList.length - 1">　·　</span>
+            </template>
+          </span>
           <span class="ann-text" v-else>欢迎加入聚格软件，连接优质资源，成就商业梦想！</span>
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round">
@@ -334,9 +327,6 @@ const businesses = ref<any[]>([])
 const announcements = ref<{ title: string; content: string; type?: string }[]>([])
 // 公告内容走横向缓慢滚动（marquee），内容超长时才滚动
 const annList = computed(() => announcements.value)
-const annLong = ref(false)
-const annScrollRef = ref<HTMLElement | null>(null)
-const annInnerRef = ref<HTMLElement | null>(null)
 
 // 按公告类型动态计算标签文本与样式
 const annTypeMap: Record<string, { text: string; cls: string }> = {
@@ -353,12 +343,6 @@ const tagClass = computed(() => {
   const first = annList.value[0]
   return (first && annTypeMap[first.type]) ? annTypeMap[first.type].cls : 'tag-announcement'
 })
-// 每条公告的类型样式 class
-function annTextClass(a: any) {
-  if (a.type === 'warning') return 'ann-warning'
-  if (a.type === 'notice') return 'ann-notice'
-  return ''
-}
 // 每条公告的类型图标（通知沿用公告栏标签区分，警告用警示图标）
 function annTypeIcon(a: any) {
   if (a.type === 'warning') return '⚠'
@@ -410,11 +394,12 @@ function clearSearch() {
 
 async function handleSearch() {
   const kw = (searchKeyword.value || '').trim()
-  if (!kw) return
-  if (!searchActive.value) {
-    openSearch()
+  if (!kw) {
+    if (!searchActive.value) openSearch()
     return
   }
+  // 从顶部搜索框触发时，先打开结果浮层，再携带关键词立即搜索
+  if (!searchActive.value) openSearch()
   searchLoading.value = true
   searchDone.value = false
   try {
@@ -454,19 +439,10 @@ async function loadAnnouncements() {
     const data = await getAnnouncements()
     if (Array.isArray(data) && data.length) {
       announcements.value = data
-      nextTick(() => updateAnnLong())
     }
   } catch (err) {
     console.error('公告加载失败:', err)
   }
-}
-
-// 判断公告内容是否超出容器宽度，超出则开启缓慢滚动
-function updateAnnLong() {
-  const inner = annInnerRef.value
-  const container = annScrollRef.value
-  if (!inner || !container) { annLong.value = false; return }
-  annLong.value = inner.offsetWidth > container.clientWidth + 4
 }
 
 // ===== Banner 轮播 =====
@@ -776,19 +752,11 @@ onBeforeUnmount(() => {
 .ann-tag.tag-warning { background: #ef4444; }
 .ann-tag.tag-notice { background: var(--color-primary); }
 .ann-tag.tag-announcement { background: var(--color-primary); }
-.ann-scroll { flex: 1; overflow: hidden; height: 20px; position: relative; }
-.ann-marquee {
-  display: inline-flex; align-items: center; height: 100%;
-  white-space: nowrap; will-change: transform;
-}
-.ann-marquee.animating {
-  animation: annMarquee 18s linear infinite;
-}
-.ann-inner { display: inline-flex; flex-shrink: 0; white-space: nowrap; }
+.ann-scroll { flex: 1; overflow: hidden; height: 20px; display: flex; align-items: center; min-width: 0; }
 .ann-text {
-  flex-shrink: 0; height: 20px; line-height: 20px;
+  flex: 1; min-width: 0; height: 20px; line-height: 20px;
   font-size: 13px; color: var(--color-text-secondary);
-  white-space: nowrap;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* 警告：红色文字醒目 */
 .ann-text.ann-warning { color: #dc2626; font-weight: 600; }
@@ -800,10 +768,6 @@ onBeforeUnmount(() => {
 }
 .ann-warning .ann-type-icon { color: #ef4444; }
 .ann-sep { color: var(--color-text-tertiary); }
-@keyframes annMarquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
 
 /* ===== VIP Banner ===== */
 .vip-banner {

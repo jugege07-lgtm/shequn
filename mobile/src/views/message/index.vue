@@ -29,18 +29,13 @@ const messages = ref<any[]>([])
 
 function formatTime(input: string | number | Date): string {
   if (!input) return ''
-  let d = new Date(input)
-  // 后端返回的时间若不含时区后缀（如 "2026-08-10 03:04:00" 而非 ISO 的 ...Z/+08:00），
-  // JS 会误当作本地时间解析，导致 UTC 时间未转换。此处统一按 UTC 再转本地时区展示。
-  if (typeof input === 'string') {
-    const hasZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(input.trim())
-    if (!hasZone && !isNaN(d.getTime())) {
-      d = new Date(d.getTime() + d.getTimezoneOffset() * 60000)
-    }
-  }
+  const d = new Date(input)
   if (isNaN(d.getTime())) return String(input)
+  // 统一按北京时间(UTC+8)展示，避免设备时区（如测试环境为 UTC）导致时间比北京时间晚 8 小时。
+  // 后端返回的 createdAt 为 ISO 带 Z 的时间戳，此处固定转成东八区再格式化。
+  const bj = new Date(d.getTime() + 8 * 3600 * 1000)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${bj.getUTCFullYear()}-${pad(bj.getUTCMonth() + 1)}-${pad(bj.getUTCDate())} ${pad(bj.getUTCHours())}:${pad(bj.getUTCMinutes())}`
 }
 
 function iconClassOf(type: string) {
