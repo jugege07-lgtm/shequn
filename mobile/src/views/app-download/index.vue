@@ -133,9 +133,15 @@ const posterLoading = ref(false)
 const posterCanvas = ref<HTMLCanvasElement | null>(null)
 
 function buildShareUrl() {
-  // 原生 App 下 window.location.origin 是 https://localhost，需用 getApiBase() 取真实域名
-  const origin = getApiBase() || window.location.origin
-  const base = `${origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  // 原生 App：用 getApiBase() 取真实域名 + /h5 子路径（H5 实际部署位置）
+  // H5：用 window.location.origin + BASE_URL('/h5/')
+  const apiBase = getApiBase()
+  let base: string
+  if (apiBase) {
+    base = `${apiBase}/h5`.replace(/\/+$/, '')
+  } else {
+    base = `${window.location.origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  }
   return `${base}/app-download`
 }
 

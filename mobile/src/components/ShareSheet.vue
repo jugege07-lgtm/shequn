@@ -11,10 +11,10 @@
         </div>
 
         <div class="ss-body" v-loading="generating">
-          <!-- 海报预览 -->
+          <!-- 海报预览（用 img 显示，用户可长按保存到相册） -->
           <div class="ss-poster-wrap">
             <div class="ss-poster">
-              <canvas v-if="posterCanvas" ref="posterRef" class="ss-poster-canvas"></canvas>
+              <img v-if="posterDataUrl" :src="posterDataUrl" class="ss-poster-img" alt="分享海报" />
               <div v-else class="ss-poster-placeholder">海报生成中...</div>
             </div>
             <div class="ss-hint">长按海报图片即可保存到相册</div>
@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch } from 'vue'
 import type { ShareContent } from '@/utils/share'
 import ShareIcon from '@/components/ShareIcon.vue'
 import {
@@ -77,6 +77,7 @@ import {
   copyText,
   nativeShare,
 } from '@/utils/share'
+import { isNativeApp } from '@/utils/apiBase'
 
 const props = defineProps<{
   modelValue: boolean
@@ -88,7 +89,7 @@ const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 
 const generating = ref(false)
 const posterCanvas = ref<HTMLCanvasElement | null>(null)
-const posterRef = ref<HTMLCanvasElement | null>(null)
+const posterDataUrl = ref('')
 const link = ref('')
 
 function showToast(msg: string) {
@@ -115,13 +116,8 @@ async function build() {
     const qr = await generateQrDataUrl(link.value)
     const canvas = await createSharePoster(s, qr, props.referrerName || '')
     posterCanvas.value = canvas
-    await nextTick()
-    if (posterRef.value) {
-      posterRef.value.width = canvas.width
-      posterRef.value.height = canvas.height
-      const ctx = posterRef.value.getContext('2d')
-      ctx?.drawImage(canvas, 0, 0)
-    }
+    // Canvas 转 dataURL 用 <img> 显示，用户可长按保存到相册
+    posterDataUrl.value = canvas.toDataURL('image/png')
   } finally {
     generating.value = false
   }
@@ -131,8 +127,13 @@ function handleSavePoster() {
   if (!posterCanvas.value) return
   const s = props.share
   const typeName = s?.type === 'activity' ? '活动' : s?.type === 'business' ? '商机' : '商品'
-  saveCanvasToAlbum(posterCanvas.value, `${typeName}_分享海报.png`)
-  showToast('已保存，可在相册查看')
+  const result = saveCanvasToAlbum(posterCanvas.value, `${typeName}_分享海报.png`)
+  if (isNativeApp()) {
+    // 原生 App：已在新窗口打开图片供长按保存，同时海报预览区也可长按保存
+    showToast('长按海报图片即可保存到相册')
+  } else {
+    showToast('已保存，可在相册查看')
+  }
 }
 
 async function handleCopyLink() {
@@ -211,7 +212,7 @@ watch(
   border: 1px solid #eef0f6;
   box-shadow: 0 8px 28px rgba(60,60,80,0.12);
 }
-.ss-poster-canvas { width: 100%; height: auto; display: block; }
+.ss-poster-img { width: 100%; height: auto; display: block; -webkit-user-select: none; user-select: none; }
 .ss-poster-placeholder { height: 380px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px; }
 .ss-hint { margin-top: 10px; font-size: 12px; color: #9ca3af; }
 

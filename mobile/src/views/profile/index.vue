@@ -59,26 +59,16 @@
         </div>
       </div>
 
-      <!-- Dajia Connections Entry -->
-      <div class="dajia-module" @click="handleDajiaClick">
-        <div class="dajia-module-left">
-          <div class="dajia-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          </div>
-          <div class="dajia-module-info">
-            <div class="dajia-module-title">大咖人脉</div>
-            <div class="dajia-module-sub" v-if="dajiaVipOk">结识行业大咖 · 交换联系方式</div>
-            <div class="dajia-module-sub" v-else>开通 VIP{{ dajiaMinVipLevel }} 解锁更多精彩</div>
+      <!-- VIP Banner（从首页交换至个人中心） -->
+      <div class="vip-banner" @click="$router.push('/vip/index')">
+        <div class="vip-banner-left">
+          <span class="vip-crown">👑</span>
+          <div class="vip-banner-text">
+            <h4>开通 VIP 会员</h4>
+            <p>解锁专属权益 · 享受更多折扣</p>
           </div>
         </div>
-        <div class="dajia-module-right">
-          <span class="dajia-vip-tag" v-if="dajiaVipOk">已开通</span>
-          <span class="dajia-vip-tag locked" v-else>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-            VIP专属
-          </span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-        </div>
+        <span class="vip-open-btn">立即开通</span>
       </div>
 
       <!-- Quick Actions -->
@@ -183,7 +173,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getCurrentUser, getMyCard, getDajiaConfig, getUnreadMessageCount } from '@/api'
+import { getCurrentUser, getMyCard, getUnreadMessageCount } from '@/api'
 import { useUserStore } from '@/store/user'
 import { normalizeImageUrl } from '@/utils/image'
 import { getBrowseHistory, type BrowseRecord } from '@/utils/browseHistory'
@@ -196,7 +186,6 @@ const card = ref<any>({})
 const loading = ref(false)
 const browseHistory = ref<BrowseRecord[]>([])
 const avatarError = ref(false)
-const dajiaMinVipLevel = ref(1)
 const unreadCount = ref(0)
 const settingsMenuOpen = ref(false)
 
@@ -217,14 +206,6 @@ async function loadUnreadCount() {
     unreadCount.value = 0
   }
 }
-
-const dajiaVipOk = computed(() => {
-  const u = userInfo.value
-  if (!u) return false
-  if ((u.vipLevel || 0) < dajiaMinVipLevel.value) return false
-  if (u.vipExpireAt && new Date(u.vipExpireAt).getTime() < Date.now()) return false
-  return true
-})
 
 const displayName = computed(() => userInfo.value?.nickname || userInfo.value?.realName || '用户')
 const displayAvatar = computed(() => normalizeImageUrl(card.value.avatarUrl || userInfo.value?.avatarUrl))
@@ -361,23 +342,6 @@ async function loadUser() {
   }
 }
 
-function handleDajiaClick() {
-  if (dajiaVipOk.value) {
-    router.push('/dajia/index')
-  } else {
-    showNoPermission(`大咖人脉为 VIP${dajiaMinVipLevel.value} 及以上会员专属，请先开通`)
-  }
-}
-
-async function loadDajiaConfig() {
-  try {
-    const config = await getDajiaConfig()
-    dajiaMinVipLevel.value = config?.minVipLevel || 1
-  } catch {
-    // 忽略，使用默认级别
-  }
-}
-
 // 读取浏览历史（默认展示最近 5 条）
 const TYPE_NAMES: Record<string, string> = {
   activity: '活动',
@@ -422,7 +386,6 @@ onMounted(() => {
   document.title = '个人中心'
   loadUser()
   loadBrowseHistory()
-  loadDajiaConfig()
   loadUnreadCount()
 })
 </script>
@@ -580,39 +543,25 @@ onMounted(() => {
 .data-value { font-size: 20px; font-weight: 800; color: #2b2320; line-height: 1; }
 .data-label { font-size: 12px; color: #8a8578; }
 
-/* Dajia Module */
-.dajia-module {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: linear-gradient(135deg, #faf5ff 0%, #ffffff 60%);
-  border: 1px solid rgba(139,92,246,0.15);
+/* VIP Banner（从首页交换至个人中心） */
+.vip-banner {
+  margin-bottom: 16px; padding: 14px 16px;
   border-radius: 18px;
-  box-shadow: 0 4px 16px rgba(139,92,246,0.06);
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff; cursor: pointer;
   display: flex; align-items: center; justify-content: space-between;
-  cursor: pointer; transition: transform 0.15s ease;
+  box-shadow: 0 8px 24px rgba(79,70,229,0.25);
+  transition: transform 0.15s ease;
 }
-.dajia-module:active { transform: scale(0.98); }
-.dajia-module-left { display: flex; align-items: center; gap: 12px; }
-.dajia-logo {
-  width: 48px; height: 48px; border-radius: 14px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; flex-shrink: 0;
+.vip-banner:active { transform: scale(0.98); }
+.vip-banner-left { display: flex; align-items: center; gap: 10px; }
+.vip-crown { font-size: 28px; }
+.vip-banner-text h4 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+.vip-banner-text p { font-size: 12px; opacity: 0.8; }
+.vip-open-btn {
+  font-size: 12px; font-weight: 600; color: #4f46e5;
+  background: #fff; padding: 5px 14px; border-radius: 99px;
 }
-.dajia-logo svg { width: 26px; height: 26px; }
-.dajia-module-info { min-width: 0; }
-.dajia-module-title { font-size: 16px; font-weight: 700; color: #1e1b4b; margin-bottom: 4px; }
-.dajia-module-sub { font-size: 12px; color: #6b7280; }
-.dajia-module-right { display: flex; align-items: center; gap: 8px; color: #8b5cf6; }
-.dajia-module-right > svg { width: 16px; height: 16px; flex-shrink: 0; }
-.dajia-vip-tag {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 10px; border-radius: 99px;
-  background: rgba(16,185,129,0.1); color: #10b981;
-  font-size: 12px; font-weight: 600; white-space: nowrap;
-}
-.dajia-vip-tag.locked { background: rgba(245,158,11,0.1); color: #f59e0b; }
-.dajia-vip-tag svg { width: 12px; height: 12px; }
 
 /* Section Card */
 .section-card {

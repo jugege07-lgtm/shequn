@@ -114,10 +114,17 @@ function onAvatarError() {
 }
 
 /** 生成带推荐人参数的注册页 URL（用户扫码后进入注册，注册时自动关联推荐人）。
- *  base 取法同 share.ts buildShareUrl：原生 App 用 getApiBase()（域名），H5 用 origin。 */
+ *  base 取法同 share.ts buildShareUrl：原生 App 用 getApiBase()（域名）+ /h5 子路径，H5 用 origin。 */
 function buildRegisterShareUrl() {
-  const origin = getApiBase() || window.location.origin
-  const base = `${origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  const apiBase = getApiBase()
+  let base: string
+  if (apiBase) {
+    // 原生 App：用线上域名 + /h5 子路径（H5 实际部署位置）
+    base = `${apiBase}/h5`.replace(/\/+$/, '')
+  } else {
+    // H5：origin 已含正确域名，BASE_URL='/h5/'
+    base = `${window.location.origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  }
   return `${base}/register` + (ownerId.value ? `?referrer=${ownerId.value}` : '')
 }
 

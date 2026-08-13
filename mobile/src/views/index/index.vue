@@ -100,16 +100,26 @@
         </svg>
       </div>
 
-      <!-- VIP Banner -->
-      <div class="vip-banner" @click="$router.push('/vip/index')">
-        <div class="vip-banner-left">
-          <span class="vip-crown">👑</span>
-          <div class="vip-banner-text">
-            <h4>开通 VIP 会员</h4>
-            <p>解锁专属权益 · 享受更多折扣</p>
+      <!-- 大咖人脉入口（与个人中心交换位置） -->
+      <div class="dajia-module" @click="handleDajiaClick">
+        <div class="dajia-module-left">
+          <div class="dajia-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div class="dajia-module-info">
+            <div class="dajia-module-title">大咖人脉</div>
+            <div class="dajia-module-sub" v-if="dajiaVipOk">结识行业大咖 · 交换联系方式</div>
+            <div class="dajia-module-sub" v-else>开通 VIP{{ dajiaMinVipLevel }} 解锁更多精彩</div>
           </div>
         </div>
-        <span class="vip-open-btn">立即开通</span>
+        <div class="dajia-module-right">
+          <span class="dajia-vip-tag" v-if="dajiaVipOk">已开通</span>
+          <span class="dajia-vip-tag locked" v-else>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            VIP专属
+          </span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
       </div>
 
       <!-- Hot Activities -->
@@ -314,13 +324,52 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { getHomepageData, checkAppVersion, getAnnouncements, globalSearch } from '@/api/index'
+import { getHomepageData, checkAppVersion, getAnnouncements, globalSearch, getCurrentUser, getDajiaConfig } from '@/api/index'
 import { setCache, getCache } from '@/utils/cache'
 import { stripHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
+import { useUserStore } from '@/store/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 const CACHE_KEY = 'homepage_data'
+
+// ===== 大咖人脉（从个人中心交换至首页） =====
+const userInfo = ref<any>(userStore.userInfo || null)
+const dajiaMinVipLevel = ref(1)
+const dajiaVipOk = computed(() => {
+  const u = userInfo.value
+  if (!u) return false
+  if ((u.vipLevel || 0) < dajiaMinVipLevel.value) return false
+  if (u.vipExpireAt && new Date(u.vipExpireAt).getTime() < Date.now()) return false
+  return true
+})
+function handleDajiaClick() {
+  if (dajiaVipOk.value) {
+    router.push('/dajia/index')
+  } else {
+    router.push('/vip/index')
+  }
+}
+async function loadDajiaConfig() {
+  try {
+    const config = await getDajiaConfig()
+    dajiaMinVipLevel.value = config?.minVipLevel || 1
+  } catch {
+    // 忽略，使用默认级别
+  }
+}
+async function loadUserInfo() {
+  try {
+    const u = await getCurrentUser()
+    if (u) {
+      userInfo.value = u
+      userStore.setUserInfo(u)
+    }
+  } catch {
+    // 未登录忽略
+  }
+}
 
 const activities = ref<any[]>([])
 const businesses = ref<any[]>([])
@@ -622,6 +671,8 @@ onMounted(() => {
   loadHomepage()
   checkVersion()
   loadAnnouncements()
+  loadUserInfo()
+  loadDajiaConfig()
   // 定时拉取公告（每 60 秒），保持最新
   annRefreshTimer = setInterval(loadAnnouncements, 60 * 1000)
 })
@@ -771,25 +822,38 @@ onBeforeUnmount(() => {
 .ann-warning .ann-type-icon { color: #ef4444; }
 .ann-sep { color: var(--color-text-tertiary); }
 
-/* ===== VIP Banner ===== */
-.vip-banner {
+/* ===== 大咖人脉模块（从个人中心交换至首页） ===== */
+.dajia-module {
   margin: 0 16px 16px; padding: 14px 16px;
+  background: linear-gradient(135deg, #faf5ff 0%, #ffffff 60%);
+  border: 1px solid rgba(139,92,246,0.15);
   border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  color: #fff; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(139,92,246,0.06);
   display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 8px 24px rgba(79,70,229,0.25);
-  transition: transform 0.15s ease;
+  cursor: pointer; transition: transform 0.15s ease;
 }
-.vip-banner:active { transform: scale(0.98); }
-.vip-banner-left { display: flex; align-items: center; gap: 10px; }
-.vip-crown { font-size: 28px; }
-.vip-banner-text h4 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
-.vip-banner-text p { font-size: 11px; opacity: 0.8; }
-.vip-open-btn {
-  font-size: 12px; font-weight: 600; color: #4f46e5;
-  background: #fff; padding: 5px 14px; border-radius: 99px;
+.dajia-module:active { transform: scale(0.98); }
+.dajia-module-left { display: flex; align-items: center; gap: 12px; }
+.dajia-logo {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0;
 }
+.dajia-logo svg { width: 24px; height: 24px; }
+.dajia-module-info { min-width: 0; }
+.dajia-module-title { font-size: 15px; font-weight: 700; color: #1e1b4b; margin-bottom: 3px; }
+.dajia-module-sub { font-size: 11px; color: #6b7280; }
+.dajia-module-right { display: flex; align-items: center; gap: 8px; color: #8b5cf6; }
+.dajia-module-right > svg { width: 16px; height: 16px; flex-shrink: 0; }
+.dajia-vip-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 99px;
+  background: rgba(16,185,129,0.1); color: #10b981;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.dajia-vip-tag.locked { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.dajia-vip-tag svg { width: 12px; height: 12px; }
 
 /* ===== Section Header ===== */
 .section-header {

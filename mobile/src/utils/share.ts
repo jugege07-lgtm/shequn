@@ -35,12 +35,20 @@ const TYPE_META: Record<ShareType, { label: string; emoji: string; accent: [stri
  * 关键：H5 与原生 App 共用此函数，但 base 取法不同——
  * - H5：window.location.origin 是真实域名（https://www.jugekeji.com），BASE_URL='/h5/'
  * - App：Capacitor WebView origin 是 https://localhost（指向本机，扫码/点击打不开），
- *   必须用 getApiBase()（构建期注入的 https://www.jugekeji.com），BASE_URL='/'
+ *   必须用 getApiBase()（构建期注入的 https://www.jugekeji.com）。
+ *   且 App 构建时 Vite base='/'（非 /h5/），但 H5 实际部署在 /h5/ 子路径，
+ *   所以 App 环境下必须手动补全 /h5 前缀，否则二维码链接 404 打不开。
  */
 export function buildShareUrl(path: string, referrerId?: number | null): string {
   const apiBase = getApiBase()
-  const origin = apiBase || window.location.origin
-  const base = `${origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  let base: string
+  if (apiBase) {
+    // 原生 App：用线上域名 + /h5 子路径（H5 实际部署位置）
+    base = `${apiBase}/h5`.replace(/\/+$/, '')
+  } else {
+    // H5：origin 已含正确域名，BASE_URL='/h5/'
+    base = `${window.location.origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  }
   const sep = path.includes('?') ? '&' : '?'
   return referrerId ? `${base}${path}${sep}referrer=${referrerId}` : `${base}${path}`
 }
@@ -110,8 +118,24 @@ export async function nativeShare(payload: { title: string; text: string; url?: 
   }
 }
 
-/** 将 Canvas 保存为本地图片（移动端浏览器会打开图片供长按保存，桌面端直接下载） */
-export function saveCanvasToAlbum(canvas: HTMLCanvasElement, filename: string): void {
+/**
+ * 将 Canvas 保存为本地图片。
+ * - 原生 App（Capacitor WebView）：`<a download>` 不会触发下载，改为在新窗口打开图片
+ *   供用户长按保存到相册；同时返回 dataURL 供调用方显示 <img> 让用户长按保存。
+ * - H5 / 桌面端：用 `<a download>` 直接触发下载。
+ */
+export function saveCanvasToAlbum(canvas: HTMLCanvasElement, filename: string): { dataUrl: string; saved: boolean } {
+  const dataUrl = canvas.toDataURL('image/png')
+  if (isNativeApp()) {
+    // 原生 App：打开图片在新窗口供长按保存（WebView 中 <a download> 无效）
+    const w = window.open('')
+    if (w) {
+      w.document.write(`<html><head><title>${filename}</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#000"><img src="${dataUrl}" style="max-width:100%;height:auto" /></body></html>`)
+      w.document.close()
+    }
+    return { dataUrl, saved: true }
+  }
+  // H5：用 <a download> 下载
   canvas.toBlob((blob) => {
     if (!blob) return
     const url = URL.createObjectURL(blob)
@@ -123,6 +147,7 @@ export function saveCanvasToAlbum(canvas: HTMLCanvasElement, filename: string): 
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }, 'image/png')
+  return { dataUrl, saved: true }
 }
 
 // ==================== 海报绘制 ====================

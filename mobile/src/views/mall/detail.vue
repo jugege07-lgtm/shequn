@@ -9,6 +9,9 @@
         <div class="header-icon" @click="openShare">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </div>
+        <div class="header-icon" @click="goHome">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+        </div>
       </div>
     </div>
     <div class="main-scroll" v-loading="loading">
@@ -73,11 +76,11 @@
           </div>
         </div>
       </div>
-      <div class="info-card">
+      <div class="info-card desc-card">
         <h3 class="section-label">商品详情</h3>
         <div
           v-if="product.description"
-          class="rich-content"
+          class="rich-content detail-text"
           v-html="safeDescription"
         ></div>
         <p v-else class="detail-text">暂无详情</p>
@@ -136,6 +139,11 @@ function goBack() {
   } else {
     router.replace('/')
   }
+}
+
+// 一键返回主页
+function goHome() {
+  router.push('/')
 }
 
 // ===== 分享 =====
@@ -316,6 +324,24 @@ const handleComboBuy = () => {
 .product-title { font-size: 18px; font-weight: 800; color: var(--color-text-primary); line-height: 1.4; margin-bottom: 8px; }
 .section-label { font-size: 15px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 10px; }
 .detail-text { font-size: 14px; color: var(--color-text-secondary); line-height: 1.8; }
+
+/* 商品详情卡片：宽度自适应为手机屏幕宽度（去掉左右边距，仅此卡片全宽，其他卡片不变） */
+.desc-card {
+  margin: 12px 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+/* 商品详情内富文本图片：铺满全屏宽度（与主图一致），抵消卡片内边距实现边缘到边缘 */
+.desc-card .detail-text img,
+.desc-card .detail-text img[data-role="rich-image"] {
+  width: calc(100% + 32px) !important;
+  max-width: none !important;
+  height: auto !important;
+  margin: 10px -16px !important;
+  border-radius: 0 !important;
+  display: block !important;
+}
 .quantity-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.05); }
 .quantity-label { font-size: 14px; color: var(--color-text-secondary); }
 .quantity-stepper { display: flex; align-items: center; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px; overflow: hidden; }
