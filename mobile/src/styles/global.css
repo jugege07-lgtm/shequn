@@ -19,12 +19,12 @@ body {
      若这里再加 padding 会产生：① 顶部露出 phone-frame 的浅灰背景（灰色条）；
      ② 与 top 元素自带的安全区重复（双重安全区，导致顶部出现多余白条）。 */
 }
-/* 无 header 的列表页：.main-scroll 是 phone-frame 第一个子元素，自行并入顶部安全区避让状态栏。
-   用"白色 border-top"代替原来的 padding-top：border 是独立于内容盒的图层，可把顶部安全区
-   铺成纯白，从而盖住 .phone-frame 的 --color-bg(浅蓝灰 #f0f2f8)，彻底消除顶部"灰色条/蓝色印记"；
-   内容区仍展示 --color-bg 页面背景。有 header 或彩色首屏的页面不匹配此规则，不受影响。 */
+/* 无 header 的列表页：.main-scroll 是 phone-frame 第一个子元素。
+   顶部安全区用"透明 border-top"占位（透明背景 = 露出 phone-frame 的浅蓝灰背景），
+   使状态栏区域与页面背景完全一致，视觉无缝、无灰色条/白条；内容区用 padding-top 避让状态栏。
+   （Android 15+ edge-to-edge 状态栏区域直接显示此处背景；Android 14- 状态栏由原生设为同色 #f0f2f8。） */
 .phone-frame > .main-scroll:first-child {
-  border-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) solid #ffffff;
+  border-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) solid transparent;
   padding-top: 0;
 }
 /* Header */

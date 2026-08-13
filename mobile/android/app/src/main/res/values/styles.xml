@@ -13,12 +13,14 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@android:color/white</item>
-        <!-- edge-to-edge：状态栏/导航栏透明，背景由 WebView 内容（H5 各页面背景）铺满并延伸到系统栏后面。
-             不要再强制 statusBarColor 为白色：那会在彩色首屏（登录/注册/首页 banner）顶部盖出白色条。
-             状态栏图标明暗由 H5 端 SystemBars.setStyle() 按页面动态切换。 -->
+        <!-- 状态栏颜色与 H5 页面统一浅蓝灰(#f0f2f8，与 .phone-frame 背景一致)：
+             - Android 14-：状态栏不透明，颜色 = 页面背景，顶部视觉无缝
+             - Android 15+：系统强制 edge-to-edge 忽略此值，状态栏区域由 H5 页面顶部背景铺满
+             不使用透明/动态切换：避免依赖 SystemBars 注入的 --safe-area-inset-* 变量（WebView 版本
+             差异会导致注入值不准，产生顶部灰色条/多余白条）。 -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">#f0f2f8</item>
+        <item name="android:navigationBarColor">#f0f2f8</item>
         <item name="android:windowLightStatusBar">true</item>
         <!-- 强制浅色主题并禁用系统 force-dark：防止 WebView 白底/浅色头被自动暗化，导致状态栏区域出现灰色/暗色条 -->
         <item name="android:forceDarkAllowed">false</item>
