@@ -108,6 +108,7 @@ import { ref, onMounted, watch } from 'vue'
 import FloatingCart from '@/components/FloatingCart.vue'
 import { getProducts, getProductCategories, getMyPoints, getUserCoupons } from '@/api'
 import { stripHtml } from '@/utils/sanitize'
+import { normalizeImageUrl } from '@/utils/image'
 
 const categories = ref<any[]>([{ id: 0, name: '全部' }])
 const activeCat = ref(0)
@@ -116,15 +117,7 @@ const loading = ref(false)
 const points = ref(0)
 const couponCount = ref(0)
 
-// 将后端返回的相对路径图片 URL 拼接 /api 前缀
-// 后端存储: /uploads/xxx.jpg,通过 Vite 代理 /api -> http://localhost:3000 访问
-function normalizeImageUrl(url: string | undefined): string {
-  if (!url) return ''
-  if (url.startsWith('http') || url.startsWith('//')) return url
-  if (url.startsWith('/api/')) return url
-  if (url.startsWith('/uploads/')) return '/api' + url
-  return url
-}
+// normalizeImageUrl 已改用集中式 @/utils/image（含 getApiBase，原生 App 下补全绝对地址）
 
 async function loadCategories() {
   try {

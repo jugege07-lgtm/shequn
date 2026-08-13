@@ -2,7 +2,7 @@
   <div class="phone-frame">
     <div class="header">
       <div class="header-left">
-        <div class="back-btn" @click="$router.back()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></div>
+        <div class="back-btn" @click="goBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></div>
         <span class="header-title">商品详情</span>
       </div>
       <div class="header-right">
@@ -117,6 +117,7 @@ import { useUserStore } from '@/store/user'
 import { recordBrowse } from '@/utils/browseHistory'
 import ShareSheet from '@/components/ShareSheet.vue'
 import type { ShareContent } from '@/utils/share'
+import { normalizeImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -127,6 +128,15 @@ const loading = ref(true)
 const adding = ref(false)
 const pointsBuying = ref(false)
 const quantity = ref(1)
+
+// 返回兜底：经分享海报冷启动进入时历史栈为空，router.back() 无处可退 → 回首页
+function goBack() {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.replace('/')
+  }
+}
 
 // ===== 分享 =====
 const shareOpen = ref(false)
@@ -191,13 +201,7 @@ const bottomActionClass = computed(() => {
   return 'dual-action'
 })
 
-function normalizeImageUrl(url: string | undefined): string {
-  if (!url) return ''
-  if (url.startsWith('http') || url.startsWith('//')) return url
-  if (url.startsWith('/api/')) return url
-  if (url.startsWith('/uploads/')) return '/api' + url
-  return url
-}
+// normalizeImageUrl 已改用集中式 @/utils/image（含 getApiBase，原生 App 下补全绝对地址）
 
 onMounted(async () => {
   try {
@@ -233,6 +237,11 @@ const safeDescription = computed(() => {
   result = result.replace(/\s+height\s*=\s*["']?\d+px["']?/gi, '')
   result = result.replace(/\s+width\s*=\s*["']?\d{4,}["']?/gi, '')
   result = result.replace(/\s+height\s*=\s*["']?\d{4,}["']?/gi, '')
+  // 重写 img src 为绝对地址：原生 App 下相对 /uploads/ 会解析失败（origin=https://localhost 无 Caddy 代理）
+  result = result.replace(/src\s*=\s*(?:"([^"]*)"|'([^']*)')/gi, (m, dq, sq) => {
+    const v = dq ?? sq ?? ''
+    return `src="${normalizeImageUrl(v)}"`
+  })
   // 添加 data-role 便于 CSS 匹配
   if (!result.includes('data-role=')) {
     result = result.replace('<img', '<img data-role="rich-image"')

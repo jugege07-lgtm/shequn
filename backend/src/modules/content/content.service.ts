@@ -117,10 +117,10 @@ export class ContentService {
       this.getBanners('home'),
       this.getAnnouncements(),
       this.getHomeSections(),
-      // 热门活动：按报名人数降序，取前 6 条已审核通过的
+      // 热门活动：按创建时间降序，取前 6 条已审核通过的（保证新发布的活动能及时展示在首页）
       this.prisma.activity.findMany({
         where: { status: 'approved' },
-        orderBy: { signupCount: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 6,
         include: { publisher: { select: { nickname: true, avatarUrl: true } } },
       }),

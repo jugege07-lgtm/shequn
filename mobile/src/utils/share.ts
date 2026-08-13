@@ -1,5 +1,8 @@
 import QRCode from 'qrcode'
 import { normalizeImageUrl } from './image'
+import { getApiBase, isNativeApp } from './apiBase'
+import { Capacitor } from '@capacitor/core'
+import { Share } from '@capacitor/share'
 import logoUrl from '@/assets/logo.png'
 
 export type ShareType = 'activity' | 'business' | 'product'
@@ -28,9 +31,16 @@ const TYPE_META: Record<ShareType, { label: string; emoji: string; accent: [stri
 /**
  * 生成分享链接：携带当前转发人（referrer）信息。
  * referrer 为当前登录用户 ID，明文相对安全（仅用于新人注册识别推荐人）。
+ *
+ * 关键：H5 与原生 App 共用此函数，但 base 取法不同——
+ * - H5：window.location.origin 是真实域名（https://www.jugekeji.com），BASE_URL='/h5/'
+ * - App：Capacitor WebView origin 是 https://localhost（指向本机，扫码/点击打不开），
+ *   必须用 getApiBase()（构建期注入的 https://www.jugekeji.com），BASE_URL='/'
  */
 export function buildShareUrl(path: string, referrerId?: number | null): string {
-  const base = `${window.location.origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  const apiBase = getApiBase()
+  const origin = apiBase || window.location.origin
+  const base = `${origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
   const sep = path.includes('?') ? '&' : '?'
   return referrerId ? `${base}${path}${sep}referrer=${referrerId}` : `${base}${path}`
 }
@@ -70,8 +80,27 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/** 调用系统原生分享面板（覆盖微信/QQ 等已安装 App） */
+/**
+ * 调用系统原生分享面板（覆盖微信/朋友圈/QQ 等已安装 App）。
+ * - 原生 App：用 @capacitor/share 拉起系统分享面板（安卓下会列出微信、朋友圈等已安装应用）
+ * - H5：用 Web Share API（navigator.share），不支持时返回 'unsupported' 由调用方退化为复制链接
+ */
 export async function nativeShare(payload: { title: string; text: string; url?: string }): Promise<'shared' | 'cancel' | 'unsupported'> {
+  // 原生 App：优先用 Capacitor Share 插件（行为可靠，弹出系统分享面板可选微信/朋友圈）
+  if (isNativeApp() && Capacitor.isNativePlatform()) {
+    try {
+      await Share.share({
+        title: payload.title,
+        text: payload.text,
+        url: payload.url,
+        dialogTitle: payload.title,
+      })
+      return 'shared'
+    } catch {
+      return 'cancel'
+    }
+  }
+  // H5：Web Share API
   if (!navigator.share) return 'unsupported'
   try {
     await navigator.share(payload)

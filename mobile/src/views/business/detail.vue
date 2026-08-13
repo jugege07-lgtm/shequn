@@ -2,7 +2,7 @@
   <div class="phone-frame">
     <div class="header">
       <div class="header-left">
-        <div class="back-btn" @click="$router.back()">
+        <div class="back-btn" @click="goBack">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>
         </div>
         <span class="header-title">商机详情</span>
@@ -107,7 +107,7 @@
       </div>
 
       <!-- 4. 商机详情（需求详情） -->
-      <div class="info-card">
+      <div class="info-card desc-card">
         <h3 class="section-label">商机详情</h3>
         <div class="detail-text" v-html="business.sanitizedDetail"></div>
       </div>
@@ -162,6 +162,15 @@ import type { ShareContent } from '@/utils/share'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+// 返回兜底：经分享海报冷启动进入时历史栈为空，router.back() 无处可退 → 回首页
+function goBack() {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.replace('/')
+  }
+}
 
 // ===== 分享 =====
 const shareOpen = ref(false)
@@ -568,6 +577,24 @@ async function copyPhone() {
 /* ===== 商机详情 ===== */
 .section-label { font-size: 15px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 10px; }
 .detail-text { font-size: 14px; color: var(--color-text-secondary); line-height: 1.8; }
+
+/* 商机详情卡片：宽度自适应为手机屏幕宽度（去掉左右边距，仅此卡片全宽，其他卡片不变） */
+.desc-card {
+  margin: 12px 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+/* 商机详情内富文本图片：铺满全屏宽度（与主图一致），抵消卡片内边距实现边缘到边缘 */
+.desc-card .detail-text img,
+.desc-card .detail-text img[data-role="rich-image"] {
+  width: calc(100% + 32px) !important;
+  max-width: none !important;
+  height: auto !important;
+  margin: 10px -16px !important;
+  border-radius: 0 !important;
+  display: block !important;
+}
 
 /* ===== 底部解锁按钮 ===== */
 .bottom-action {

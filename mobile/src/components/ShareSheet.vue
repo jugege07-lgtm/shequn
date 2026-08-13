@@ -141,12 +141,12 @@ async function handleCopyLink() {
 }
 
 function shareTo(channel: string) {
-  copyText(link.value).then((ok) => {
-    showToast(ok ? `链接已复制，去${channel}粘贴即可` : '复制失败')
-  })
+  // 原生 App：点击微信/朋友圈/QQ 拉起系统分享面板，用户可选择对应应用跳转
+  // H5：navigator.share 不可用时退化为复制链接 + 提示
+  void useNativeShare(channel)
 }
 
-async function useNativeShare() {
+async function useNativeShare(channel?: string) {
   const s = props.share
   const typeName = s?.type === 'activity' ? '活动' : s?.type === 'business' ? '商机' : '商品'
   const res = await nativeShare({
@@ -156,7 +156,9 @@ async function useNativeShare() {
   })
   if (res === 'unsupported') {
     const ok = await copyText(link.value)
-    showToast(ok ? '已复制链接' : '暂不支持系统分享，请复制链接')
+    showToast(ok ? `链接已复制，去${channel || '微信'}粘贴即可` : '复制失败')
+  } else if (res === 'cancel') {
+    // 用户取消，不提示
   }
 }
 

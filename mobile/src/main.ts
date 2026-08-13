@@ -1,5 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { App as CapApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 import App from './App.vue'
 import router from './router'
 import { useUserStore } from './store/user'
@@ -10,6 +12,22 @@ const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
 app.use(router)
+
+// 安卓物理返回键 / 手势返回处理：
+// 无 @capacitor/app 的 backButton 监听时，WebView 无历史则直接 finish() 退出 App。
+// 这里统一接管：有路由历史则后退，否则回首页；在首页再按返回才退出 App。
+if (Capacitor.isNativePlatform()) {
+  CapApp.addListener('backButton', () => {
+    if (router.currentRoute.value.path === '/') {
+      // 已在首页，退出 App
+      CapApp.exitApp()
+    } else if (window.history.length > 1) {
+      router.back()
+    } else {
+      router.replace('/')
+    }
+  })
+}
 
 // 应用启动时恢复登录会话：若本地凭证已过期则自动清理
 // 在 router 挂载后、mount 前调用，确保路由守卫能拿到正确的登录状态

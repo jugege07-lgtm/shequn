@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { formatPriceHtml } from '@/utils/sanitize'
+import { normalizeImageUrl } from '@/utils/image'
 import { getActivities, getMyActivities, getSignedActivities } from '@/api'
 
 const filters = ['全部', '免费', '付费', '我发布的', '已报名', '即将开始', '已结束']
@@ -91,9 +92,9 @@ function mapActivity(item: any) {
   return {
     id: item.id,
     title: item.title,
-    coverImage: item.coverImage || '',
+    coverImage: normalizeImageUrl(item.coverImage),
     coverError: false,
-    cover: item.coverImage ? `url(${item.coverImage})` : 'linear-gradient(135deg,#818cf8,#6366f1)',
+    cover: item.coverImage ? `url(${normalizeImageUrl(item.coverImage)})` : 'linear-gradient(135deg,#818cf8,#6366f1)',
     statusText: item.status === 'approved' ? '报名中' : item.status === 'pending' ? '待审核' : '已结束',
     statusClass: item.status === 'approved' ? '' : item.status === 'pending' ? '' : 'full',
     date: formatActivityDate(item.startTime),

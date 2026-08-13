@@ -114,10 +114,11 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import QRCode from 'qrcode'
+import { getApiBase } from '@/utils/apiBase'
 
 const BASE = import.meta.env.BASE_URL || '/h5/'
 const apkUrl = `${BASE}app/shequn.apk`
-const appVersion = '1.0.9'
+const appVersion = '1.1.0'
 const logoSrc = `${BASE}logo.jpg`
 
 const features = [
@@ -132,7 +133,9 @@ const posterLoading = ref(false)
 const posterCanvas = ref<HTMLCanvasElement | null>(null)
 
 function buildShareUrl() {
-  const base = `${window.location.origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  // 原生 App 下 window.location.origin 是 https://localhost，需用 getApiBase() 取真实域名
+  const origin = getApiBase() || window.location.origin
+  const base = `${origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
   return `${base}/app-download`
 }
 

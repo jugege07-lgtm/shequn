@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="header">
       <div class="header-left">
-        <div class="back-btn" @click="$router.back()">
+        <div class="back-btn" @click="goBack">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </div>
         <span class="header-title">转发名片</span>
@@ -73,12 +73,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getMyCard, getCardShare } from '@/api'
 import { normalizeImageUrl } from '@/utils/image'
+import { getApiBase } from '@/utils/apiBase'
 import QRCode from 'qrcode'
 
 const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
 const cardData = ref<any>({})
 const qrcodeBase64 = ref('')
@@ -111,10 +113,21 @@ function onAvatarError() {
   }
 }
 
-/** 生成带推荐人参数的注册页 URL（用户扫码后进入注册，注册时自动关联推荐人） */
+/** 生成带推荐人参数的注册页 URL（用户扫码后进入注册，注册时自动关联推荐人）。
+ *  base 取法同 share.ts buildShareUrl：原生 App 用 getApiBase()（域名），H5 用 origin。 */
 function buildRegisterShareUrl() {
-  const base = `${window.location.origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
+  const origin = getApiBase() || window.location.origin
+  const base = `${origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
   return `${base}/register` + (ownerId.value ? `?referrer=${ownerId.value}` : '')
+}
+
+/** 返回按钮兜底：经分享海报冷启动进入时历史栈为空，router.back() 无处可退 → 回首页 */
+function goBack() {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.replace('/')
+  }
 }
 
 async function loadCard() {

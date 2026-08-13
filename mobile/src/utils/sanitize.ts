@@ -2,6 +2,8 @@
  * 安全的 HTML 转义函数
  * 防止 XSS 攻击
  */
+import { normalizeImageUrl } from './image'
+
 export function escapeHtml(str: string): string {
   const div = document.createElement('div');
   div.appendChild(document.createTextNode(str));
@@ -136,6 +138,13 @@ export function sanitizeRichHtml(html: string, maxLength?: number): string {
     // 移除过大但不带单位的数值（如 width="1920"）
     fixed = fixed.replace(/\s+width\s*=\s*["']?\d{4,}["']?/gi, '');
     fixed = fixed.replace(/\s+height\s*=\s*["']?\d{4,}["']?/gi, '');
+    // 重写 img src 为绝对地址：原生 App（Capacitor WebView origin=https://localhost 无 Caddy 代理）
+    // 下相对路径 /uploads/xxx 会解析失败，必须用 normalizeImageUrl 补全为
+    // https://www.jugekeji.com/api/uploads/xxx。H5 环境下 getApiBase() 返回空，保持相对路径由 Caddy 代理。
+    fixed = fixed.replace(/src\s*=\s*(?:"([^"]*)"|'([^']*)')/gi, (m, dq, sq) => {
+      const v = dq ?? sq ?? ''
+      return `src="${normalizeImageUrl(v)}"`
+    });
     // 添加 data-role 便于 CSS 选择器匹配
     if (!fixed.includes('data-role=')) {
       fixed = fixed.replace('<img', '<img data-role="rich-image"');
