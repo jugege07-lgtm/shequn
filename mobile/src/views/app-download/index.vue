@@ -64,12 +64,12 @@
       <div class="download-card">
         <div class="download-title">下载 App</div>
         <p class="download-sub">Android 客户端 · 安装后即可添加到桌面，随时随地使用</p>
-        <a class="download-btn" :href="apkUrl" download="社群名片.apk" @click.prevent="handleDownload">
+        <a class="download-btn" @click.prevent="handleDownload">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>下载 Android 版</span>
         </a>
         <div class="download-tip">或复制链接到浏览器安装</div>
-        <div class="download-version" v-if="apkVersion">最新版本构建时间：{{ apkVersion }}</div>
+        <div class="download-version">当前版本：v{{ appVersion }}</div>
       </div>
 
       <!-- PWA tips -->
@@ -115,9 +115,10 @@
 import { ref, onMounted, nextTick } from 'vue'
 import QRCode from 'qrcode'
 
-const apkUrl = ref(`${import.meta.env.BASE_URL || '/h5/'}app/shequn.apk`)
-const apkVersion = ref('')
-const logoSrc = `${import.meta.env.BASE_URL || '/h5/'}logo.jpg`
+const BASE = import.meta.env.BASE_URL || '/h5/'
+const apkUrl = `${BASE}app/shequn.apk`
+const appVersion = '1.0.1'
+const logoSrc = `${BASE}logo.jpg`
 
 const features = [
   { title: '发布活动', desc: '创建社群活动，快速召集同频伙伴', icon: 'M3 4h18v13H3z M8 21h8M12 17v4', bg: '#eef2ff', color: '#6366f1' },
@@ -232,9 +233,9 @@ async function handleShare() {
 }
 
 function handleDownload() {
-  // PC 直接跳转下载；移动端记为下载意图提示
-  showToast(window.navigator.userAgent ? '开始下载，请稍候...' : '开始下载')
-  window.location.href = apkUrl.value
+  // 跳转到稳定的最新安装包地址，触发浏览器下载
+  showToast('开始下载，请稍候...')
+  window.location.href = apkUrl
 }
 
 function handleSavePoster() {
@@ -270,20 +271,8 @@ async function handleShareLink() {
   }
 }
 
-onMounted(async () => {
+onMounted(() => {
   document.title = '下载 App'
-  // 读取服务器上最新版本的构建时间戳，展示并下载带版本号的安装包，便于确认是否为最新
-  try {
-    const base = import.meta.env.BASE_URL || '/h5/'
-    const res = await fetch(`${base}app/latest.txt`)
-    if (res.ok) {
-      const ts = (await res.text()).trim()
-      if (ts) {
-        apkVersion.value = ts
-        apkUrl.value = `${base}app/shequn_${ts}.apk`
-      }
-    }
-  } catch { /* 读取失败时回退到稳定的 shequn.apk 链接 */ }
 })
 </script>
 
