@@ -187,7 +187,6 @@ onMounted(() => {
   position: sticky; top: 0; z-index: 100;
   background: #ffffff;
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  margin-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) * -1);
   padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }

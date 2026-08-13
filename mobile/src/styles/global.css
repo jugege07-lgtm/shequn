@@ -9,21 +9,25 @@ body {
   width: 100%; min-height: 100vh; max-width: 430px;
   margin: 0 auto; background: var(--color-bg);
   position: relative; display: flex; flex-direction: column;
-  /* 状态栏/刘海安全区：背景向上延伸覆盖状态栏，内容整体下移避让不被遮挡 */
+  /* 注意：这里不再给 phone-frame 加顶部安全区 padding。
+     因为各页面的首个 top 元素（.header / 首页 banner / 列表页 .main-scroll）会自行并入安全区，
+     若这里再加 padding 会产生：① 顶部露出 phone-frame 的浅灰背景（灰色条）；
+     ② 与 top 元素自带的安全区重复（双重安全区，导致顶部出现多余白条）。 */
+}
+/* 无 header 的列表页：.main-scroll 是 phone-frame 第一个子元素，自行并入顶部安全区避让状态栏 */
+.phone-frame > .main-scroll:first-child {
   padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
 }
 /* Header */
 .header {
   position: sticky; top: 0; z-index: 100;
-  /* 实心白：保证向上延伸覆盖状态栏时无明显灰色断层（原生 WebView 下 backdrop-filter 不可靠，
-     故移除 backdrop-filter 以避免原生 WebView 渲染异常导致导航栏出现灰色） */
+  /* 实心白：header 作为 phone-frame 第一个子元素位于屏幕顶部，白色背景向上覆盖状态栏，
+     不再依赖负 margin（负 margin 在多个自定义 header 中不可靠，会露出顶部浅灰条） */
   background: #ffffff;
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  /* 抵消 phone-frame 的顶部安全区，Header 背景向上延伸覆盖状态栏；
-     同时自身 padding-top 并入安全区，内容避让不被遮挡。
+  /* 顶部安全区直接并入 padding：内容避让状态栏不被遮挡。
      max(...) 兜底：即使 Capacitor 未注入 --safe-area-inset-top（值为 0），
      也保证 header 顶部最少留 34px（≈24px 状态栏 + 10px 间距），避免内容被状态栏压住。 */
-  margin-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) * -1);
   padding: max(calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px), 34px) 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }

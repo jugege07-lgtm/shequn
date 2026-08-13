@@ -460,7 +460,7 @@ onMounted(() => {
 /* Main Scroll */
 .main-scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: 16px 16px 24px;
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 16px) 16px 24px;
   position: relative;
   z-index: 1;
 }

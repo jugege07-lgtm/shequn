@@ -189,7 +189,6 @@ onMounted(loadCoupons)
   background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid #eee;
-  margin-top: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) * -1);
   padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 10px;
   display: flex; align-items: center;
 }
