@@ -13,22 +13,23 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- edge-to-edge：状态栏透明，WebView 内容绘制到状态栏后面，由 H5 页面顶部背景铺满。
-             配合 MainActivity 的 EdgeToEdge.enable()，env(safe-area-inset-top) 可正确取值。 -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
-        <!-- 强制浅色主题并禁用系统 force-dark：防止 WebView 白底/浅色头被自动暗化，导致状态栏区域出现灰色/暗色条 -->
         <item name="android:forceDarkAllowed">false</item>
     </style>
 
-
-    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
-        <!-- 该主题由 AndroidManifest 直接应用到 MainActivity，是运行时实际生效的主题。
-             状态栏必须透明（之前设为 @android:color/white，是 Android 14- 顶部白条的根因）：
-             配合 EdgeToEdge.enable()，状态栏区域由 WebView 页面顶部背景铺满。 -->
+    <!-- MainActivity 运行时主题（AndroidManifest 直接引用）。
+         根因修复：之前 parent=Theme.SplashScreen + background=@drawable/splash，
+         导致 ① splash.png（含 logo）作为 windowBackground 残留，状态栏下方露出 logo 图标；
+         ② Theme.SplashScreen 强制 windowDecorFitsSystemWindows=true，阻止 WebView 延伸到
+         状态栏后面（即使装了 @capacitor/status-bar 插件 overlay 也被覆盖）= 白条。
+         现改为继承 AppCompat.Light.NoActionBar + 纯白背景，解除上述两个限制。 -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@android:color/white</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
