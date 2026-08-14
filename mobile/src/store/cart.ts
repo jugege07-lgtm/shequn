@@ -2,13 +2,14 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getCart, addToCart as apiAddToCart, updateCartItem, removeCartItem, clearCart as apiClearCart } from '@/api'
 import { normalizeImageUrl } from '@/utils/image'
+import { useUserStore } from '@/store/user'
 
 export interface CartItem {
   id: number          // 购物车项ID
   productId: number   // 商品ID
   name: string
-  price: number
-  originalPrice?: number
+  price: number       // 实际结算单价（VIP用户为vipPrice，普通用户为price）
+  originalPrice?: number // 原价（仅VIP用户有，用于划线展示）
   coverImage?: string
   gradient?: string
   emoji?: string
@@ -21,7 +22,7 @@ export const useCartStore = defineStore('cart', () => {
   // 商品总数
   const totalCount = computed(() => items.value.reduce((sum, item) => sum + item.quantity, 0))
 
-  // 总金额
+  // 总金额（基于实际结算价）
   const totalPrice = computed(() => items.value.reduce((sum, item) => sum + item.price * item.quantity, 0))
 
   // 从后端同步购物车数据
@@ -29,17 +30,26 @@ export const useCartStore = defineStore('cart', () => {
     try {
       const res: any = await getCart()
       const list = Array.isArray(res) ? res : res?.list || res?.data || []
-      items.value = list.map((item: any) => ({
-        id: item.id,
-        productId: item.productId || item.product?.id || item.id,
-        name: item.product?.name || item.name || '商品',
-        price: Number(item.product?.price ?? item.price ?? 0),
-        originalPrice: Number(item.product?.vipPrice || Math.round((item.product?.price || 0) * 1.5)),
-        coverImage: normalizeImageUrl(item.product?.coverImage || item.coverImage),
-        gradient: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-        emoji: '📦',
-        quantity: item.quantity || 1,
-      }))
+      const userStore = useUserStore()
+      const isVip = userStore.isVip
+      items.value = list.map((item: any) => {
+        const product = item.product || {}
+        const regularPrice = Number(product.price ?? item.price ?? 0)
+        const vipPrice = Number(product.vipPrice) || 0
+        // VIP 用户且商品有有效 vipPrice 时使用 vipPrice，否则用普通价
+        const useVipPrice = isVip && vipPrice > 0 && vipPrice < regularPrice
+        return {
+          id: item.id,
+          productId: item.productId || product.id || item.id,
+          name: product.name || item.name || '商品',
+          price: useVipPrice ? vipPrice : regularPrice,
+          originalPrice: useVipPrice ? regularPrice : undefined,
+          coverImage: normalizeImageUrl(product.coverImage || item.coverImage),
+          gradient: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+          emoji: '📦',
+          quantity: item.quantity || 1,
+        }
+      })
       saveToStorage()
     } catch (err: any) {
       console.error('同步购物车失败', err)

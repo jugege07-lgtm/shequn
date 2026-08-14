@@ -29,8 +29,14 @@
       </div>
       <div class="info-card">
         <div class="price-row">
-          <span class="price-main"><span>¥</span>{{ product.price }}</span>
-          <span class="price-original" v-if="product.vipPrice && product.vipPrice < product.price">VIP ¥{{ product.vipPrice }}</span>
+          <!-- VIP 用户：主价格显示 VIP 价，原价划线显示 -->
+          <span class="price-main"><span>¥</span>{{ displayPrice }}</span>
+          <template v-if="hasVipPrice">
+            <span class="price-vip-tag">VIP专享</span>
+            <span class="price-original">原价 ¥{{ product.price }}</span>
+          </template>
+          <!-- 普通用户：显示原价，旁边提示 VIP 价 -->
+          <span class="price-original" v-else-if="product.vipPrice && product.vipPrice < product.price">VIP ¥{{ product.vipPrice }}</span>
         </div>
         <h1 class="product-title">{{ product.name }}</h1>
 
@@ -132,6 +138,21 @@ const adding = ref(false)
 const pointsBuying = ref(false)
 const quantity = ref(1)
 
+// VIP 用户是否享受 VIP 价
+const hasVipPrice = computed(() => {
+  const p = product.value
+  return (
+    userStore.isVip &&
+    Number(p.vipPrice) > 0 &&
+    Number(p.vipPrice) < Number(p.price)
+  )
+})
+
+// 实际展示的主价格：VIP 用户显示 vipPrice，普通用户显示 price
+const displayPrice = computed(() => {
+  return hasVipPrice.value ? Number(product.value.vipPrice) : Number(product.value.price)
+})
+
 // 返回兜底：经分享海报冷启动进入时历史栈为空，router.back() 无处可退 → 回首页
 function goBack() {
   if (window.history.length > 1) {
@@ -152,7 +173,7 @@ const shareContent = ref<ShareContent | null>(null)
 function openShare() {
   const p = product.value
   if (!p?.name) return
-  const price = Number(p.price) || 0
+  const price = displayPrice.value
   shareContent.value = {
     type: 'product',
     title: p.name || '',
@@ -177,7 +198,7 @@ const pointsRate = computed(() => Number(product.value?.pointsRate) || 100)
 
 /** 单件最高可抵现金（组合支付） */
 const maxDeductCash = computed(() => {
-  const price = Number(product.value?.price) || 0
+  const price = displayPrice.value
   let max = price
   if (product.value?.pointsDeductMode === 'ratio') {
     const pct = Number(product.value?.pointsRatioPercent) || 0
@@ -213,6 +234,8 @@ const bottomActionClass = computed(() => {
 
 onMounted(async () => {
   try {
+    // 先刷新用户信息（确保VIP状态最新，影响价格展示）
+    await userStore.fetchUserInfo()
     const id = Number(route.query.id || route.params.id)
     if (id) {
       const res = await getProduct(id)
@@ -321,6 +344,7 @@ const handleComboBuy = () => {
 .price-main { font-size: 28px; font-weight: 800; color: var(--color-primary); }
 .price-main span { font-size: 16px; }
 .price-original { font-size: 14px; color: var(--color-text-tertiary); text-decoration: line-through; }
+.price-vip-tag { font-size: 11px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #f59e0b, #f97316); padding: 2px 8px; border-radius: 99px; }
 .product-title { font-size: 18px; font-weight: 800; color: var(--color-text-primary); line-height: 1.4; margin-bottom: 8px; }
 .section-label { font-size: 15px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 10px; }
 .detail-text { font-size: 14px; color: var(--color-text-secondary); line-height: 1.8; }

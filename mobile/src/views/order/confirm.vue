@@ -31,7 +31,7 @@
             <div class="goods-info">
               <div class="goods-name">{{ item.name || item.product?.name }}</div>
               <div class="goods-price-row">
-                <span class="goods-price"><span>¥</span>{{ item.price || item.product?.price }}</span>
+                <span class="goods-price"><span>¥</span>{{ item.effectivePrice ?? item.price ?? item.product?.price }}</span>
                 <span class="goods-quantity">x{{ item.quantity }}</span>
               </div>
             </div>
@@ -196,9 +196,11 @@ import {
   getAddresses, getProduct, getCart,
   createOrder, createOrderFromCart, getUserCoupons,
 } from '@/api'
+import { useUserStore } from '@/store/user'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 const productId = computed(() => Number(route.query.productId) || 0)
 const quantity = computed(() => Number(route.query.quantity) || 1)
@@ -298,7 +300,8 @@ async function loadCoupons() {
 /** 积分支付方案（与后端 computePointsPlan 逻辑保持一致，仅用于展示） */
 const pointsPlan = computed(() => {
   const p = currentProduct.value || {}
-  const price = Number(p.price) || 0
+  // VIP 用户使用 vipPrice 作为计算基数（与后端一致）
+  const price = getEffectivePrice(p)
   const qty = quantity.value
   const totalAmount = price * qty
   const enabled = Number(p.pointsEnabled) || 0
@@ -371,9 +374,30 @@ const pointsPlan = computed(() => {
   }
 })
 
+/**
+ * 获取商品对当前用户的实际结算单价：
+ * VIP 用户且商品配置了有效 vipPrice（>0 且 < price）时返回 vipPrice，否则返回 price
+ */
+function getEffectivePrice(product: any): number {
+  if (!product) return 0
+  const price = Number(product.price) || 0
+  if (
+    userStore.isVip &&
+    Number(product.vipPrice) > 0 &&
+    Number(product.vipPrice) < price
+  ) {
+    return Number(product.vipPrice)
+  }
+  return price
+}
+
 const totalPrice = computed(() => {
   return goodsList.value
-    .reduce((sum, item) => sum + (item.price || item.product?.price || 0) * (item.quantity || 1), 0)
+    .reduce((sum, item) => {
+      // 优先使用已计算的 effectivePrice，其次回退到 item.price / product.price
+      const unitPrice = item.effectivePrice ?? item.price ?? item.product?.price ?? 0
+      return sum + unitPrice * (item.quantity || 1)
+    }, 0)
     .toFixed(2)
 })
 
@@ -429,20 +453,28 @@ async function loadGoods() {
     if (isCartMode.value) {
       const data = await getCart()
       const list = Array.isArray(data) ? data : data?.list || []
-      goodsList.value = list.filter((item: any) => cartItemIds.value.includes(item.id))
+      // 为每个购物车商品计算 VIP 实际结算价
+      goodsList.value = list
+        .filter((item: any) => cartItemIds.value.includes(item.id))
+        .map((item: any) => ({
+          ...item,
+          effectivePrice: getEffectivePrice(item.product),
+        }))
     } else if (productId.value) {
       const product = await getProduct(productId.value)
       currentProduct.value = product
+      const effPrice = getEffectivePrice(product)
       goodsList.value = [{
         name: product.name,
         coverImage: product.coverImage,
-        price: product.price,
+        price: effPrice,
+        effectivePrice: effPrice,
         quantity: quantity.value,
       }]
-      // 组合支付默认用满积分
+      // 组合支付默认用满积分（基于实际结算价计算）
       if (payType.value === 'points_cash' && Number(product.pointsEnabled) === 2) {
         const rate = Number(product.pointsRate) || 100
-        let maxCash = product.price * quantity.value
+        let maxCash = effPrice * quantity.value
         if (product.pointsDeductMode === 'ratio') {
           const pct = Number(product.pointsRatioPercent) || 0
           maxCash = Math.min(maxCash, (maxCash * pct) / 100)
@@ -522,8 +554,10 @@ function showToast(msg: string) {
   setTimeout(() => el.remove(), 2000)
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.title = '确认订单'
+  // 先刷新用户信息（确保VIP状态最新），再加载商品（价格依赖VIP身份）
+  await userStore.fetchUserInfo()
   loadAddresses()
   loadGoods()
   loadCoupons()

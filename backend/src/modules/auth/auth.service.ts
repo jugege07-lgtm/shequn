@@ -77,6 +77,8 @@ export class AuthService {
         role: user.role,
         roles: String(user.role || '').split(',').map((s) => s.trim()).filter(Boolean),
         adminLevel: user.adminLevel,
+        vipLevel: user.vipLevel,
+        vipExpireAt: user.vipExpireAt,
       },
     };
   }
@@ -140,6 +142,8 @@ export class AuthService {
         role: user.role,
         roles,
         adminLevel: user.adminLevel,
+        vipLevel: user.vipLevel,
+        vipExpireAt: user.vipExpireAt,
       },
     };
   }
@@ -213,6 +217,8 @@ export class AuthService {
         nickname: user.nickname,
         avatarUrl: user.avatarUrl,
         role: user.role,
+        vipLevel: user.vipLevel,
+        vipExpireAt: user.vipExpireAt,
       },
     };
   }
@@ -241,6 +247,8 @@ export class AuthService {
         nickname: user.nickname,
         avatarUrl: user.avatarUrl,
         role: user.role,
+        vipLevel: user.vipLevel,
+        vipExpireAt: user.vipExpireAt,
       },
     };
   }
@@ -323,6 +331,8 @@ export class AuthService {
         nickname: user.nickname,
         avatarUrl: user.avatarUrl,
         role: user.role,
+        vipLevel: user.vipLevel,
+        vipExpireAt: user.vipExpireAt,
       },
     };
   }
@@ -350,6 +360,8 @@ export class AuthService {
         nickname: user.nickname,
         avatarUrl: user.avatarUrl,
         role: user.role,
+        vipLevel: user.vipLevel,
+        vipExpireAt: user.vipExpireAt,
       },
     };
   }
@@ -368,6 +380,34 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Refresh token 无效');
     }
+  }
+
+  /**
+   * 获取当前登录用户信息（含VIP状态）
+   * 前端用于判断是否显示VIP价格、VIP标识等
+   */
+  async getMe(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        nickname: true,
+        avatarUrl: true,
+        phone: true,
+        role: true,
+        adminLevel: true,
+        vipLevel: true,
+        vipExpireAt: true,
+        points: true,
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+    return {
+      ...user,
+      roles: String(user.role || '').split(',').map((s) => s.trim()).filter(Boolean),
+    };
   }
 
   generateJwtPayload(user: User) {

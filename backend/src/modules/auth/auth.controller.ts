@@ -1,16 +1,26 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
+import { Controller, Post, Get, Body, HttpCode, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { PhonePasswordLoginDto } from './dto/phone-password-login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('认证')
 @Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('me')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '获取当前登录用户信息（含VIP状态，前端用于判断VIP价格）' })
+  async getMe(@CurrentUser() user: any) {
+    return await this.authService.getMe(user.userId);
+  }
 
   @Post('wechat-login')
   @HttpCode(200)
