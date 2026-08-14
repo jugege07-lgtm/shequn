@@ -723,7 +723,7 @@ async function confirmRoleChange() {
 
   roleSaving.value = true
   try {
-    const result = await request.put(`/admin/users/${roleTargetUser.value.id}/roles`, {
+    await request.put(`/admin/users/${roleTargetUser.value.id}/roles`, {
       roles: selectedRoles.value.map(r => r.value),
     })
     ElMessage.success(`角色变更成功：${roleNames}`)

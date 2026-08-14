@@ -1,14 +1,12 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PaymentService } from '../payment/payment.service';
-import { PointService } from '../point/point.service';
 
 @Injectable()
 export class ProductService {
   constructor(
     private prisma: PrismaService,
     private paymentService: PaymentService,
-    private pointService: PointService,
   ) {}
 
   /**

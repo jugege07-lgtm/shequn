@@ -193,7 +193,7 @@
               <span class="panel-title">{{ carouselPanels[activeCarousel].title }}</span>
               <div class="carousel-dots">
                 <span
-                  v-for="(p, i) in carouselPanels"
+                  v-for="(_, i) in carouselPanels"
                   :key="i"
                   class="dot"
                   :class="{ active: i === activeCarousel }"
@@ -526,7 +526,7 @@ async function refreshData() {
   if (dataSource.value === 'real') {
     await loadStats()
   } else {
-    applyMockData(true)
+    applyMockData()
   }
 }
 
@@ -891,9 +891,8 @@ function updateCarouselData() {
 // ============ Mock 数据生成器（演示/预览模式）============
 // 模拟"持续增长"的演示数据：每次 tick 微增，KPI/趋势/分布图均随时间递增
 // 数据结构与 /admin/big-screen 接口完全一致，前端消费逻辑无需分支判断
-const MOCK_BASE_DATE = Date.now()
 
-function genGrowthSeries(base: number, days: number, jitter = 0.18, growthPerDay = 0.04, tickBoost = 0) {
+function genGrowthSeries(base: number, days: number, jitter = 0.18, tickBoost = 0) {
   // 14 天趋势：每天 +4% 左右 + 噪声；叠加 tickBoost 让当前"还在涨"
   const out: any[] = []
   let total = base
@@ -924,14 +923,14 @@ function genDateLabels(days: number) {
   return out
 }
 
-async function applyMockData(forceRender = false) {
+async function applyMockData() {
   mockTickCount += 1
   const tickBoost = Math.min(40, mockTickCount * 2)  // 每次刷新时尾部增长一点
   const days = 14
   const dateLabels = genDateLabels(days)
 
   // 1) 用户增长趋势（首日基数 + 累计递增）
-  const userGrowthRaw = genGrowthSeries(120, days, 0.22, 0.05, tickBoost)
+  const userGrowthRaw = genGrowthSeries(120, days, 0.22, tickBoost)
   const userGrowthTrend = userGrowthRaw.map((p, i) => ({ date: dateLabels[i], count: p.count, total: p.total }))
 
   // 2) 用户来源分布（4 渠道，总数与总用户数对齐，演示值稳定）
@@ -954,7 +953,7 @@ async function applyMockData(forceRender = false) {
   })
 
   // 4) 订单营收趋势
-  const orderRevenueRaw = genGrowthSeries(85, days, 0.28, 0.06, tickBoost)
+  const orderRevenueRaw = genGrowthSeries(85, days, 0.28, tickBoost)
   const orderRevenueTrend = orderRevenueRaw.map((p, i) => ({
     date: dateLabels[i],
     orders: p.count * 2,
@@ -1010,9 +1009,7 @@ async function applyMockData(forceRender = false) {
   ]
 
   // 9) 总览 KPI
-  const totalUsers = userGrowthTrend[userGrowthTrend.length - 1].total
   const totalOrders = orderRevenueTrend.reduce((s, x) => s + x.orders, 0)
-  const totalRevenue = orderRevenueTrend.reduce((s, x) => s + x.revenue, 0)
   // 总用户数 = 用户来源分布之和（保证与"用户来源"面板一致，且恒大于 VIP 用户数）
   const userSourceTotal = userSource.reduce((s, x) => s + x.value, 0)
   const overview = {
@@ -1077,7 +1074,7 @@ function resetRefreshTimer() {
     // mock 模式：每 3 秒推进一格，曲线持续向上
     nextRefreshCountdown.value = 3
     mockTimer = setInterval(() => {
-      applyMockData(false)
+      applyMockData()
     }, 3000)
     countdownTimer = setInterval(() => {
       if (nextRefreshCountdown.value > 0) nextRefreshCountdown.value--

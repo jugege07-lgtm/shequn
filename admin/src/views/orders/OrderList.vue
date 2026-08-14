@@ -38,7 +38,7 @@
             <el-button size="small" v-if="row.status === 'paid'" type="primary" @click="shipOrder(row)">发货</el-button>
             <el-button size="small" v-if="row.status === 'refunding'" type="success" @click="approveRefund(row.id)">同意退款</el-button>
             <el-button size="small" v-if="row.status === 'refunding'" type="danger" @click="rejectRefund(row.id)">拒绝</el-button>
-            <el-button size="small" @click="viewDetail(row.id)">详情</el-button>
+            <el-button size="small" @click="viewDetail">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -152,7 +152,7 @@ async function rejectRefund(id: number) {
   } catch { /* cancelled */ }
 }
 
-function viewDetail(id: number) {
+function viewDetail() {
   ElMessage.info('订单详情功能开发中')
 }
 

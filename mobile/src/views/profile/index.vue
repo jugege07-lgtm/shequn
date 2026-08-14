@@ -98,7 +98,7 @@
           <div class="section-more" @click="$router.push('/history/index')">查看更多</div>
         </div>
         <div class="activities-list" v-if="browseHistory.length">
-          <div class="activity-item" v-for="(item, index) in browseHistory" :key="item.type + '-' + item.id" @click="handleHistoryClick(item)">
+          <div class="activity-item" v-for="(item) in browseHistory" :key="item.type + '-' + item.id" @click="handleHistoryClick(item)">
             <div class="activity-dot" :class="item.type"></div>
             <div class="activity-content">
               <div class="activity-title">{{ item.title }}</div>
@@ -233,17 +233,6 @@ const statsList = computed(() => [
   { label: '我的余额', value: '¥' + (Number(userInfo.value?.balance) || 0).toFixed(2), path: '/balance/index', icon: renderIcon('balance'), bg: '#fef3c7', color: '#d97706' },
   { label: '积分', value: userInfo.value?.points || 0, path: '/points/index', icon: renderIcon('points'), bg: '#dbeafe', color: '#3b82f6' },
 ])
-
-function showToast(msg: string) {
-  const existing = document.querySelector('.mobile-toast')
-  if (existing) existing.remove()
-  const el = document.createElement('div')
-  el.className = 'mobile-toast'
-  el.textContent = msg
-  el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.78);color:#fff;padding:12px 28px;border-radius:12px;font-size:14px;z-index:9999;white-space:nowrap'
-  document.body.appendChild(el)
-  setTimeout(() => el.remove(), 2000)
-}
 
 function renderIcon(name: string) {
   const icons: Record<string, any> = {

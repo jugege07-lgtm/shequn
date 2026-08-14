@@ -1,14 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { ActivityService } from '../activity/activity.service';
-import { BusinessService } from '../business/business.service';
 
 @Injectable()
 export class ContentService {
   constructor(
     private prisma: PrismaService,
-    private readonly activityService: ActivityService,
-    private readonly businessService: BusinessService,
   ) {}
 
   // ========== Announcements ==========

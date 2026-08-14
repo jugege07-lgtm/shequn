@@ -168,7 +168,6 @@ const shareContent = ref<ShareContent | null>(null)
 function shareActivity() {
   const a = rawActivity.value
   if (!a) return
-  const u = userStore.userInfo
   shareContent.value = {
     type: 'activity',
     title: a.title || '',

@@ -257,7 +257,6 @@ export class CouponService extends PrismaService {
       throw new BadRequestException({ code: 'BAD_RANGE', message: '开始时间必须早于结束时间' });
     }
 
-    const now = new Date();
     return this.coupon.create({
       data: {
         name: String(data.name || '').trim(),

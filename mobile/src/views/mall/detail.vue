@@ -269,7 +269,7 @@ const safeDescription = computed(() => {
   result = result.replace(/\s+width\s*=\s*["']?\d{4,}["']?/gi, '')
   result = result.replace(/\s+height\s*=\s*["']?\d{4,}["']?/gi, '')
   // 重写 img src 为绝对地址：原生 App 下相对 /uploads/ 会解析失败（origin=https://localhost 无 Caddy 代理）
-  result = result.replace(/src\s*=\s*(?:"([^"]*)"|'([^']*)')/gi, (m, dq, sq) => {
+  result = result.replace(/src\s*=\s*(?:"([^"]*)"|'([^']*)')/gi, (_, dq, sq) => {
     const v = dq ?? sq ?? ''
     return `src="${normalizeImageUrl(v)}"`
   })

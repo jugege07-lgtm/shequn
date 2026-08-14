@@ -74,7 +74,7 @@ export function sanitizeRichHtml(html: string, maxLength?: number): string {
   ];
   
   // 保留允许的标签
-  cleaned = cleaned.replace(/<([^>]+)>/g, (match, tagContent) => {
+  cleaned = cleaned.replace(/<([^>]+)>/g, (_, tagContent) => {
     // 解析标签名
     const tagMatch = tagContent.match(/^(\w+)/);
     if (!tagMatch) return '';
@@ -130,7 +130,7 @@ export function sanitizeRichHtml(html: string, maxLength?: number): string {
   
   // 修复富文本中 img 标签的固定像素宽度（防止移动端溢出）
   // 将 width="1920" 这类固定像素值移除，由 CSS max-width: 100% 接管
-  cleaned = cleaned.replace(/<img(\s[^>]*)?>/gi, (match, attrs) => {
+  cleaned = cleaned.replace(/<img(\s[^>]*)?>/gi, (match) => {
     let fixed = match;
     // 移除固定像素宽度和高度
     fixed = fixed.replace(/\s+width\s*=\s*["']?\d+px["']?/gi, '');
@@ -141,7 +141,7 @@ export function sanitizeRichHtml(html: string, maxLength?: number): string {
     // 重写 img src 为绝对地址：原生 App（Capacitor WebView origin=https://localhost 无 Caddy 代理）
     // 下相对路径 /uploads/xxx 会解析失败，必须用 normalizeImageUrl 补全为
     // https://www.jugekeji.com/api/uploads/xxx。H5 环境下 getApiBase() 返回空，保持相对路径由 Caddy 代理。
-    fixed = fixed.replace(/src\s*=\s*(?:"([^"]*)"|'([^']*)')/gi, (m, dq, sq) => {
+    fixed = fixed.replace(/src\s*=\s*(?:"([^"]*)"|'([^']*)')/gi, (_, dq, sq) => {
       const v = dq ?? sq ?? ''
       return `src="${normalizeImageUrl(v)}"`
     });

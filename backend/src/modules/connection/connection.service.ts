@@ -56,7 +56,6 @@ export class ConnectionService {
   /** 大咖推荐列表（需 VIP） */
   async getRecommendations(userId: number) {
     await this.assertVip(userId);
-    const now = Date.now();
 
     // 大咖 = 拥有完整名片信息的用户，且非当前用户
     const dajia = await this.prisma.user.findMany({
