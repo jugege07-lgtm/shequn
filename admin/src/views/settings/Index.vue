@@ -220,6 +220,18 @@
             <el-alert type="info" :closable="false" style="margin-bottom: 14px;">
               <template #title>编辑后的内容将即时同步到移动端「关于我们」页面。支持加粗、字号、颜色、图片上传等排版功能。</template>
             </el-alert>
+            <el-form label-width="90px" style="margin-bottom: 14px;">
+              <el-form-item label="跳转链接">
+                <el-input v-model="aboutLink" placeholder="选填，如 https://example.com 或站内路径 /vip/index" clearable>
+                  <template #append>
+                    <el-tooltip content="填写后，移动端首页点击「关于我们」将直接跳转到该链接，优先于下方富文本内容；留空则展示富文本内容。" placement="top">
+                      <el-icon style="cursor: help;"><QuestionFilled /></el-icon>
+                    </el-tooltip>
+                  </template>
+                </el-input>
+                <div class="about-link-tip">填写后移动端首页「关于我们」按钮将直接跳转该链接（优先级高于富文本内容）；留空则展示下方富文本内容。</div>
+              </el-form-item>
+            </el-form>
             <div style="border: 1px solid #e4e7ed; border-radius: 8px; overflow: hidden;">
               <Toolbar
                 style="border-bottom: 1px solid #e4e7ed"
@@ -310,6 +322,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, shallowRef, onBeforeUnmount } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { compressImage, MAX_BYTES } from '@/utils/imageCompress'
 import '@wangeditor/editor/dist/css/style.css'
@@ -325,6 +338,8 @@ const saving = ref(false)
 const aboutLoading = ref(false)
 const aboutSaving = ref(false)
 const aboutContent = ref('<p>欢迎使用聚格软件社群小程序！</p>')
+// 移动端首页「关于我们」按钮的可选跳转链接：填写后优先于富文本内容
+const aboutLink = ref('')
 const editorRef = shallowRef<IDomEditor | null>(null)
 
 const toolbarConfig = {
@@ -386,9 +401,13 @@ onBeforeUnmount(() => {
 async function loadAboutUs() {
   aboutLoading.value = true
   try {
-    const res: any = await request.get('/admin/config/about_us')
+    const [res, linkRes]: any[] = await Promise.all([
+      request.get('/admin/config/about_us'),
+      request.get('/admin/config/about_us_link'),
+    ])
     // 未配置时不写入占位文字，避免误保存把"欢迎使用"占位内容持久化到数据库
     aboutContent.value = res?.value || ''
+    aboutLink.value = (linkRes?.value || '').trim()
   } catch (err: any) {
     ElMessage.error(err.message || '加载关于我们失败')
   } finally {
@@ -399,10 +418,17 @@ async function loadAboutUs() {
 async function saveAboutUs() {
   aboutSaving.value = true
   try {
-    await request.put('/admin/config/about_us', {
-      value: aboutContent.value,
-      description: '移动端「关于我们」页面富文本内容',
-    })
+    const link = aboutLink.value.trim()
+    await Promise.all([
+      request.put('/admin/config/about_us', {
+        value: aboutContent.value,
+        description: '移动端「关于我们」页面富文本内容',
+      }),
+      request.put('/admin/config/about_us_link', {
+        value: link,
+        description: '移动端首页「关于我们」按钮跳转链接（可选，优先于富文本内容；空则展示富文本）',
+      }),
+    ])
     ElMessage.success('关于我们保存成功')
   } catch (err: any) {
     ElMessage.error(err.message || '保存失败')
@@ -910,6 +936,12 @@ onMounted(() => {
   color: #909399;
 }
 .about-editor-wrap { padding: 8px 0; }
+.about-link-tip {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.6;
+  margin-top: 4px;
+}
 .about-actions {
   margin-top: 16px;
   display: flex; justify-content: flex-end; gap: 10px;

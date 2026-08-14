@@ -3,7 +3,7 @@
     <!-- Banner 轮播 -->
     <div class="banner-section">
       <div class="banner-track" :style="{ transform: `translateX(-${bannerIndex * 100}%)` }">
-        <div class="banner-slide" v-for="(b, i) in banners" :key="b.id" @click="onBannerClick(b)">
+        <div class="banner-slide" v-for="(b) in banners" :key="b.id" @click="onBannerClick(b)">
           <img v-if="b.imageUrl && !b.imgError" :src="b.imageUrl" class="banner-img" :alt="b.title" loading="lazy" @error="b.imgError = true" />
           <div v-else class="banner-img banner-fallback" :style="b.fallbackStyle">
             <span class="banner-fallback-emoji">{{ b.emoji }}</span>
@@ -324,7 +324,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { getHomepageData, checkAppVersion, getAnnouncements, globalSearch, getCurrentUser, getDajiaConfig } from '@/api/index'
+import { getHomepageData, checkAppVersion, getAnnouncements, globalSearch, getCurrentUser, getDajiaConfig, getSystemConfig } from '@/api/index'
 import { setCache, getCache } from '@/utils/cache'
 import { stripHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
@@ -358,6 +358,30 @@ async function loadDajiaConfig() {
   } catch {
     // 忽略，使用默认级别
   }
+}
+
+// ===== 关于我们入口：管理端可配置跳转链接（优先于富文本内容页面） =====
+const aboutUsLink = ref('')
+async function loadAboutUsLink() {
+  try {
+    const res: any = await getSystemConfig('about_us_link')
+    aboutUsLink.value = (res?.value || '').trim()
+  } catch {
+    // 忽略：读取失败时按未配置处理，走默认富文本页面
+  }
+}
+function goAbout() {
+  const link = aboutUsLink.value
+  if (link) {
+    // 外部链接（http/https）新窗口打开；站内路径走 SPA 路由
+    if (/^https?:\/\//i.test(link)) {
+      window.open(link, '_blank')
+    } else {
+      router.push(link)
+    }
+    return
+  }
+  router.push('/about/index')
 }
 async function loadUserInfo() {
   try {
@@ -670,6 +694,7 @@ onMounted(() => {
   loadAnnouncements()
   loadUserInfo()
   loadDajiaConfig()
+  loadAboutUsLink()
   // 定时拉取公告（每 60 秒），保持最新
   annRefreshTimer = setInterval(loadAnnouncements, 60 * 1000)
 })
