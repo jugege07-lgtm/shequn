@@ -328,6 +328,7 @@ import { getHomepageData, checkAppVersion, getAnnouncements, globalSearch, getCu
 import { setCache, getCache } from '@/utils/cache'
 import { stripHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
+import { isNativeApp } from '@/utils/apiBase'
 import { useUserStore } from '@/store/user'
 
 const router = useRouter()
@@ -371,17 +372,28 @@ async function loadAboutUsLink() {
   }
 }
 function goAbout() {
-  const link = aboutUsLink.value
-  if (link) {
-    // 外部链接（http/https）新窗口打开；站内路径走 SPA 路由
-    if (/^https?:\/\//i.test(link)) {
-      window.open(link, '_blank')
+  let link = aboutUsLink.value
+  if (!link) {
+    router.push('/about/index')
+    return
+  }
+  // 容错：未带协议的裸域名（如 www.jugekeji.com）自动补 https://，
+  // 否则会被 vue-router 当作站内相对路径导致跳转失败
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(link) && !link.startsWith('/') && /^[^/?#\s]+\.[a-z]{2,}/i.test(link)) {
+    link = 'https://' + link
+  }
+  // 外部链接：H5 新窗口打开；App 内用 location 导航
+  // （Capacitor 会将外部域名交给系统浏览器打开，避免 window.open 在 WebView 中卡死）
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(link)) {
+    if (isNativeApp()) {
+      window.location.href = link
     } else {
-      router.push(link)
+      window.open(link, '_blank')
     }
     return
   }
-  router.push('/about/index')
+  // 站内路径走 SPA 路由
+  router.push(link)
 }
 async function loadUserInfo() {
   try {

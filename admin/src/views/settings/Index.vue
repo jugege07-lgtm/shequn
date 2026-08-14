@@ -222,14 +222,14 @@
             </el-alert>
             <el-form label-width="90px" style="margin-bottom: 14px;">
               <el-form-item label="跳转链接">
-                <el-input v-model="aboutLink" placeholder="选填，如 https://example.com 或站内路径 /vip/index" clearable>
+                <el-input v-model="aboutLink" placeholder="选填，如 https://example.com、www.example.com 或站内路径 /vip/index" clearable>
                   <template #append>
                     <el-tooltip content="填写后，移动端首页点击「关于我们」将直接跳转到该链接，优先于下方富文本内容；留空则展示富文本内容。" placement="top">
                       <el-icon style="cursor: help;"><QuestionFilled /></el-icon>
                     </el-tooltip>
                   </template>
                 </el-input>
-                <div class="about-link-tip">填写后移动端首页「关于我们」按钮将直接跳转该链接（优先级高于富文本内容）；留空则展示下方富文本内容。</div>
+                <div class="about-link-tip">填写后移动端首页「关于我们」按钮将直接跳转该链接（优先级高于富文本内容）；留空则展示下方富文本内容。支持外部链接（未带 http(s):// 时自动补全）或站内路径（以 / 开头）。</div>
               </el-form-item>
             </el-form>
             <div style="border: 1px solid #e4e7ed; border-radius: 8px; overflow: hidden;">
