@@ -659,9 +659,6 @@ async function checkVersion() {
       const msg = `${result.version.title}\n${result.version.content}`
       if (result.forceUpdate) {
         alert(`发现新版本，请更新！\n${msg}`)
-      } else {
-        // 非强制更新，仅提示
-        console.log('新版本可用:', msg)
       }
     }
   } catch (err: any) { console.error(err) }

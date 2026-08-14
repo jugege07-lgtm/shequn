@@ -303,7 +303,6 @@ async function sendRegCode() {
   if (regCountdown.value > 0 || regSending.value) return
   regSending.value = true
   try {
-    // Demo: 发送验证码（后端 mock 接受 1234/123456）
     await sendCode(regForm.phone)
     regCountdown.value = 60
     regTimer = setInterval(() => {

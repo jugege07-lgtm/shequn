@@ -106,7 +106,7 @@ export class CardService {
 
   /** 生成名片分享图片（HTML canvas 方式） */
   async getShareCard(cardId: number): Promise<string> {
-    const shareUrl = `http://localhost:5175/card/share/${cardId}`;
+    const shareUrl = `https://www.jugekeji.com/h5/card/share/${cardId}`;
     try {
       return await QRCode.toDataURL(shareUrl, { width: 280, margin: 1, color: { dark: '#1e1b4b', light: '#ffffff' } });
     } catch {

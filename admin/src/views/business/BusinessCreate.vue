@@ -208,7 +208,6 @@ async function uploadCover(options: UploadRequestOptions) {
     try {
       const compressed = await compressImage(file)
       if (compressed !== file) {
-        console.log(`[Business] 封面已压缩: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
         file = compressed
       }
     } catch (e) {

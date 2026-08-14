@@ -27,7 +27,6 @@ export class PointService extends PrismaService {
         await this.pointRule.createMany({
           data: defaults.map((r) => ({ ...r, ruleGroup: 'default', priority: 0, enabled: 1 })),
         });
-        console.log('[PointService] 已初始化默认积分规则');
       }
     } catch (err) {
       console.error('[PointService] 初始化默认积分规则失败:', err);

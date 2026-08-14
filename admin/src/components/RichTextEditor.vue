@@ -83,9 +83,6 @@ editorConfig.MENU_CONF['uploadImage'] = {
       if (file.type.startsWith('image/')) {
         try {
           uploadFile = await compressImage(file)
-          if (uploadFile !== file) {
-            console.log(`[RichTextEditor] 图片已压缩: ${file.name} (${(file.size / 1024).toFixed(0)}KB → ${(uploadFile.size / 1024).toFixed(0)}KB)`)
-          }
         } catch (e) {
           console.warn('[RichTextEditor] 图片压缩失败，使用原图:', e)
           uploadFile = file

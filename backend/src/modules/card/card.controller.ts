@@ -47,7 +47,7 @@ export class CardController {
     const qrcodeBase64 = await this.cardService.getQrcodeBase64(Number(card.id));
     return {
       qrcodeBase64,
-      shareUrl: `http://localhost:5175/card/share/${card.id}`,
+      shareUrl: `https://www.jugekeji.com/h5/card/share/${card.id}`,
     };
   }
 

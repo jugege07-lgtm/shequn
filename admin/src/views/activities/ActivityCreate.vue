@@ -206,7 +206,6 @@ async function uploadCover(options: UploadRequestOptions) {
     try {
       const compressed = await compressImage(file)
       if (compressed !== file) {
-        console.log(`[Activity] 封面已压缩: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
         file = compressed
       }
     } catch (e) {
@@ -235,7 +234,6 @@ async function uploadImage(options: UploadRequestOptions) {
     try {
       const compressed = await compressImage(file)
       if (compressed !== file) {
-        console.log(`[Activity] 图片已压缩: ${(file.size / 1024).toFixed(0)}KB → ${(compressed.size / 1024).toFixed(0)}KB`)
         file = compressed
       }
     } catch (e) {
