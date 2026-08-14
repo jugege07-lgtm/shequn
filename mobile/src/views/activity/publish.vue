@@ -77,10 +77,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createActivity, getActivityTypes, uploadFile } from '@/api'
 import { showToast } from '@/utils/toast'
+import { normalizeImageUrl } from '@/utils/image'
 
 const router = useRouter()
 const form = ref({
@@ -90,6 +91,9 @@ const submitting = ref(false)
 const activityTypes = ref<{ value: string; label: string }[]>([])
 const coverInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
+
+// 封面预览地址：App（Capacitor WebView）下相对路径会解析失败，须补全为绝对地址
+const coverPreview = computed(() => normalizeImageUrl(form.value.coverImage))
 
 // 富文本编辑器引用
 const descEditor = ref<HTMLElement | null>(null)
@@ -180,10 +184,14 @@ async function onCoverChange(e: Event) {
     // 封面也压缩大图
     const compressed = await compressImage(file)
     const res: any = await uploadFile(compressed)
-    const url = (res?.url || res?.path || '').startsWith('/uploads/')
-      ? '/api' + (res?.url || res?.path)
-      : (res?.url || res?.path || '')
-    form.value.coverImage = url
+    const raw = res?.url || res?.path || ''
+    if (!raw) {
+      showToast('封面上传失败')
+      return
+    }
+    // 预览地址按环境补全（App 下相对路径无法加载）；提交后端时统一保存原始相对路径
+    form.value.previewCover = normalizeImageUrl(raw.startsWith('/uploads/') ? '/api' + raw : raw)
+    form.value.coverImage = raw
   } catch (err: any) {
     showToast(err?.message || '封面上传失败')
   } finally {
@@ -218,13 +226,15 @@ async function onDescImageChange(e: Event) {
     // 大图自动压缩
     const compressed = await compressImage(file)
     const res: any = await uploadFile(compressed)
-    const url = (res?.url || res?.path || '').startsWith('/uploads/')
-      ? '/api' + (res?.url || res?.path)
-      : (res?.url || res?.path || '')
-    if (!url) {
+    const raw = res?.url || res?.path || ''
+    if (!raw) {
       showToast('图片上传失败')
       return
     }
+    // 插入编辑器的 src 按环境补全：App（Capacitor WebView）下相对路径会解析失败，
+    // 必须用 normalizeImageUrl 补全为绝对地址才能实时预览；保存的绝对地址
+    // 在各端展示时会被 normalizeImageUrl 统一规范化，不会破坏 H5 加载
+    const url = normalizeImageUrl(raw.startsWith('/uploads/') ? '/api' + raw : raw)
     // 将图片插入到 contenteditable 编辑器中
     insertImageToEditor(url)
   } catch (err: any) {

@@ -27,21 +27,21 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getSystemConfig } from '@/api/index'
+import { normalizeImageUrl } from '@/utils/image'
 
 const loading = ref(true)
 const contentHtml = ref('')
 
 /**
- * 将富文本内容中的图片地址规范化为同域名可访问的相对路径：
- * - /uploads/xxx              → /api/uploads/xxx（生产环境经 Caddy 转发到后端静态服务）
- * - http://localhost:3000/... → /api/...（清洗历史脏数据）
- * - 完整 https/http 域名地址保持原样
+ * 将富文本内容中的资源地址（图片等 src）规范化：
+ * - 相对路径 /uploads/xxx、/api/uploads/xxx → App（Capacitor WebView origin=https://localhost，
+ *   无 Caddy 代理）下由 normalizeImageUrl 补全为绝对地址；H5 下保持相对路径由同源代理
+ * - http://localhost:3000/... 历史脏数据 → 一并规范化
+ * - 完整外部 https/http 地址保持原样
  */
 function normalizeImageUrls(html: string): string {
   if (!html) return ''
-  return html
-    .replace(/(src=["'])(\/uploads\/[^"']+)(["'])/g, (_, p, path, s) => `${p}/api${path}${s}`)
-    .replace(/(src=["'])http:\/\/localhost:\d+(\/[^"']+)(["'])/g, (_, p, path, s) => `${p}${path}${s}`)
+  return html.replace(/(src=["'])([^"']+)(["'])/gi, (_, p, url, s) => `${p}${normalizeImageUrl(url)}${s}`)
 }
 
 async function loadAboutUs() {
