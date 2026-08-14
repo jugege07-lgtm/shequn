@@ -54,7 +54,7 @@
           </div>
           <span class="entry-label">活动报名</span>
         </div>
-        <div class="entry-item" @click="$router.push('/about/index')">
+        <div class="entry-item" @click="goAbout">
           <div class="entry-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 21h18M6 21V11h5v10M13 21V8h5v13"/>
