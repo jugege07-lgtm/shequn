@@ -11,7 +11,7 @@
 
         <!-- 已设置支付密码：输入密码 -->
         <template v-if="hasPassword">
-          <div class="pp-amount">¥{{ amountText }}</div>
+          <div class="pp-amount">{{ amountText }}</div>
           <div class="pp-label">请输入支付密码</div>
           <div class="pp-input-row">
             <input

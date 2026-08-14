@@ -3,6 +3,7 @@ import { normalizeImageUrl } from './image'
 import { getApiBase, isNativeApp } from './apiBase'
 import { Capacitor } from '@capacitor/core'
 import { Share } from '@capacitor/share'
+import { Filesystem, Directory } from '@capacitor/filesystem'
 import logoUrl from '@/assets/logo.png'
 
 export type ShareType = 'activity' | 'business' | 'product'
@@ -120,21 +121,45 @@ export async function nativeShare(payload: { title: string; text: string; url?: 
 
 /**
  * 将 Canvas 保存为本地图片。
- * - 原生 App（Capacitor WebView）：`<a download>` 不会触发下载，改为在新窗口打开图片
- *   供用户长按保存到相册；同时返回 dataURL 供调用方显示 <img> 让用户长按保存。
+ * - 原生 App（Capacitor WebView）：`window.open` 会被拦截导致 about:blank#blocked 且 App 卡死。
+ *   改用 Capacitor Filesystem 将图片写入设备缓存目录，再通过 Share 插件拉起系统分享面板，
+ *   用户可选择「保存到相册」或其他应用。同时返回 dataURL 供 <img> 预览（长按也可保存）。
  * - H5 / 桌面端：用 `<a download>` 直接触发下载。
  */
-export function saveCanvasToAlbum(canvas: HTMLCanvasElement, filename: string): { dataUrl: string; saved: boolean } {
+export async function saveCanvasToAlbum(
+  canvas: HTMLCanvasElement,
+  filename: string,
+): Promise<{ dataUrl: string; saved: boolean; shared: boolean }> {
   const dataUrl = canvas.toDataURL('image/png')
-  if (isNativeApp()) {
-    // 原生 App：打开图片在新窗口供长按保存（WebView 中 <a download> 无效）
-    const w = window.open('')
-    if (w) {
-      w.document.write(`<html><head><title>${filename}</title></head><body style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#000"><img src="${dataUrl}" style="max-width:100%;height:auto" /></body></html>`)
-      w.document.close()
+
+  if (isNativeApp() && Capacitor.isNativePlatform()) {
+    try {
+      // 去除 data:image/png;base64, 前缀
+      const base64 = dataUrl.split(',')[1]
+      const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'poster.png'
+      // 写入缓存目录（无需权限）
+      const fileResult = await Filesystem.writeFile({
+        path: safeName,
+        data: base64,
+        directory: Directory.Cache,
+      })
+      // 拉起系统分享面板，用户可选择保存到相册或分享到其他应用
+      try {
+        await Share.share({
+          title: filename,
+          url: fileResult.uri,
+        })
+        return { dataUrl, saved: true, shared: true }
+      } catch {
+        // 用户取消分享，图片已写入缓存，仍可通过长按海报保存
+        return { dataUrl, saved: true, shared: false }
+      }
+    } catch (err) {
+      console.error('保存图片失败:', err)
+      return { dataUrl, saved: false, shared: false }
     }
-    return { dataUrl, saved: true }
   }
+
   // H5：用 <a download> 下载
   canvas.toBlob((blob) => {
     if (!blob) return
@@ -147,7 +172,7 @@ export function saveCanvasToAlbum(canvas: HTMLCanvasElement, filename: string): 
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }, 'image/png')
-  return { dataUrl, saved: true }
+  return { dataUrl, saved: true, shared: false }
 }
 
 // ==================== 海报绘制 ====================

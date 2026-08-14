@@ -123,16 +123,21 @@ async function build() {
   }
 }
 
-function handleSavePoster() {
+async function handleSavePoster() {
   if (!posterCanvas.value) return
   const s = props.share
   const typeName = s?.type === 'activity' ? '活动' : s?.type === 'business' ? '商机' : '商品'
-  const result = saveCanvasToAlbum(posterCanvas.value, `${typeName}_分享海报.png`)
+  const result = await saveCanvasToAlbum(posterCanvas.value, `${typeName}_分享海报.png`)
   if (isNativeApp()) {
-    // 原生 App：已在新窗口打开图片供长按保存，同时海报预览区也可长按保存
-    showToast('长按海报图片即可保存到相册')
+    if (result.shared) {
+      // 系统分享面板已弹出，用户已选择保存或分享
+    } else if (result.saved) {
+      showToast('图片已保存，也可长按海报保存到相册')
+    } else {
+      showToast('保存失败，请长按海报图片保存')
+    }
   } else {
-    showToast('已保存，可在相册查看')
+    showToast(result.saved ? '已保存，可在相册查看' : '保存失败')
   }
 }
 

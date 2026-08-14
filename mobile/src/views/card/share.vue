@@ -113,9 +113,10 @@ function onAvatarError() {
   }
 }
 
-/** 生成带推荐人参数的注册页 URL（用户扫码后进入注册，注册时自动关联推荐人）。
+/** 生成名片分享页 URL（用户扫码/点击后进入对应名片页面，已登录直接查看，未登录跳登录后可查看）。
+ *  同时携带 referrer 参数，便于新用户注册时自动关联推荐人。
  *  base 取法同 share.ts buildShareUrl：原生 App 用 getApiBase()（域名）+ /h5 子路径，H5 用 origin。 */
-function buildRegisterShareUrl() {
+function buildCardShareUrl() {
   const apiBase = getApiBase()
   let base: string
   if (apiBase) {
@@ -125,7 +126,11 @@ function buildRegisterShareUrl() {
     // H5：origin 已含正确域名，BASE_URL='/h5/'
     base = `${window.location.origin}${import.meta.env.BASE_URL || ''}`.replace(/\/+$/, '')
   }
-  return `${base}/register` + (ownerId.value ? `?referrer=${ownerId.value}` : '')
+  // 指向具体名片页面 /card/share/:ownerId，并携带 referrer 参数
+  if (ownerId.value) {
+    return `${base}/card/share/${ownerId.value}?referrer=${ownerId.value}`
+  }
+  return `${base}/card/share`
 }
 
 /** 返回按钮兜底：经分享海报冷启动进入时历史栈为空，router.back() 无处可退 → 回首页 */
@@ -153,8 +158,8 @@ async function loadCard() {
           avatarUrl: res.avatarUrl || '',
         }
         ownerId.value = res.user?.id || null
-        // 二维码始终指向带推荐人参数的注册页（扫码跳转注册并自动关联推荐人）
-        await generateLocalQr(buildRegisterShareUrl())
+        // 二维码指向具体名片页面（扫码后查看名片详情）
+        await generateLocalQr(buildCardShareUrl())
       }
     } else {
       // 查看自己的名片：只取名片数据，二维码前端本地生成
@@ -379,12 +384,12 @@ async function handleSave() {
 }
 
 async function handleShare() {
-  const shareUrl = buildRegisterShareUrl()
+  const shareUrl = buildCardShareUrl()
   try {
     if (navigator.share) {
       await navigator.share({
         title: `${displayName.value} 的名片`,
-        text: `点击注册加入 ${displayName.value} 的推荐，领取新人积分`,
+        text: `点击查看 ${displayName.value} 的名片`,
         url: shareUrl,
       })
     } else if (navigator.clipboard) {

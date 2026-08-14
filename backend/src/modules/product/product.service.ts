@@ -11,11 +11,43 @@ export class ProductService {
     private pointService: PointService,
   ) {}
 
+  /**
+   * 判断用户是否为有效 VIP 会员（vipLevel > 0 且未过期）
+   * 使用数据库实时记录，不依赖 JWT token claims
+   */
+  private async isUserVip(userId: number): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { vipLevel: true, vipExpireAt: true },
+    });
+    if (!user) return false;
+    return (
+      user.vipLevel > 0 &&
+      !!user.vipExpireAt &&
+      new Date(user.vipExpireAt).getTime() > Date.now()
+    );
+  }
+
+  /**
+   * 获取商品对指定用户的实际结算单价：
+   * VIP 用户且商品配置了有效 vipPrice（>0 且 < price）时返回 vipPrice，否则返回 price
+   */
+  private getEffectivePrice(product: any, isVip: boolean): number {
+    if (
+      isVip &&
+      Number(product.vipPrice) > 0 &&
+      Number(product.vipPrice) < Number(product.price)
+    ) {
+      return Number(product.vipPrice);
+    }
+    return Number(product.price);
+  }
+
   async getPublicCategories() {
     return this.prisma.productCategory.findMany({
-      where: { status: 1 },
-      orderBy: { sortOrder: 'asc' },
-    });
+    where: { status: 1 },
+    orderBy: { sortOrder: 'asc' },
+  });
   }
 
   async getPublicProducts(params?: { page?: number; size?: number; category?: string }) {
@@ -225,8 +257,14 @@ export class ProductService {
       throw new BadRequestException('商品库存不足');
     }
 
+    // VIP 用户享受 VIP 专属价：查数据库实时判断 VIP 身份，使用 vipPrice 结算
+    const isVip = await this.isUserVip(userId);
+    const effectivePrice = this.getEffectivePrice(product, isVip);
+    // 构造带有效价格的产品对象，供 computePointsPlan 和订单项使用
+    const pricedProduct = { ...product, price: effectivePrice };
+
     const payType = dto.payType || 'cash';
-    const plan = this.computePointsPlan(product, dto.quantity, payType, dto.pointsUsed);
+    const plan = this.computePointsPlan(pricedProduct, dto.quantity, payType, dto.pointsUsed);
 
     const orderNo = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -289,7 +327,7 @@ export class ProductService {
           productId: product.id,
           productName: product.name,
           productImage: product.coverImage,
-          price: product.price,
+          price: effectivePrice,
           quantity: dto.quantity,
         },
       });
@@ -375,7 +413,15 @@ export class ProductService {
       }
     }
 
-    const payAmount = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    // VIP 用户享受 VIP 专属价：查数据库实时判断 VIP 身份
+    const isVip = await this.isUserVip(userId);
+    // 为每个购物车商品计算实际结算单价（VIP 用户使用 vipPrice）
+    const pricedItems = cartItems.map((item) => ({
+      ...item,
+      effectivePrice: this.getEffectivePrice(item.product, isVip),
+    }));
+
+    const payAmount = pricedItems.reduce((sum, item) => sum + item.effectivePrice * item.quantity, 0);
     const orderNo = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     return this.prisma.$transaction(async (tx) => {
@@ -411,14 +457,14 @@ export class ProductService {
         });
       }
 
-      for (const item of cartItems) {
+      for (const item of pricedItems) {
         await tx.orderItem.create({
           data: {
             orderId: order.id,
             productId: item.product.id,
             productName: item.product.name,
             productImage: item.product.coverImage,
-            price: item.product.price,
+            price: item.effectivePrice,
             quantity: item.quantity,
           },
         });

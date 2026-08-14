@@ -23,8 +23,10 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { getMessages, markMessageRead, respondConnection } from '@/api'
 
+const router = useRouter()
 const messages = ref<any[]>([])
 
 function formatTime(input: string | number | Date): string {
@@ -78,6 +80,10 @@ onMounted(async () => {
         isRead: m.isRead,
         type: m.type,
         connectionId: payload.connectionId ?? null,
+        sourceUserId: payload.sourceUserId ?? null,
+        activityId: payload.activityId ?? null,
+        orderId: payload.orderId ?? null,
+        businessId: payload.businessId ?? null,
         canRespond: isRequest && !payload._responded,
         respondText: payload._respondText || '',
       }
@@ -88,13 +94,42 @@ onMounted(async () => {
 })
 
 const handleRead = async (m: any) => {
-  if (m.isRead) return
-  try {
-    await markMessageRead(m.id)
-    m.isRead = 1
-  } catch (err: any) {
-    console.error('标记已读失败', err)
+  // 先标记已读（未读时）
+  if (!m.isRead) {
+    try {
+      await markMessageRead(m.id)
+      m.isRead = 1
+    } catch (err: any) {
+      console.error('标记已读失败', err)
+    }
   }
+  // 根据消息类型跳转到对应详情页
+  const target = getMessageTarget(m)
+  if (target) {
+    router.push(target)
+  }
+}
+
+/** 根据消息类型和 payload 数据解析跳转目标路由 */
+function getMessageTarget(m: any): string | null {
+  // 好友申请/响应：跳转到对方名片页
+  if ((m.type === 'connection_request' || m.type === 'connection_response') && m.sourceUserId) {
+    return `/card/friend/${m.sourceUserId}`
+  }
+  // 活动消息：跳转到活动详情
+  if (m.type === 'activity' && m.activityId) {
+    return `/activity/detail/${m.activityId}`
+  }
+  // 订单消息：跳转到订单详情
+  if (m.type === 'order' && m.orderId) {
+    return `/order/detail/${m.orderId}`
+  }
+  // 商机消息：跳转到商机详情
+  if (m.type === 'business' && m.businessId) {
+    return `/business/detail/${m.businessId}`
+  }
+  // 系统通知/营销通知等无具体详情页，不跳转
+  return null
 }
 
 const handleRespond = async (m: any, accept: boolean) => {
