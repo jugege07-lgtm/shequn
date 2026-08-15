@@ -78,3 +78,6 @@ mobile/.env*
 deploy/logs/
 deploy/.deploy.lock
 deploy/.env
+
+# Vite cache
+mobile/.vite/

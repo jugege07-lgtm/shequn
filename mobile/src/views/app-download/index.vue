@@ -1,92 +1,195 @@
 <template>
-  <div class="phone-frame appdl-page">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-left">
-        <div class="back-btn" @click="$router.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+  <div class="dl-page">
+    <!-- ===== Navbar (desktop only) ===== -->
+    <nav class="dl-navbar">
+      <div class="nav-inner">
+        <div class="nav-brand">
+          <div class="nav-logo">
+            <img :src="logoSrc" alt="社群 App" />
+          </div>
+          <span class="nav-name">社群</span>
         </div>
-        <span class="header-title">下载 App</span>
-      </div>
-      <div class="header-right">
-        <div class="header-icon" @click="handleShare">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        <div class="nav-links">
+          <a href="#hero" class="nav-link active">首页</a>
+          <a href="#features" class="nav-link">核心功能</a>
+          <a href="#about" class="nav-link">关于我们</a>
         </div>
+        <a class="nav-dl-btn" @click.prevent="handleDownload">下载 App</a>
       </div>
-    </div>
+    </nav>
 
-    <div class="main-scroll">
-      <!-- Hero -->
-      <div class="hero">
+    <div class="dl-body">
+      <!-- ===== Hero ===== -->
+      <section id="hero" class="dl-hero">
         <div class="hero-shapes">
-          <div class="hero-shape hs1"></div>
-          <div class="hero-shape hs2"></div>
-          <div class="hero-shape hs3"></div>
+          <div class="shape s1"></div>
+          <div class="shape s2"></div>
+          <div class="shape s3"></div>
         </div>
-        <div class="hero-logo">
-          <img :src="logoSrc" alt="社群名片" class="hero-logo-img" />
-        </div>
-        <h1 class="hero-name">社群名片</h1>
-        <p class="hero-tag">连接优质资源 · 成就商业梦想</p>
-        <div class="hero-badges">
-          <span class="hero-badge">资源对接</span>
-          <span class="hero-badge">人脉拓展</span>
-          <span class="hero-badge">商业机会</span>
-        </div>
-      </div>
-
-      <!-- Feature section -->
-      <div class="feat-section">
-        <div class="feat-card" v-for="f in features" :key="f.title">
-          <div class="feat-icon" :style="{ background: f.bg, color: f.color }">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="f.icon"/></svg>
+        <div class="hero-inner">
+          <div class="hero-content">
+            <div class="hero-app-icon">
+              <img :src="logoSrc" alt="社群 App" />
+            </div>
+            <div class="hero-tag">社群 App · 一站式社群运营平台</div>
+            <h1 class="hero-title">连接优质资源<br />成就创业梦想</h1>
+            <p class="hero-desc">
+              发布活动 · 对接商机 · 交换名片 · 大咖人脉
+            </p>
+            <div class="hero-actions">
+              <a class="btn-primary" @click.prevent="handleDownload">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>下载 Android 版</span>
+              </a>
+              <a class="btn-ghost" @click.prevent="handleIosGuide">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 18h6"/><path d="M12 14V8"/><path d="M9 11l3-3 3 3"/></svg>
+                <span>iPhone · 免安装</span>
+              </a>
+            </div>
+            <div class="hero-version">当前版本 v{{ appVersion }} · 支持 Android / iOS</div>
           </div>
-          <div class="feat-wrap">
-            <div class="feat-title">{{ f.title }}</div>
-            <div class="feat-desc">{{ f.desc }}</div>
+          <div class="hero-mockup">
+            <div class="mockup-body">
+              <div class="mockup-notch"></div>
+              <div class="mockup-screen">
+                <div class="ms-header">
+                  <span class="ms-time">9:41</span>
+                  <svg viewBox="0 0 24 12" width="18" height="9" fill="currentColor"><path d="M22 1a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V2a1 1 0 011-1h1V0h2v1h14V0h2v1h1z"/></svg>
+                </div>
+                <div class="ms-body">
+                  <div class="ms-brand">
+                    <div class="ms-logo">
+                      <img :src="logoSrc" alt="社群" />
+                    </div>
+                    <span class="ms-name">社群</span>
+                  </div>
+                  <div class="ms-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <span>搜索活动、商机、人脉</span>
+                  </div>
+                  <div class="ms-grid">
+                    <div class="ms-cell" v-for="item in mockupItems" :key="item.label">
+                      <div class="ms-cell-icon" :style="{ background: item.bg, color: item.color }">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path :d="item.icon"/></svg>
+                      </div>
+                      <span class="ms-cell-label">{{ item.label }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Intro image block -->
-      <div class="intro-block">
-        <div class="intro-title">随时随地，掌控商机</div>
-        <p class="intro-text">
-          在手机上发布活动、对接商机、交换名片，实时掌握社群动态与商业机会，让资源流动更简单。
-        </p>
-        <div class="intro-visual">
-          <img :src="logoSrc" alt="社群名片 App" class="intro-img" />
-          <div class="intro-glow"></div>
+      <!-- ===== Features ===== -->
+      <section id="features" class="dl-features">
+        <div class="sec-inner">
+          <div class="sec-tag">核心功能</div>
+          <h2 class="sec-title">为什么选择社群</h2>
+          <p class="sec-sub">四大能力，覆盖社群经营全场景</p>
+          <div class="feat-grid">
+            <div class="feat-card" v-for="(f, i) in features" :key="f.title">
+              <div class="feat-icon" :style="{ background: f.bg, color: f.color }">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path :d="f.icon"/></svg>
+              </div>
+              <div>
+                <h3 class="feat-title">{{ f.title }}</h3>
+                <p class="feat-desc">{{ f.desc }}</p>
+              </div>
+              <a class="feat-link" href="javascript:;">了解详情 →</a>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Download -->
-      <div class="download-card">
-        <div class="download-title">下载 App</div>
-        <p class="download-sub">Android 客户端 · 安装后即可添加到桌面，随时随地使用</p>
-        <a class="download-btn" @click.prevent="handleDownload">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>下载 Android 版</span>
-        </a>
-        <div class="download-tip">或复制链接到浏览器安装</div>
-        <div class="download-version">当前版本：v{{ appVersion }}</div>
-      </div>
-
-      <!-- PWA tips -->
-      <div class="pwa-card">
-        <div class="pwa-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <!-- ===== Stats & Details ===== -->
+      <section id="about" class="dl-stats">
+        <div class="sec-inner stats-inner">
+          <div class="stats-left">
+            <div class="sec-tag">随时随地 掌控商机</div>
+            <h2 class="sec-title">一部手机 · 整个社群</h2>
+            <p class="stats-text">
+              一部手机就能发布活动、对接商机、交换名片，实时掌握社群动态与商业机会。
+            </p>
+            <ul class="stats-list">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                实时通讯，活动/商机/名片即时通知
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                一键发布与管理，活动日程不再遗漏
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                智能匹配算法，商机人脉主动找上门
+              </li>
+            </ul>
+          </div>
+          <div class="stats-right">
+            <div class="stat-card">
+              <span class="stat-num">12,800+</span>
+              <span class="stat-label">已举办活动</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">5.6万+</span>
+              <span class="stat-label">商机匹配次数</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">100,000+</span>
+              <span class="stat-label">电子名片交换</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num accent">98.5%</span>
+              <span class="stat-label">用户满意度</span>
+            </div>
+          </div>
         </div>
-        <div class="pwa-wrap">
-          <div class="pwa-title">iPhone / 免安装</div>
-          <div class="pwa-desc">使用浏览器打开本页，点击"分享"→"添加到主屏幕"即可像 App 一样使用</div>
-        </div>
-      </div>
+      </section>
 
-      <div class="footer-space"></div>
+      <!-- ===== CTA ===== -->
+      <section class="dl-cta">
+        <div class="cta-card">
+          <div class="cta-tag">立即开始</div>
+          <h2 class="cta-title">下载 App</h2>
+          <p class="cta-desc">Android 客户端，安装后即可添加到桌面，随时随地使用。</p>
+          <div class="cta-actions">
+            <a class="btn-primary" @click.prevent="handleDownload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>下载 Android 版</span>
+            </a>
+            <a class="btn-ghost cta-ghost" @click.prevent="copyShareLink">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              <span>复制链接</span>
+            </a>
+          </div>
+          <div class="cta-ios-guide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 18h6"/><path d="M12 14V8"/><path d="M9 11l3-3 3 3"/></svg>
+            <div>
+              <span class="guide-title">iPhone / 免安装</span>
+              <span class="guide-text">使用浏览器打开本页，点击「分享」→「添加到主屏幕」即可像 App 一样使用</span>
+            </div>
+          </div>
+          <div class="cta-version">当前版本 v{{ appVersion }} · 兼容 Android 7.0+ / iOS 12+</div>
+        </div>
+      </section>
+
+      <!-- ===== Footer ===== -->
+      <footer class="dl-footer">
+        <div class="footer-inner">
+          <div class="footer-brand">
+            <div class="footer-logo">
+              <img :src="logoSrc" alt="社群 App" />
+            </div>
+            <span>社群 App</span>
+          </div>
+          <div class="footer-copy">2026 社群 App · 让资源流动更简单</div>
+        </div>
+      </footer>
     </div>
 
-    <!-- Share / Poster Modal -->
+    <!-- ===== Share Poster Modal (保留原有功能) ===== -->
     <transition name="poster-fade">
       <div v-if="posterOpen" class="poster-mask" @click="posterOpen = false">
         <div class="poster-wrap" @click.stop>
@@ -122,10 +225,17 @@ const appVersion = '1.1.0'
 const logoSrc = `${BASE}logo.jpg`
 
 const features = [
-  { title: '发布活动', desc: '创建社群活动，快速召集同频伙伴', icon: 'M3 4h18v13H3z M8 21h8M12 17v4', bg: '#eef2ff', color: '#6366f1' },
-  { title: '对接商机', desc: '海量商业机会，一键解锁联系', icon: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5', bg: '#dbeafe', color: '#3b82f6' },
-  { title: '交换名片', desc: '电子名片扫码分享，人脉轻松沉淀', icon: 'M2 5h20v14H2z M2 10h20', bg: '#fce7f3', color: '#db2777' },
-  { title: '商城兑换', desc: '积分抵扣，优惠券福利随时领', icon: 'M4 2h16l-2 12H6L4 2z M6 20a2 2 0 100 4 2 2 0 000-4z', bg: '#fef3c7', color: '#f59e0b' },
+  { title: '发布活动', desc: '创建社群活动，快速召集同好伙伴，沉淀私域流量。', icon: 'M3 4h18v13H3z M8 21h8M12 17v4 M16 2v4M8 2v4M3 10h18', bg: '#ede9fe', color: '#7c3aed' },
+  { title: '对接商机', desc: '海量商业机会一键锁定，精准匹配同频创业者。', icon: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5', bg: '#dbeafe', color: '#2563eb' },
+  { title: '交换名片', desc: '电子名片扫码分享，人脉轻松沉淀到私域。', icon: 'M2 5h20v14H2z M2 10h20', bg: '#fef3c7', color: '#d97706' },
+  { title: '大咖人脉', desc: '对接行业精英，结识大咖 · 交换联系方式。', icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 7a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75', bg: '#d1fae5', color: '#10b981' },
+]
+
+const mockupItems = [
+  { label: '发布活动', icon: 'M3 4h18v13H3z M8 21h8M12 17v4 M16 2v4M8 2v4M3 10h18', bg: '#ede9fe', color: '#7c3aed' },
+  { label: '对接商机', icon: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5', bg: '#dbeafe', color: '#2563eb' },
+  { label: '交换名片', icon: 'M2 5h20v14H2z M2 10h20', bg: '#fef3c7', color: '#d97706' },
+  { label: '大咖人脉', icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 7a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75', bg: '#d1fae5', color: '#10b981' },
 ]
 
 const posterOpen = ref(false)
@@ -133,8 +243,6 @@ const posterLoading = ref(false)
 const posterCanvas = ref<HTMLCanvasElement | null>(null)
 
 function buildShareUrl() {
-  // 原生 App：用 getApiBase() 取真实域名 + /h5 子路径（H5 实际部署位置）
-  // H5：用 window.location.origin + BASE_URL('/h5/')
   const apiBase = getApiBase()
   let base: string
   if (apiBase) {
@@ -169,64 +277,97 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 async function drawPoster() {
   const canvas = posterCanvas.value
   if (!canvas) return
-  const w = 600, h = 800
+  const w = 600, h = 860
   canvas.width = w
   canvas.height = h
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  // 背景渐变
+  // 品牌渐变背景
   const grad = ctx.createLinearGradient(0, 0, w, h)
-  grad.addColorStop(0, '#6366f1')
-  grad.addColorStop(0.55, '#8b5cf6')
-  grad.addColorStop(1, '#a78bfa')
+  grad.addColorStop(0, '#8b5cf6')
+  grad.addColorStop(0.55, '#7c3aed')
+  grad.addColorStop(1, '#6d28d9')
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, w, h)
 
   // 装饰圆
   ctx.fillStyle = 'rgba(255,255,255,0.12)'
-  ctx.beginPath(); ctx.arc(w - 40, 60, 130, 0, Math.PI * 2); ctx.fill()
-  ctx.beginPath(); ctx.arc(40, h - 60, 150, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(w - 50, 70, 150, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(50, h - 80, 170, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath(); ctx.arc(w * 0.5, h * 0.45, 90, 0, Math.PI * 2); ctx.fill()
 
-  // Logo
+  // Logo（圆角方形，白底）
   try {
     const logo = await loadImage(logoSrc)
-    const lsize = 120, lx = (w - lsize) / 2, ly = 90
+    const lsize = 128, lx = (w - lsize) / 2, ly = 84
     ctx.save()
-    ctx.beginPath(); ctx.arc(lx + lsize / 2, ly + lsize / 2, lsize / 2, 0, Math.PI * 2); ctx.clip()
+    // 圆角方形裁剪
+    const r = 28
+    ctx.beginPath()
+    ctx.moveTo(lx + r, ly)
+    ctx.lineTo(lx + lsize - r, ly)
+    ctx.quadraticCurveTo(lx + lsize, ly, lx + lsize, ly + r)
+    ctx.lineTo(lx + lsize, ly + lsize - r)
+    ctx.quadraticCurveTo(lx + lsize, ly + lsize, lx + lsize - r, ly + lsize)
+    ctx.lineTo(lx + r, ly + lsize)
+    ctx.quadraticCurveTo(lx, ly + lsize, lx, ly + lsize - r)
+    ctx.lineTo(lx, ly + r)
+    ctx.quadraticCurveTo(lx, ly, lx + r, ly)
+    ctx.closePath()
+    ctx.clip()
     ctx.fillStyle = '#fff'
     ctx.fillRect(lx, ly, lsize, lsize)
-    ctx.drawImage(logo, lx + 8, ly + 8, lsize - 16, lsize - 16)
+    ctx.drawImage(logo, lx + 10, ly + 10, lsize - 20, lsize - 20)
     ctx.restore()
   } catch { /* ignore */ }
 
-  // 标题
+  // 品牌名
   ctx.fillStyle = '#fff'
   ctx.textAlign = 'center'
-  ctx.font = 'bold 56px "PingFang SC","Microsoft YaHei",sans-serif'
-  ctx.fillText('社群名片', w / 2, 280)
+  ctx.font = 'bold 58px "PingFang SC","Microsoft YaHei",sans-serif'
+  ctx.fillText('社群 App', w / 2, 268)
 
+  // 标语
   ctx.font = '26px "PingFang SC","Microsoft YaHei",sans-serif'
-  ctx.fillStyle = 'rgba(255,255,255,0.9)'
-  ctx.fillText('连接优质资源 · 成就商业梦想', w / 2, 336)
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'
+  ctx.fillText('连接优质资源 · 成就创业梦想', w / 2, 322)
 
-  // 特性
-  ctx.font = '24px "PingFang SC","Microsoft YaHei",sans-serif'
+  // 功能标签行
+  ctx.font = '22px "PingFang SC","Microsoft YaHei",sans-serif'
   ctx.fillStyle = 'rgba(255,255,255,0.95)'
-  const lines = ['发布活动 · 对接商机', '交换名片 · 商城福利']
-  lines.forEach((t, i) => ctx.fillText(t, w / 2, 396 + i * 40))
+  const tags = ['发布活动', '对接商机', '交换名片', '大咖人脉']
+  const tagGap = 18
+  const tagW = 108
+  const totalW = tags.length * tagW + (tags.length - 1) * tagGap
+  let tx = (w - totalW) / 2
+  const ty = 366
+  tags.forEach((t) => {
+    // 标签底
+    ctx.fillStyle = 'rgba(255,255,255,0.16)'
+    ctx.beginPath()
+    ctx.roundRect(tx, ty, tagW, 44, 22)
+    ctx.fill()
+    ctx.fillStyle = '#fff'
+    ctx.font = '21px "PingFang SC","Microsoft YaHei",sans-serif'
+    ctx.fillText(t, tx + tagW / 2, ty + 30)
+    tx += tagW + tagGap
+  })
 
   // 二维码
   try {
-    const qr = await QRCode.toDataURL(buildShareUrl(), { width: 260, margin: 0 })
+    const qr = await QRCode.toDataURL(buildShareUrl(), { width: 280, margin: 0 })
     const qrImg = await loadImage(qr)
-    const qrSize = 240, qx = (w - qrSize) / 2, qy = 480
+    const qrSize = 236, qx = (w - qrSize) / 2, qy = 460
+    // 白色圆角卡片承载二维码
     ctx.fillStyle = '#fff'
-    ctx.beginPath(); ctx.arc(qx + qrSize / 2, qy + qrSize / 2, qrSize / 2 + 12, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath()
+    ctx.roundRect(qx - 14, qy - 14, qrSize + 28, qrSize + 28, 18)
+    ctx.fill()
     ctx.drawImage(qrImg, qx, qy, qrSize, qrSize)
-    ctx.fillStyle = '#4f46e5'
-    ctx.font = '22px "PingFang SC","Microsoft YaHei",sans-serif'
-    ctx.fillText('扫码下载 社群名片', w / 2, qy + qrSize + 44)
+    ctx.fillStyle = '#7c3aed'
+    ctx.font = '24px "PingFang SC","Microsoft YaHei",sans-serif'
+    ctx.fillText('扫码下载 社群 App', w / 2, qy + qrSize + 52)
   } catch { /* ignore */ }
 }
 
@@ -242,9 +383,26 @@ async function handleShare() {
 }
 
 function handleDownload() {
-  // 跳转到稳定的最新安装包地址，触发浏览器下载
   showToast('开始下载，请稍候...')
   window.location.href = apkUrl
+}
+
+function handleIosGuide() {
+  showToast('请在 Safari 中打开本页，点击「分享」→「添加到主屏幕」')
+}
+
+async function copyShareLink() {
+  const url = buildShareUrl()
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url)
+      showToast('链接已复制')
+    } else {
+      showToast('暂不支持复制')
+    }
+  } catch {
+    showToast('复制失败')
+  }
 }
 
 function handleSavePoster() {
@@ -255,7 +413,7 @@ function handleSavePoster() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = '社群名片_海报.png'
+    a.download = '社群App_海报.png'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -268,16 +426,14 @@ async function handleShareLink() {
   const url = buildShareUrl()
   try {
     if (navigator.share) {
-      await navigator.share({ title: '社群名片 App', text: '下载社群名片，连接优质资源，成就商业梦想', url })
+      await navigator.share({ title: '社群 App', text: '下载社群 App，连接优质资源，成就创业梦想', url })
     } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(url)
       showToast('链接已复制')
     } else {
       showToast('暂不支持分享')
     }
-  } catch {
-    // 用户取消
-  }
+  } catch { /* user cancelled */ }
 }
 
 onMounted(() => {
@@ -286,134 +442,305 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import '@/styles/global.css';
+/* ===== Reset / Base ===== */
+.dl-page {
+  font-family: 'PingFang SC', -apple-system, 'Helvetica Neue', sans-serif;
+  color: #1f2937;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+.dl-body {
+  padding-top: 0;
+}
 
-.appdl-page { background: #f0f2f8; }
+/* ===== Navbar (desktop only) ===== */
+.dl-navbar {
+  display: none;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px; padding: 0 32px;
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; }
+.nav-logo {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: #fff; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(139,92,246,0.2);
+}
+.nav-logo img { width: 100%; height: 100%; object-fit: cover; }
+.nav-name { font-size: 18px; font-weight: 700; color: #1f2937; }
+.nav-links { display: flex; gap: 32px; }
+.nav-link {
+  font-size: 15px; color: #6b7280; text-decoration: none;
+  transition: color 0.2s; cursor: pointer;
+}
+.nav-link.active, .nav-link:hover { color: #8b5cf6; }
+.nav-dl-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 24px; border-radius: 99px;
+  background: #8b5cf6; color: #fff;
+  font-size: 14px; font-weight: 600; text-decoration: none;
+  cursor: pointer; transition: background 0.2s;
+}
+.nav-dl-btn:hover { background: #7c3aed; }
 
-.main-scroll { padding-bottom: 32px; }
-
-/* Hero */
-.hero {
+/* ===== Hero ===== */
+.dl-hero {
   position: relative;
-  padding: 40px 24px 32px;
-  background: linear-gradient(150deg, #6366f1 0%, #8b5cf6 55%, #a78bfa 100%);
-  border-radius: 0 0 28px 28px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   overflow: hidden;
-  text-align: center;
   color: #fff;
+  padding: 60px 24px 48px;
 }
 .hero-shapes { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.hero-shape { position: absolute; border-radius: 50%; background: #fff; }
-.hs1 { width: 220px; height: 220px; top: -70px; right: -60px; opacity: 0.15; }
-.hs2 { width: 160px; height: 160px; bottom: -50px; left: -40px; opacity: 0.15; }
-.hs3 { width: 90px; height: 90px; top: 40px; left: 18%; opacity: 0.12; }
-.hero-logo {
-  position: relative;
-  width: 96px; height: 96px; margin: 0 auto 18px;
-  border-radius: 26px;
-  background: #fff;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.22);
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
+.hero-shapes .shape { position: absolute; border-radius: 50%; background: #fff; }
+.hero-shapes .s1 { width: 260px; height: 260px; top: -80px; right: -70px; opacity: 0.12; }
+.hero-shapes .s2 { width: 180px; height: 180px; bottom: -60px; left: -50px; opacity: 0.12; }
+.hero-shapes .s3 { width: 100px; height: 100px; top: 60px; left: 20%; opacity: 0.10; }
+.hero-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 48px;
 }
-.hero-logo-img { width: 100%; height: 100%; object-fit: cover; }
-.hero-name { position: relative; font-size: 30px; font-weight: 800; letter-spacing: 1px; }
-.hero-tag { position: relative; margin-top: 8px; font-size: 15px; color: rgba(255,255,255,0.92); }
-.hero-badges { position: relative; margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
-.hero-badge {
-  padding: 6px 14px; border-radius: 99px;
-  background: rgba(255,255,255,0.18);
+.hero-content { position: relative; z-index: 1; flex: 1; max-width: 560px; text-align: center; margin: 0 auto; }
+.hero-app-icon {
+  display: block;
+  width: 84px; height: 84px; margin: 0 auto 18px;
+  border-radius: 22px; overflow: hidden;
+  background: #fff; padding: 6px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+.hero-app-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+.hero-tag {
+  display: inline-block; margin-bottom: 16px;
+  padding: 6px 16px; border-radius: 99px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.92);
+}
+.hero-title { font-size: 36px; font-weight: 800; line-height: 1.3; letter-spacing: -0.5px; }
+.hero-desc { margin-top: 12px; font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.85); }
+.hero-actions { margin-top: 28px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.hero-version { margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.7); }
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 32px; border-radius: 99px;
+  background: #fff; color: #7c3aed;
+  font-size: 15px; font-weight: 700; text-decoration: none;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-primary:active { transform: scale(0.96); }
+.btn-primary svg { width: 20px; height: 20px; }
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 28px; border-radius: 99px;
+  background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.3);
-  font-size: 12px; font-weight: 600;
+  color: #fff; font-size: 15px; font-weight: 600; text-decoration: none;
+  cursor: pointer; transition: background 0.2s;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.2); }
+.btn-ghost svg { width: 20px; height: 20px; }
+
+/* ===== Phone Mockup (desktop) ===== */
+.hero-mockup { display: none; }
+@media (min-width: 768px) {
+  .hero-mockup {
+    display: block; flex-shrink: 0;
+    position: relative; z-index: 1;
+  }
+  .mockup-body {
+    width: 280px; height: 520px;
+    background: #1a1a2e; border-radius: 36px;
+    padding: 10px; position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  }
+  .mockup-notch {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 18px; background: #1a1a2e; border-radius: 0 0 12px 12px;
+    z-index: 2;
+  }
+  .mockup-screen {
+    width: 100%; height: 100%;
+    background: #fff; border-radius: 28px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .ms-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px 4px; color: #1f2937;
+  }
+  .ms-time { font-size: 12px; font-weight: 700; }
+  .ms-body { flex: 1; padding: 10px 14px 14px; }
+  .ms-brand { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .ms-logo {
+    width: 32px; height: 32px; border-radius: 8px; overflow: hidden;
+    background: #ede9fe;
+  }
+  .ms-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .ms-name { font-size: 16px; font-weight: 700; color: #1f2937; }
+  .ms-search {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 12px; border-radius: 99px;
+    background: #f3f4f6; color: #9ca3af;
+    font-size: 12px; margin-bottom: 14px;
+  }
+  .ms-search svg { width: 14px; height: 14px; }
+  .ms-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .ms-cell {
+    padding: 8px; border-radius: 10px;
+    background: #f9fafb; display: flex; flex-direction: column;
+    align-items: center; gap: 4px; text-align: center;
+  }
+  .ms-cell-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ms-cell-icon svg { width: 16px; height: 16px; }
+  .ms-cell-label { font-size: 10px; color: #6b7280; font-weight: 500; }
 }
 
-/* Features */
-.feat-section {
-  margin: 20px 16px 0;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+/* ===== Section Common ===== */
+.sec-inner {
+  max-width: 1200px; margin: 0 auto; padding: 60px 24px;
+}
+.sec-tag {
+  display: inline-block; margin-bottom: 12px;
+  padding: 5px 14px; border-radius: 99px;
+  background: #ede9fe; color: #8b5cf6;
+  font-size: 13px; font-weight: 600;
+}
+.sec-title {
+  font-size: 24px; font-weight: 800; color: #1f2937;
+  line-height: 1.3; margin-bottom: 8px;
+}
+.sec-sub { font-size: 14px; color: #6b7280; }
+
+/* ===== Features ===== */
+.dl-features { background: #f8fafc; }
+.sec-inner { text-align: center; }
+.feat-grid {
+  margin-top: 32px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  text-align: left;
 }
 .feat-card {
-  padding: 16px;
+  padding: 20px;
   background: #fff; border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s;
+  display: flex; flex-direction: column;
 }
 .feat-icon {
-  width: 40px; height: 40px; border-radius: 12px;
+  width: 48px; height: 48px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
-.feat-icon svg { width: 22px; height: 22px; }
-.feat-title { font-size: 15px; font-weight: 700; color: #1e1b4b; margin-bottom: 4px; }
-.feat-desc { font-size: 12px; color: #6b7280; line-height: 1.5; }
-
-/* Intro */
-.intro-block {
-  margin: 20px 16px 0;
-  padding: 24px 20px;
-  background: linear-gradient(160deg, #ffffff 0%, #eef2ff 100%);
-  border-radius: 20px;
-  border: 1px solid rgba(99,102,241,0.12);
-  text-align: center;
-}
-.intro-title { font-size: 19px; font-weight: 800; color: #1e1b4b; }
-.intro-text { margin: 10px auto 0; max-width: 290px; font-size: 13px; color: #6b7280; line-height: 1.7; }
-.intro-visual { position: relative; margin: 22px auto 0; width: 120px; height: 120px; }
-.intro-img {
-  position: relative; width: 100%; height: 100%;
-  border-radius: 28px; object-fit: cover;
-  box-shadow: 0 16px 40px rgba(99,102,241,0.25);
-}
-.intro-glow {
-  position: absolute; inset: -20px;
-  background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
-  z-index: 0;
+.feat-icon svg { width: 24px; height: 24px; }
+.feat-title { font-size: 17px; font-weight: 700; color: #1f2937; margin-bottom: 6px; }
+.feat-desc { font-size: 13px; color: #6b7280; line-height: 1.6; }
+.feat-link {
+  display: inline-block; margin-top: auto; padding-top: 10px;
+  font-size: 13px; color: #8b5cf6; font-weight: 600; text-decoration: none;
 }
 
-/* Download */
-.download-card {
-  margin: 20px 16px 0;
-  padding: 24px 20px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border-radius: 20px;
-  text-align: center;
-  color: #fff;
-  box-shadow: 0 12px 32px rgba(99,102,241,0.3);
+/* ===== Stats ===== */
+.dl-stats { background: #fff; }
+.stats-inner { display: flex; flex-direction: column; gap: 40px; text-align: left; }
+.stats-left { flex: 1; }
+.stats-text { margin-top: 12px; font-size: 14px; color: #6b7280; line-height: 1.8; }
+.stats-list { margin-top: 20px; list-style: none; }
+.stats-list li {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px; font-size: 14px; color: #374151;
 }
-.download-title { font-size: 20px; font-weight: 800; }
-.download-sub { margin: 8px auto 18px; font-size: 12px; color: rgba(255,255,255,0.85); opacity: 0.9; }
-.download-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 13px 28px; border-radius: 99px;
-  background: #fff; color: #4f46e5;
-  font-size: 15px; font-weight: 700;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
-  cursor: pointer; transition: transform 0.15s;
+.stats-list li svg { width: 18px; height: 18px; flex-shrink: 0; color: #8b5cf6; }
+.stats-right {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
 }
-.download-btn:active { transform: scale(0.96); }
-.download-btn svg { width: 20px; height: 20px; }
-.download-tip { margin-top: 12px; font-size: 11px; color: rgba(255,255,255,0.75); }
-.download-version { margin-top: 8px; font-size: 11px; color: rgba(255,255,255,0.85); font-weight: 600; }
+.stat-card {
+  padding: 20px 16px; border-radius: 16px;
+  background: #f8fafc; text-align: center;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.stat-num {
+  font-size: 26px; font-weight: 800; color: #8b5cf6;
+  letter-spacing: -0.5px;
+}
+.stat-num.accent { color: #34d399; }
+.stat-label { font-size: 12px; color: #6b7280; }
 
-/* PWA */
-.pwa-card {
-  margin: 16px 16px 0;
-  padding: 16px;
-  background: #fff; border-radius: 16px;
-  display: flex; align-items: center; gap: 14px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+/* ===== CTA ===== */
+.dl-cta {
+  padding: 0 24px 40px;
+  background: #f8fafc;
 }
-.pwa-icon {
-  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
-  background: #eef2ff; color: #6366f1;
-  display: flex; align-items: center; justify-content: center;
+.cta-card {
+  max-width: 1200px; margin: 0 auto;
+  padding: 48px 24px;
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+  border-radius: 28px;
+  text-align: center; color: #fff;
 }
-.pwa-icon svg { width: 22px; height: 22px; }
-.pwa-title { font-size: 15px; font-weight: 700; color: #1e1b4b; margin-bottom: 3px; }
-.pwa-desc { font-size: 12px; color: #6b7280; line-height: 1.5; }
+.cta-tag {
+  display: inline-block; margin-bottom: 12px;
+  padding: 5px 14px; border-radius: 99px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  font-size: 13px; font-weight: 500;
+}
+.cta-title { font-size: 28px; font-weight: 800; }
+.cta-desc { margin: 10px auto 24px; max-width: 500px; font-size: 14px; color: rgba(255,255,255,0.8); line-height: 1.7; }
+.cta-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.cta-ghost { background: rgba(255,255,255,0.1); }
+.cta-ios-guide {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin: 18px auto 0; max-width: 460px;
+  padding: 12px 18px; border-radius: 14px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  text-align: left;
+}
+.cta-ios-guide svg { width: 22px; height: 22px; flex-shrink: 0; opacity: 0.9; }
+.cta-ios-guide div { display: flex; flex-direction: column; gap: 2px; }
+.guide-title { font-size: 14px; font-weight: 700; color: #fff; }
+.guide-text { font-size: 12px; color: rgba(255,255,255,0.75); line-height: 1.5; }
+.cta-version { margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.65); }
 
-.footer-space { height: 24px; }
+/* ===== Footer ===== */
+.dl-footer {
+  background: #fff; border-top: 1px solid #f3f4f6;
+}
+.footer-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 32px 24px; text-align: center;
+}
+.footer-brand { display: flex; align-items: center; gap: 8px; }
+.footer-logo {
+  width: 28px; height: 28px; border-radius: 7px; overflow: hidden;
+  background: #ede9fe;
+}
+.footer-logo img { width: 100%; height: 100%; object-fit: cover; }
+.footer-brand span { font-size: 15px; font-weight: 700; color: #1f2937; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+.footer-links a {
+  font-size: 13px; color: #6b7280; text-decoration: none;
+  transition: color 0.2s; cursor: pointer;
+}
+.footer-links a:hover { color: #8b5cf6; }
+.footer-copy { font-size: 12px; color: #9ca3af; }
 
-/* Poster Modal */
+/* ===== Poster Modal ===== */
 .poster-mask {
   position: fixed; inset: 0; z-index: 600;
   background: rgba(0,0,0,0.5);
@@ -431,7 +758,7 @@ onMounted(() => {
 .poster-loading {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.85); color: #6366f1; font-size: 14px;
+  background: rgba(255,255,255,0.85); color: #8b5cf6; font-size: 14px;
 }
 .poster-actions { display: flex; gap: 10px; margin-top: 16px; }
 .poster-btn {
@@ -442,7 +769,39 @@ onMounted(() => {
 .poster-btn svg { width: 18px; height: 18px; }
 .poster-btn:active { transform: scale(0.96); }
 .poster-btn.ghost { background: #f3f4f6; color: #1e1b4b; }
-.poster-btn.primary { background: #6366f1; color: #fff; }
+.poster-btn.primary { background: #8b5cf6; color: #fff; }
 .poster-fade-enter-active, .poster-fade-leave-active { transition: opacity 0.2s ease; }
 .poster-fade-enter-from, .poster-fade-leave-to { opacity: 0; }
+
+/* ===== Responsive ===== */
+
+/* Tablet + */
+@media (min-width: 640px) {
+  .hero-title { font-size: 42px; }
+  .feat-grid { grid-template-columns: 1fr 1fr; }
+  .sec-title { font-size: 28px; }
+  .cta-title { font-size: 32px; }
+}
+@media (min-width: 768px) {
+  .hero-content { text-align: left; margin: 0; }
+  .hero-app-icon { display: none; }
+  .hero-actions { justify-content: flex-start; }
+  .dl-hero { padding: 80px 32px 64px; }
+  .hero-title { font-size: 48px; }
+  .stats-inner { flex-direction: row; align-items: center; }
+  .stats-right { min-width: 380px; }
+  .stat-num { font-size: 30px; }
+  .feat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .dl-navbar { display: block; }
+  .dl-body { padding-top: 64px; }
+  .dl-hero { padding: 100px 32px 80px; }
+  .hero-title { font-size: 52px; }
+  .feat-grid { grid-template-columns: repeat(4, 1fr); }
+  .sec-inner { padding: 80px 32px; }
+  .dl-cta { padding: 0 32px 60px; }
+  .cta-card { padding: 64px 32px; }
+  .cta-title { font-size: 36px; }
+}
 </style>
