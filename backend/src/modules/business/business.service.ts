@@ -22,7 +22,7 @@ export class BusinessService {
     if (status && status !== 'all') where.status = status;
     if (params?.categoryId) where.categoryId = Number(params.categoryId);
 
-    const [list, total] = await Promise.all([
+    const [rawList, total] = await Promise.all([
       this.prisma.business.findMany({
         where,
         skip: (page - 1) * size,
@@ -35,6 +35,10 @@ export class BusinessService {
       }),
       this.prisma.business.count({ where }),
     ]);
+    const list = rawList.map((item: any) => ({
+      ...item,
+      viewCount: item.viewCount ?? 0,
+    }));
     return { list, total, page, size };
   }
 
@@ -73,13 +77,22 @@ export class BusinessService {
   }
 
   async getBusinessDetail(id: number) {
-    return this.prisma.business.findUnique({
+    await this.prisma.business.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+    });
+    const business = await this.prisma.business.findUnique({
       where: { id },
       include: {
         publisher: { select: { nickname: true, avatarUrl: true } },
         unlocks: true,
       },
     });
+    if (!business) return null;
+    return {
+      ...business,
+      viewCount: business.viewCount ?? 0,
+    };
   }
 
   async getUnlockStatus(businessId: number, userId: number) {

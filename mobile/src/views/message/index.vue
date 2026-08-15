@@ -2,7 +2,7 @@
   <div class="phone-frame">
     <div class="header"><div class="header-left"><div class="back-btn" @click="$router.back()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></div><span class="header-title">消息通知</span></div></div>
     <div class="main-scroll">
-      <div class="msg-item" v-for="m in messages" :key="m.id" @click="handleRead(m)">
+      <div class="msg-item" v-for="m in messages" :key="m.id" :class="{ tapped: tappedIds.has(m.id) }" @click="handleRead(m)">
         <div class="msg-icon" :class="m.iconClass">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
@@ -18,6 +18,7 @@
         </div>
         <div class="msg-dot" v-if="!m.isRead"></div>
       </div>
+      <div v-if="messages.length === 0" class="empty">暂无消息通知</div>
     </div>
   </div>
 </template>
@@ -28,6 +29,7 @@ import { getMessages, markMessageRead, respondConnection } from '@/api'
 
 const router = useRouter()
 const messages = ref<any[]>([])
+const tappedIds = ref<Set<number>>(new Set())
 
 function formatTime(input: string | number | Date): string {
   if (!input) return ''
@@ -94,11 +96,17 @@ onMounted(async () => {
 })
 
 const handleRead = async (m: any) => {
+  // 点击高亮反馈（300ms）
+  const set = tappedIds.value
+  set.add(m.id)
+  setTimeout(() => { set.delete(m.id) }, 300)
+
+  const already = !!m.isRead
   // 先标记已读（未读时）
-  if (!m.isRead) {
+  if (!already) {
     try {
       await markMessageRead(m.id)
-      m.isRead = 1
+      m.isRead = true
     } catch (err: any) {
       console.error('标记已读失败', err)
     }
@@ -107,6 +115,9 @@ const handleRead = async (m: any) => {
   const target = getMessageTarget(m)
   if (target) {
     router.push(target)
+  } else if (!already) {
+    // 系统/营销通知等无跳转目标时，给出明确反馈
+    showToast('已标记为已读')
   }
 }
 
@@ -190,4 +201,8 @@ function showToast(msg: string) {
 .act-btn.reject { background: #f3f4f6; color: #6b7280; }
 .msg-responded { font-size: 12px; color: #9ca3af; margin-top: 6px; }
 .msg-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); flex-shrink: 0; }
+.msg-item { transition: background 0.2s; }
+.msg-item.tapped { background: rgba(99,102,241,0.12); }
+.empty { padding: 60px 20px; text-align: center; color: var(--color-text-secondary); font-size: 14px; }
+.main-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 </style>

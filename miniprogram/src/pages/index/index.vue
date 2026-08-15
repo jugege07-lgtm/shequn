@@ -630,7 +630,7 @@ function applyData(data: any) {
         avatarClass: ['', 'c2', 'c3'][b.publisherId % 3],
         progress: b.maxUnlocks > 0 ? Math.round((b.currentUnlocks / b.maxUnlocks) * 100) : 0,
         progressText: `${b.currentUnlocks || 0}/${b.maxUnlocks || 0}`,
-        views: 0,
+        views: Number(b.viewCount) || 0,
       }
     })
   }

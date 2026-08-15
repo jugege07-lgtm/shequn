@@ -37,6 +37,10 @@
               发布活动 · 对接商机 · 交换名片 · 大咖人脉
             </p>
             <div class="hero-actions">
+              <a class="btn-link-h5" @click.prevent="goH5Home">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span>H5 体验入口</span>
+              </a>
               <a class="btn-primary" @click.prevent="handleDownload">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 <span>下载 Android 版</span>
@@ -219,10 +223,15 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { ref, onMounted, nextTick } from 'vue'
 import QRCode from 'qrcode'
 import { getApiBase } from '@/utils/apiBase'
 
+const router = useRouter()
+function goH5Home() {
+  router.push('/')
+}
 const BASE = import.meta.env.BASE_URL || '/h5/'
 const apkUrl = `${BASE}app/shequn.apk`
 const appVersion = '1.1.0'
@@ -555,6 +564,17 @@ onMounted(() => {
 }
 .btn-primary:active { transform: scale(0.96); }
 .btn-primary svg { width: 20px; height: 20px; }
+.btn-link-h5 {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 16px 24px; border-radius: 16px;
+  font-size: 16px; font-weight: 700; color: #fff; text-decoration: none;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 10px 24px rgba(16,185,129,0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+.btn-link-h5 svg { width: 22px; height: 22px; }
+.btn-link-h5:active { transform: translateY(1px) scale(0.99); box-shadow: 0 4px 12px rgba(16,185,129,0.28); }
 .btn-ghost {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 14px 28px; border-radius: 99px;

@@ -183,6 +183,7 @@ model Business {
   unlockFee      Float            @default(0) @map("unlock_fee")
   maxUnlocks     Int              @default(3) @map("max_unlocks")
   currentUnlocks Int              @default(0) @map("current_unlocks")
+  viewCount      Int              @default(0) @map("view_count")
   status         String           @default("pending")
   rejectReason   String           @default("") @map("reject_reason")
   publisherId    Int              @map("publisher_id")
