@@ -1,0 +1,163 @@
+/* 全局样式（自 mobile/src/styles/global.css 迁移）
+   小程序适配：html/body → page（page 样式在 App.vue 中定义）；
+   内联 svg 选择器改为 image（svg 已转为 data-uri <image> 渲染）。 */
+*, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+view, text, image, button, input, textarea, scroll-view { box-sizing: border-box; }
+
+/* 页面容器（等价 .phone-frame 的宽度约束在小程序由屏幕宽度天然保证） */
+.phone-frame {
+  width: 100%; min-height: 100vh;
+  background: var(--color-bg);
+  position: relative; display: flex; flex-direction: column;
+}
+.phone-frame > .main-scroll:first-child {
+  border-top: env(safe-area-inset-top, 0px) solid transparent;
+  padding-top: 0;
+}
+
+/* Header */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: #ffffff;
+  border-bottom: 0.5px solid rgba(60,60,67,0.1);
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.back-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center;
+}
+.back-btn:active { background: rgba(0,0,0,0.1); }
+.back-btn image { width: 20px; height: 20px; }
+.header-title { font-size: 18px; font-weight: 700; color: var(--color-text-primary); }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-icon {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(99,102,241,0.1); display: flex; align-items: center; justify-content: center;
+}
+.header-icon:active { background: rgba(99,102,241,0.2); }
+.header-icon image { width: 18px; height: 18px; }
+
+/* Scrollable */
+.main-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 80px; }
+
+/* Filter chips */
+.filter-bar, .quick-filter {
+  padding: 12px 16px 0; display: flex; align-items: center; gap: 8px;
+  overflow-x: auto; white-space: nowrap;
+}
+.filter-chip, .filter-tab {
+  flex-shrink: 0;
+  padding: 8px 16px; border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.5);
+  font-size: 13px; color: var(--color-text-secondary); font-weight: 500;
+  white-space: nowrap;
+}
+.filter-chip.active, .filter-tab.active {
+  background: var(--color-primary); color: #fff; font-weight: 600; border-color: var(--color-primary);
+}
+.filter-chip:active, .filter-tab:active { transform: scale(0.95); }
+
+/* Search */
+.search-bar { padding: 12px 16px 0; }
+.search-container { position: relative; }
+.search-input {
+  width: 100%; height: 44px; border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(255,255,255,0.5);
+  padding: 0 16px 0 44px; font-size: 15px; color: var(--color-text-primary);
+}
+.search-icon {
+  position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px;
+}
+
+/* Glass card */
+.glass-card {
+  border-radius: var(--radius-xl);
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.10);
+  overflow: hidden;
+}
+
+/* image 图标基线（原 svg 规则） */
+image { display: block; }
+
+/* Tag */
+.tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; }
+.tag-free { background: rgba(16,185,129,0.15); color: var(--color-success); }
+.tag-paid { background: rgba(239,68,68,0.15); color: var(--color-danger); }
+.tag-hot { background: rgba(245,158,11,0.15); color: var(--color-warning); }
+.tag-new { background: rgba(99,102,241,0.15); color: var(--color-primary); }
+.tag-limited { background: rgba(239,68,68,0.15); color: var(--color-danger); }
+
+/* Empty state */
+.empty-tip { text-align: center; padding: 40px 0; color: var(--color-text-tertiary); font-size: 14px; }
+
+/* 封面图全局响应式 */
+image.cover-img,
+image.product-cover-img,
+image.card-avatar,
+image.qr-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+.activity-cover-bg,
+.activity-cover-hero,
+.product-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 富文本排版（rich-text 外层容器） */
+.rich-content {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.8;
+  word-break: break-word;
+}
+
+/* Meta items */
+.meta-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
+.meta-item image { width: 14px; height: 14px; flex-shrink: 0; }
+/* Stats */
+.stats-row { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+.stat-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--color-text-secondary); }
+.stat-item image { width: 14px; height: 14px; }
+/* Price */
+.price-main { font-size: 22px; font-weight: 800; color: var(--color-primary); }
+.price-main text { font-size: 14px; }
+.price-original { font-size: 12px; color: var(--color-text-tertiary); text-decoration: line-through; margin-left: 8px; }
+/* Button */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 10px 24px; border-radius: var(--radius-full);
+  font-size: 14px; font-weight: 600; border: none;
+  transition: all 0.2s ease;
+}
+.btn:active { transform: scale(0.96); }
+.btn-primary { background: var(--color-primary); color: #fff; }
+.btn-outline { background: transparent; border: 1px solid var(--color-primary); color: var(--color-primary); }
+.btn-full { width: 100%; }
+/* Avatar */
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--color-primary-50); display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--color-primary); flex-shrink: 0;
+}
+/* Section */
+.section-title {
+  font-size: 16px; font-weight: 700; color: var(--color-text-primary);
+  margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+}
+.section-more { font-size: 12px; color: var(--color-text-tertiary); }
+
+/* 弹层过渡（PayPasswordPopup/ShareSheet 等使用） */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
