@@ -47,7 +47,7 @@ export const useUserStore = defineStore('user', () => {
   async function fetchUserInfo() {
     if (!token.value) return
     try {
-      const data = await request.get('/api/auth/me')
+      const data = await request.get('/api/auth/me', { _noToast: true })
       if (data) {
         setUserInfo(data)
       }

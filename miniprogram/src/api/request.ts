@@ -128,8 +128,8 @@ async function dispatch<T = any>(
   // HTTP 401：token 过期 → 尝试刷新后重放
   if (status === 401) {
     if (isPublic) {
+      // 认证类公开接口 401 = 业务失败（如密码错误），透传错误信息，不弹全局 toast（对齐移动端）
       const msg = extractMessage(body)
-      if (!config._noToast) showToast(msg)
       const err: any = new Error(msg)
       err.userMessage = msg
       throw err
