@@ -228,21 +228,24 @@ export function useRouter() {
 }
 
 export function useRoute() {
-  const routeObj = buildRoute()
-  // uni-app vue3 小程序：setup 执行时页面尚未入栈，快照取到的是上一页（params 为空）。
-  // 注册 onLoad 回调，页面装载后用真实 options 回填（原地变异，保证页面闭包引用有效）。
-  try {
-    onLoad((_opts: Record<string, any> = {}) => {
-      const fresh = buildRoute()
-      routeObj.path = fresh.path
-      routeObj.fullPath = fresh.fullPath
-      routeObj.query = fresh.query
-      routeObj.params = fresh.params
-      routeObj.value = routeObj
-    })
-  } catch {
-    /* 非 setup 上下文调用忽略 */
+  // uni-app vue3 小程序：页面 setup 执行时 getCurrentPages() 栈内还没有当前页，
+  // 静态快照会拿到上一页（params 为空 → Number(undefined) = NaN）。
+  // 因此 path/query/params 全部用 getter 惰性求值：onMounted 等时机读取时
+  // 栈内已是当前页，参数天然正确。注意：不能在此 import onLoad 注册回填——
+  // 编译器会把非页面文件中 @dcloudio/uni-app 的 import 丢弃，留下裸标识符在运行时抛错。
+  const routeObj: any = {
+    get path() { return buildRoute().path },
+    get fullPath() { return buildRoute().fullPath },
+    get query() { return buildRoute().query },
+    get params() { return buildRoute().params },
+    name: '',
+    meta: {},
+    matched: [],
+    hash: '',
+    redirectedFrom: undefined,
   }
+  // 兼容移动端 `router.currentRoute.value.path` 写法：value 自引用
+  routeObj.value = routeObj
   return routeObj
 }
 
