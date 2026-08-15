@@ -46,39 +46,41 @@
           <p>{{ emptyText }}</p>
           <span v-if="searchKeyword.trim()" class="empty-sub">试试其他关键词</span>
         </div>
-        <div class="opportunity-item" v-for="o in filteredOpportunities" :key="o.id" @click="$router.push('/business/detail/' + o.id)">
+        <!-- 注意：v-for 变量名用 biz，不能用 o——uni-app 编译器可能给图标等 setup 常量分配单字母 data key（如 o），
+             与 wx:for-item 同名时作用域覆盖，导致 image src 绑到整个 item 对象（[object Object] 加载失败） -->
+        <div class="opportunity-item" v-for="biz in filteredOpportunities" :key="biz.id" @click="$router.push('/business/detail/' + biz.id)">
           <div class="opportunity-header">
             <div>
-              <div class="opportunity-title">{{ o.title }}</div>
-              <div class="opportunity-tag" :class="o.urgencyClass">{{ o.urgency }}</div>
+              <div class="opportunity-title">{{ biz.title }}</div>
+              <div class="opportunity-tag" :class="biz.urgencyClass">{{ biz.urgency }}</div>
             </div>
           </div>
           <div class="opportunity-content">
-            <div class="opportunity-desc" v-html="o.sanitizedDesc"></div>
+            <div class="opportunity-desc" v-html="biz.sanitizedDesc"></div>
             <div class="opportunity-meta">
               <div class="meta-item">
                 <image class="meta-icon" :src="iconUser" mode="aspectFit" />
-                {{ o.location }}
+                {{ biz.location }}
               </div>
               <div class="meta-item">
                 <image class="meta-icon" :src="iconCalendar" mode="aspectFit" />
-                {{ o.date }}
+                {{ biz.date }}
               </div>
               <div class="meta-item">
                 <image class="meta-icon" :src="iconClock" mode="aspectFit" />
-                {{ o.validity }}
+                {{ biz.validity }}
               </div>
             </div>
             <div class="opportunity-footer">
-              <span class="opportunity-price" v-html="formatPriceHtml(o.price, o.isFree)"></span>
+              <span class="opportunity-price" v-html="formatPriceHtml(biz.price, biz.isFree)"></span>
               <div class="opportunity-stats">
                 <div class="stat-item">
                   <image class="stat-icon" :src="iconUserSm" mode="aspectFit" />
-                  {{ o.connects }}
+                  {{ biz.connects }}
                 </div>
                 <div class="stat-item">
                   <image class="stat-icon" :src="iconEye" mode="aspectFit" />
-                  {{ o.views }}
+                  {{ biz.views }}
                 </div>
               </div>
             </div>
@@ -142,10 +144,10 @@ const activeCatName = computed(
 const filteredOpportunities = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase()
   if (!kw) return opportunities.value
-  return opportunities.value.filter(o =>
-    (o.title || '').toLowerCase().includes(kw) ||
-    (o.categoryName || '').toLowerCase().includes(kw) ||
-    (o.sanitizedDesc || '').toLowerCase().includes(kw)
+  return opportunities.value.filter(biz =>
+    (biz.title || '').toLowerCase().includes(kw) ||
+    (biz.categoryName || '').toLowerCase().includes(kw) ||
+    (biz.sanitizedDesc || '').toLowerCase().includes(kw)
   )
 })
 
