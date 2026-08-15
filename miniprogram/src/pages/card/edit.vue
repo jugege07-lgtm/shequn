@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()">
@@ -68,6 +68,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMyCard, updateMyCard } from '@/api'
@@ -206,6 +207,8 @@ const handleSubmit = async () => {
     showToast('保存成功')
     router.replace('/card/index')
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     showToast(err.userMessage || '保存失败')
   } finally {
     saving.value = false
@@ -228,7 +231,11 @@ function showToast(msg: string) {
 .form-group { margin-bottom: 16px; }
 .form-label { font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px; display: block; }
 .required { color: #ef4444; font-weight: normal; }
-.form-input, .form-textarea { width: 100%; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.7); font-size: 14px; color: var(--color-text-primary); outline: none; font-family: var(--font); transition: border-color 0.2s, background 0.2s; }
+/* input 与 textarea 拆分：小程序原生 input 不能用垂直 padding（裁半 placeholder），
+   用固定高度 + line-height；textarea 垂直 padding 正常 */
+.form-input, .form-textarea { width: 100%; box-sizing: border-box; border-radius: var(--radius-md); border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.7); font-size: 14px; color: var(--color-text-primary); outline: none; font-family: var(--font); transition: border-color 0.2s, background 0.2s; }
+.form-input { height: 46px; line-height: 44px; padding: 0 14px; }
+.form-textarea { padding: 12px 14px; }
 .form-input.error, .form-textarea.error { border-color: #ef4444; background: #fef2f2; }
 .error-text { font-size: 12px; color: #ef4444; margin-top: 6px; }
 .bottom-action { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; padding: 12px 16px env(safe-area-inset-bottom, 12px); background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-top: 0.5px solid rgba(60,60,67,0.1); z-index: 200; }

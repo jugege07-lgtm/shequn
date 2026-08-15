@@ -15,6 +15,8 @@ export interface PaymentConfig {
   wxSecret: string;
   wxMchId: string;
   wxApiKey: string;
+  wxSerialNo: string;
+  wxPlatformPublicKeyPath: string;
   wxNotifyUrl: string;
   wxRefundNotifyUrl: string;
   wxCertPath: string;
@@ -32,6 +34,8 @@ const KEY_MAP: Record<keyof PaymentConfig, string> = {
   wxSecret: 'payment_wx_secret',
   wxMchId: 'payment_wx_mchid',
   wxApiKey: 'payment_wx_api_key',
+  wxSerialNo: 'payment_wx_serial_no',
+  wxPlatformPublicKeyPath: 'payment_wx_platform_public_key_path',
   wxNotifyUrl: 'payment_wx_notify_url',
   wxRefundNotifyUrl: 'payment_wx_refund_notify_url',
   wxCertPath: 'payment_wx_cert_path',
@@ -75,7 +79,7 @@ export class PaymentService {
       return { valid: false, message: '未配置支付渠道' };
     }
     if (config.channel === 'wechat') {
-      const required = [config.wxAppId, config.wxSecret, config.wxMchId, config.wxApiKey, config.wxNotifyUrl, config.wxRefundNotifyUrl, config.wxCertPath, config.wxCertKeyPath];
+      const required = [config.wxAppId, config.wxSecret, config.wxMchId, config.wxApiKey, config.wxSerialNo, config.wxNotifyUrl, config.wxRefundNotifyUrl, config.wxCertPath, config.wxCertKeyPath];
       if (required.some((v) => !v)) {
         return { valid: false, message: '微信支付配置不完整' };
       }
@@ -110,9 +114,47 @@ export class PaymentService {
     return new WxPay({
       appid: config.wxAppId,
       mchid: config.wxMchId,
+      serial_no: config.wxSerialNo, // 商户 API 证书序列号，用于请求签名 Authorization
       publicKey: fs.readFileSync(config.wxCertPath),
       privateKey: fs.readFileSync(config.wxCertKeyPath),
       key: config.wxApiKey,
+    });
+  }
+
+  /**
+   * 回调验签（兼容微信支付公钥模式）
+   * - serial 为 40 位 hex：平台证书模式，走 SDK verifySign（自动下载平台证书）
+   * - serial 以 PUB_KEY_ID_ 开头：新公钥模式。已配置微信支付公钥文件则本地 RSA 验签；
+   *   未配置则跳过验签（回调密文仍需 APIv3 密钥 AES-GCM 解密，解密失败即拒绝，
+   *   具备基础防伪造能力），并记录告警提醒尽快放置公钥文件启用严格验签
+   */
+  private async verifyWechatSignature(
+    wxpay: any,
+    config: PaymentConfig,
+    params: { body: string; signature: string; serial: string; nonce: string; timestamp: string },
+  ): Promise<boolean> {
+    const { body, signature, serial, nonce, timestamp } = params;
+
+    if (serial.startsWith('PUB_KEY_ID_')) {
+      if (config.wxPlatformPublicKeyPath && fs.existsSync(config.wxPlatformPublicKeyPath)) {
+        const platformKey = fs.readFileSync(config.wxPlatformPublicKeyPath);
+        const data = `${timestamp}\n${nonce}\n${body}\n`;
+        return require('crypto').createVerify('RSA-SHA256').update(data, 'utf8').verify(platformKey, signature, 'base64');
+      }
+      this.logger.warn(
+        `微信支付公钥模式回调未配置公钥文件（serial=${serial}），跳过验签仅依赖 APIv3 密钥解密校验。` +
+          `请从商户平台下载微信支付公钥 pub_key.pem 并配置 payment_wx_platform_public_key_path`,
+      );
+      return true;
+    }
+
+    return await wxpay.verifySign({
+      apiSecret: config.wxApiKey,
+      body,
+      signature,
+      serial,
+      nonce,
+      timestamp,
     });
   }
 
@@ -254,8 +296,7 @@ export class PaymentService {
 
     const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : rawBody;
 
-    const verified = await wxpay.verifySign({
-      apiSecret: config.wxApiKey,
+    const verified = await this.verifyWechatSignature(wxpay, config, {
       body: bodyStr,
       signature,
       serial,
@@ -381,8 +422,7 @@ export class PaymentService {
     }
 
     const bodyStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : rawBody;
-    const verified = await wxpay.verifySign({
-      apiSecret: config.wxApiKey,
+    const verified = await this.verifyWechatSignature(wxpay, config, {
       body: bodyStr,
       signature,
       serial,

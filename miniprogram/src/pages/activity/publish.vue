@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()">
@@ -86,6 +86,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createActivity, getActivityTypes } from '@/api'
@@ -226,6 +227,8 @@ const handleSubmit = async () => {
     showToast('发布成功')
     setTimeout(() => router.back(), 600)
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     showToast(err.userMessage || err.message || '发布失败')
   } finally {
     submitting.value = false
@@ -245,13 +248,16 @@ onMounted(async () => {
 .form-card { padding: 16px; }
 .form-group { margin-bottom: 16px; }
 .form-label { font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px; display: block; }
+/* input 与 select 拆分：小程序原生 input 不能用垂直 padding（裁半 placeholder），
+   用固定高度 + line-height */
 .form-input, .form-select {
-  width: 100%; padding: 12px 14px; border-radius: var(--radius-md);
+  width: 100%; box-sizing: border-box; border-radius: var(--radius-md);
   border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.7);
   font-size: 14px; color: var(--color-text-primary); outline: none;
   transition: border-color 0.2s; font-family: var(--font);
-  color-scheme: light;
 }
+.form-input { height: 46px; line-height: 44px; padding: 0 14px; }
+.form-select { padding: 12px 14px; }
 .form-input:focus, .form-select:focus { border-color: var(--color-primary); background: #fff; }
 .form-input::placeholder { color: var(--color-text-tertiary); }
 .form-select.placeholder { color: var(--color-text-tertiary); }

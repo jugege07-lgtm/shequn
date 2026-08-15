@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { ModerationModule } from './common/moderation/moderation.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { CardModule } from './modules/card/card.module';
@@ -29,6 +30,7 @@ import { BalanceModule } from './modules/balance/balance.module';
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    ModerationModule,
     AuthModule,
     UserModule,
     CardModule,

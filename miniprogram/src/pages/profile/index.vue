@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame profile-page">
+  <view :style="sbStyle" class="phone-frame profile-page">
     <!-- Decorative background elements -->
     <view class="profile-decorations">
       <view class="deco-spot spot-1"></view>
@@ -141,6 +141,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { onShow } from '@dcloudio/uni-app'
@@ -351,7 +352,7 @@ onShow(() => {
 /* Main Scroll */
 .main-scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 16px) 16px 24px;
+  padding: 16px 16px 24px;
   position: relative;
   z-index: 1;
 }

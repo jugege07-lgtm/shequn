@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame history-page">
+  <view :style="sbStyle" class="phone-frame history-page">
     <view class="header">
       <view class="header-left">
         <view class="back-btn" @click="$router.back()">
@@ -42,6 +42,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getBrowseHistory, clearBrowseHistory, type BrowseRecord } from '@/utils/browseHistory'
@@ -121,10 +122,10 @@ onMounted(() => {
 <style scoped>
 .history-page { background: #f5f6fa; min-height: 100vh; display: flex; flex-direction: column; }
 .header {
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: var(--sbh, 0px); z-index: 100;
   background: #ffffff;
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  padding: 10px 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

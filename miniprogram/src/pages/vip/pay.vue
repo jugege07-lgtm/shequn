@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame">
+  <view :style="sbStyle" class="phone-frame">
     <view class="header"><view class="header-left"><view class="back-btn" @click="$router.back()"><image :src="iconBack" mode="aspectFit" /></view><text class="header-title">支付</text></view></view>
     <view class="main-scroll">
       <view class="order-summary" style="margin:16px;">
@@ -35,14 +35,19 @@
   </view>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { onLoad } from '@dcloudio/uni-app'
 import { getVipPlans, subscribeVip, payWithBalance, getMyBalance, getCurrentUser } from '@/api'
 import PayPasswordPopup from '@/components/PayPasswordPopup.vue'
 import { svgUri } from '@/utils/svg'
 
 const route = useRoute()
 const router = useRouter()
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
 const selectedPay = ref(1)
 const balance = ref(0)
 const hasPayPassword = ref(false)
@@ -67,9 +72,11 @@ function showToast(msg: string) {
   uni.showToast({ title: msg, icon: 'none' })
 }
 
-onMounted(async () => {
+// 页面加载：onLoad 时机参数已就绪
+onLoad(async (options: any) => {
+  pageOptions.value = options || {}
   try {
-    const planId = Number(route.params.planId || route.query.planId)
+    const planId = Number(pageOptions.value.planId || route.params.planId || route.query.planId)
     const plans = await getVipPlans()
     const found = plans.find((p: any) => p.id === planId)
     if (found) {

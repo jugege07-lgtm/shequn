@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="main-scroll">
       <!-- Hero Card (title + search) -->
       <div class="hero-card">
@@ -105,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { stripHtml } from '@/utils/sanitize'
 import { getBusinesses, getBusinessCategories } from '@/api'

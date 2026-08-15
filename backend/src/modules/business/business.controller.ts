@@ -4,6 +4,8 @@ import { BusinessService } from './business.service';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ContentModeration } from '../../common/moderation/content-moderation.decorator';
+import { ContentModerationGuard } from '../../common/moderation/content-moderation.guard';
 
 @ApiTags('商机')
 @Controller('api')
@@ -29,7 +31,8 @@ export class BusinessController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ContentModerationGuard)
+  @ContentModeration('title', 'description', 'contactName', 'contactWechat')
   @Post('businesses')
   @ApiOperation({ summary: '创建商机' })
   async createBusiness(@Body() dto: CreateBusinessDto, @CurrentUser() user: any) {

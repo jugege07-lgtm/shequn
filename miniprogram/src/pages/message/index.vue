@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame">
+  <view :style="sbStyle" class="phone-frame">
     <view class="header"><view class="header-left"><view class="back-btn" @click="$router.back()"><image :src="iconBack" mode="aspectFit" /></view><text class="header-title">消息通知</text></view></view>
     <view class="main-scroll">
       <view class="msg-item" v-for="m in messages" :key="m.id" @click="handleRead(m)">
@@ -22,6 +22,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMessages, markMessageRead, respondConnection } from '@/api'

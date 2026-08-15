@@ -1,6 +1,6 @@
 <template>
-  <view v-if="modelValue" class="share-mask" @click.self="close">
-    <view class="share-sheet">
+  <view v-if="modelValue" class="share-mask" @tap="close" @touchmove.stop>
+    <view class="share-sheet" @tap.stop>
       <!-- 头部 -->
       <view class="ss-header">
         <view class="ss-title">分享给好友</view>

@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()">
@@ -69,6 +69,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCoupons, claimCoupon } from '@/api'
@@ -184,11 +185,11 @@ onMounted(loadCoupons)
 
 <style scoped>
 .header {
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: var(--sbh, 0px); z-index: 100;
   background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid #eee;
-  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 10px;
+  padding: 10px 16px 10px;
   display: flex; align-items: center;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

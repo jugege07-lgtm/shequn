@@ -1,6 +1,27 @@
 import axios from 'axios'
 import router from '@/router'
 import { useUserStore } from '@/store/user'
+import { showDialog } from '@/utils/dialog'
+
+// 敏感词审核命中字段 → 中文标签（提示框展示用，与后端 @ContentModeration 字段名保持一致）
+const MODERATION_FIELD_LABELS: Record<string, string> = {
+  title: '标题',
+  description: '详细描述',
+  location: '活动地点',
+  contactName: '联系人',
+  contactWechat: '微信号',
+  realName: '姓名',
+  nickname: '昵称',
+  company: '公司',
+  position: '职位',
+  wechat: '微信',
+  intro: '个人简介',
+  tags: '标签',
+  socialLinks: '社交链接',
+  receiver: '收货人',
+  detail: '详细地址',
+  remark: '订单备注',
+}
 
 // 生产环境部署在子路径 /h5/ 下，所有 API 路径已显式以 /api 开头，
 // 因此 baseURL 必须为空字符串，否则 axios 会拼成 /api/api/... 导致 404
@@ -25,8 +46,20 @@ function addRefreshSubscriber(cb: (token: string) => void) {
 }
 
 // 认证类公开接口：登录/注册/验证码/刷新等无需 token，这些接口返回 401 表示"业务认证失败"（如密码错误），
-// 不应触发 token 刷新的逻辑
-const PUBLIC_AUTH_PATHS = ['/api/auth/']
+// 不应触发 token 刷新的逻辑。
+// 必须精确列出端点——不能用 '/api/auth/' 宽前缀：/api/auth/me 需要登录态，
+// 一旦被误判为公开接口就不带 token，恒 401，导致 userInfo/VIP 状态永远刷不到
+const PUBLIC_AUTH_PATHS = [
+  '/api/auth/wechat-login',
+  '/api/auth/phone-login',
+  '/api/auth/phone-password-login',
+  '/api/auth/register',
+  '/api/auth/admin-login',
+  '/api/auth/staff-login',
+  '/api/auth/refresh',
+  '/api/auth/send-code',
+  '/api/auth/reset-password',
+]
 
 // 请求拦截器
 request.interceptors.request.use(
@@ -133,6 +166,22 @@ request.interceptors.response.use(
     console.error('Request error:', error.message)
     const status = error.response?.status
     const respData = error.response?.data
+
+    // 敏感词审核命中（后端 moderation 标记）：弹明确提示框，不写库、发布已终止
+    if (respData?.moderation === true) {
+      const msg = Array.isArray(respData.message) ? respData.message[0] : (respData.message || '内容包含违规词汇，请修改后重新发布')
+      const fieldLabel = MODERATION_FIELD_LABELS[respData.field] || '内容'
+      const kws: string[] = Array.isArray(respData.keywords) ? respData.keywords : []
+      showDialog({
+        title: '内容包含违规词汇',
+        content: `「${fieldLabel}」未通过内容审核${kws.length ? `，违规词：${kws.slice(0, 5).join('、')}` : ''}。请修改后重新提交。`,
+      })
+      error.message = msg
+      error.userMessage = msg
+      error.moderation = true
+      return Promise.reject(error)
+    }
+
     let errorMsg = '网络错误，请检查连接'
 
     if (status === 400) {

@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()">
@@ -46,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted } from 'vue'
 import { getSignedActivities } from '@/api'
 import { normalizeImageUrl } from '@/utils/image'

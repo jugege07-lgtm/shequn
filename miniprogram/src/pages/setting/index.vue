@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame setting-page">
+  <view :style="sbStyle" class="phone-frame setting-page">
     <!-- Header -->
     <view class="setting-header">
       <view class="header-title-row">
@@ -41,6 +41,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
@@ -81,8 +82,8 @@ function showLogoutConfirm() {
 
 .setting-header {
   background: #ffffff;
-  /* 顶部安全区并入白色 Header，背景向上延伸覆盖状态栏，内容避让 */
-  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 16px 0;
+  /* 状态栏避让由页面根元素 sbStyle 统一下推 */
+  padding: 12px 16px 0;
   color: #1e1b4b;
 }
 

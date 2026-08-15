@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()">
@@ -40,8 +40,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { onLoad } from '@dcloudio/uni-app'
 import { verifySignup } from '@/api'
 import { svgUri } from '@/utils/svg'
 
@@ -76,9 +78,11 @@ function formatDate(d: string) {
   return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())} ${p(dt.getHours())}:${p(dt.getMinutes())}:${p(dt.getSeconds())}`
 }
 
-onMounted(async () => {
-  const id = Number(route.query.id)
-  const token = String(route.query.t || '')
+// 页面加载：onLoad 时机参数已就绪（setup/onMounted 时页面尚未入栈，getCurrentPages() 取不到参数）
+onLoad(async (options: any) => {
+  const opts = options || {}
+  const id = Number(opts.id || route.query.id)
+  const token = String(opts.t || route.query.t || '')
   if (!id || !token) {
     resultType.value = 'error'
     resultTitle.value = '参数错误'

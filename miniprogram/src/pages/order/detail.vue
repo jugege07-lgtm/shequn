@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame">
+  <view :style="sbStyle" class="phone-frame">
     <view class="header">
       <view class="header-left">
         <view class="back-btn" @click="$router.back()">
@@ -95,14 +95,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { onLoad } from '@dcloudio/uni-app'
 import { getOrder, confirmOrder } from '@/api'
 import { svgUri } from '@/utils/svg'
 
 const route = useRoute()
 const router = useRouter()
-const orderId = Number(route.params.id)
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
+const orderId = computed(() => Number(pageOptions.value.id) || Number(route.params.id) || 0)
 const order = ref<any>({})
 const loading = ref(false)
 
@@ -160,10 +165,10 @@ function showToast(msg: string) {
 }
 
 async function loadOrder() {
-  if (!orderId) return
+  if (!orderId.value) return
   loading.value = true
   try {
-    order.value = (await getOrder(orderId)) || {}
+    order.value = (await getOrder(orderId.value)) || {}
   } catch (err: any) {
     showToast(err.userMessage || err.message || '加载订单失败')
   } finally {
@@ -193,7 +198,9 @@ function confirmReceive(id: number) {
   })
 }
 
-onMounted(() => {
+// 页面加载：onLoad 时机参数已就绪，立即拉取订单
+onLoad((options: any) => {
+  pageOptions.value = options || {}
   loadOrder()
 })
 </script>

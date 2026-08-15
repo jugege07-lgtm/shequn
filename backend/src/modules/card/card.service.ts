@@ -78,7 +78,8 @@ export class CardService {
     const card = await this.prisma.userCard.upsert({
       where: { userId: Number(userId) },
       update: upsertData,
-      create: upsertData,
+      // avatarUrl 非空列：新建名片时未传头像必须兜底空串，否则 Prisma 校验 500
+      create: { ...upsertData, avatarUrl: upsertData.avatarUrl || '' },
     });
 
     await this.prisma.user.update({

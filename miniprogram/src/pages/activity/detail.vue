@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="goBack">
@@ -144,9 +144,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { onShareAppMessage } from '@dcloudio/uni-app'
+import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { getActivityDetail, signupActivity, getActivitySignupStatus, recordActivityView, getActivityFavoriteStatus, toggleActivityFavorite } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
@@ -160,6 +161,11 @@ import type { ShareContent } from '@/utils/share'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
+const activityId = computed(() => Number(pageOptions.value.id) || Number(route.params.id) || 0)
 
 // ===== 图标（内联 svg → data URI；原 currentColor 按设计令牌取具体色值） =====
 const iconBack = svgUri('<path d="m15 18-6-6 6-6"/>', { color: '#1e1b4b' })
@@ -336,7 +342,7 @@ const signupBtnText = computed(() => {
 
 async function loadActivity() {
   try {
-    const id = Number(route.params.id)
+    const id = activityId.value
     const data = await getActivityDetail(id)
     rawActivity.value = {
       id: data.id,
@@ -376,7 +382,7 @@ async function loadActivity() {
 
 async function loadSignupStatus() {
   try {
-    const id = Number(route.params.id)
+    const id = activityId.value
     const data = await getActivitySignupStatus(id)
     signupStatus.value = {
       isSignedUp: data?.isSignedUp || false,
@@ -391,7 +397,7 @@ async function loadSignupStatus() {
 // 每次进入详情页计入一次浏览量
 async function recordView() {
   try {
-    const id = Number(route.params.id)
+    const id = activityId.value
     const data = await recordActivityView(id)
     if (data && typeof data.viewCount === 'number' && rawActivity.value) {
       rawActivity.value.viewCount = data.viewCount
@@ -403,7 +409,7 @@ async function recordView() {
 
 async function loadFavoriteStatus() {
   try {
-    const id = Number(route.params.id)
+    const id = activityId.value
     const data = await getActivityFavoriteStatus(id)
     favorited.value = data?.favorited || false
     if (data && typeof data.favoriteCount === 'number' && rawActivity.value) {
@@ -418,7 +424,7 @@ async function handleFavorite() {
   if (favoriteLoading.value || !rawActivity.value) return
   favoriteLoading.value = true
   try {
-    const id = Number(route.params.id)
+    const id = activityId.value
     const data = await toggleActivityFavorite(id)
     favorited.value = data?.favorited || false
     if (data && typeof data.favoriteCount === 'number' && rawActivity.value) {
@@ -432,7 +438,9 @@ async function handleFavorite() {
   }
 }
 
-onMounted(async () => {
+// 页面加载：onLoad 时机参数已就绪（setup/onMounted 时页面尚未入栈，getCurrentPages() 取不到参数）
+onLoad(async (options: any) => {
+  pageOptions.value = options || {}
   await loadActivity()
   await loadSignupStatus()
   loading.value = false
@@ -443,7 +451,7 @@ onMounted(async () => {
   loadFavoriteStatus()
 
   // 从支付成功页返回时刷新状态
-  if (route.query.paid === '1') {
+  if (pageOptions.value.paid === '1' || route.query.paid === '1') {
     showToast('支付成功，报名已确认')
     await loadSignupStatus()
     await loadActivity()
@@ -455,7 +463,7 @@ onShareAppMessage(() => {
   const a = rawActivity.value
   return {
     title: a?.title || '活动详情',
-    path: '/pages/activity/detail?id=' + (a?.id ?? route.params.id),
+    path: '/pages/activity/detail?id=' + (a?.id ?? activityId.value),
     imageUrl: a?.coverImage ? normalizeImageUrl(a.coverImage) : undefined,
   }
 })

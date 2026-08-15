@@ -354,6 +354,8 @@ async function handleRegister() {
     showToast('注册成功')
     redirectAfterAuth()
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     showToast(err.message || '注册失败')
   } finally {
     regLoading.value = false

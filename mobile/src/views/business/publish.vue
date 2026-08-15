@@ -264,6 +264,8 @@ async function handleSubmit() {
       router.replace('/business/my')
     }, 1200)
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     let msg = '发布失败，请稍后重试'
     if (err?.userMessage) msg = err.userMessage
     else if (err?.message) msg = err.message

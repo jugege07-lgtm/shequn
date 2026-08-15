@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <!-- Header -->
     <div class="header">
       <div class="header-left">
@@ -48,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted, watch } from 'vue'
 import { getUserCoupons } from '@/api'
 import { svgUri } from '@/utils/svg'
@@ -95,7 +96,7 @@ watch(activeTab, loadCoupons)
 </script>
 
 <style scoped>
-.header { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 0.5px solid #eee; padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 16px 10px; display: flex; align-items: center; }
+.header { position: sticky; top: var(--sbh, 0px); z-index: 100; background: #fff; border-bottom: 0.5px solid #eee; padding: 10px 16px 10px; display: flex; align-items: center; }
 .header-left { display: flex; align-items: center; gap: 12px; }
 .back-btn { width: 32px; height: 32px; border-radius: 50%; background: #f5f5f5; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .back-icon { width: 18px; height: 18px; }

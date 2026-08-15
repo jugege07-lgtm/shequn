@@ -532,6 +532,8 @@ async function handleSubmit() {
     }
     router.push(`/order/pay/${orderId}`)
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     // 优先展示后端返回的中文业务错误（如"积分不足"），避免显示英文 axios 错误
     showToast(err.userMessage || err.message || '提交失败')
   } finally {

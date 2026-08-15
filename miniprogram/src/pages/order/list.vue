@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame">
+  <view :style="sbStyle" class="phone-frame">
     <view class="header">
       <view class="header-left">
         <view class="back-btn" @click="$router.back()">
@@ -61,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMyOrders, confirmOrder } from '@/api'

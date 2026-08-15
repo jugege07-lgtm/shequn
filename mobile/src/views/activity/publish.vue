@@ -325,6 +325,8 @@ const handleSubmit = async () => {
     showToast('发布成功')
     setTimeout(() => router.back(), 600)
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     showToast(err.userMessage || err.message || '发布失败')
   } finally {
     submitting.value = false

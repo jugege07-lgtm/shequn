@@ -1,5 +1,5 @@
 <template>
-  <view class="fp-page">
+  <view :style="sbStyle" class="fp-page">
     <view class="fp-bg-shapes">
       <view class="shape s1"></view>
       <view class="shape s2"></view>
@@ -58,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { sendCode, resetPassword } from '@/api'
@@ -150,13 +151,10 @@ async function handleReset() {
   min-height: 100vh;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
   position: relative;
-  overflow: hidden;
+  /* 不加 overflow:hidden / justify-content:center：小屏内容超高时可滚动、不压缩输入框 */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* 状态栏/刘海安全区：渐变背景向上延伸覆盖状态栏，内容居中不受影响 */
-  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
 }
 .fp-bg-shapes { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow: hidden; }
 .fp-bg-shapes .shape { position: absolute; border-radius: 50%; opacity: 0.1; background: #fff; }
@@ -169,6 +167,9 @@ async function handleReset() {
   width: 100%; max-width: 430px;
   display: flex; flex-direction: column; align-items: center;
   padding: 40px 20px 20px;
+  /* margin:auto 垂直居中：空间充足时居中，超高时贴顶可滚动 */
+  margin: auto 0;
+  flex-shrink: 0;
 }
 
 .fp-logo { text-align: center; margin-bottom: 28px; }
@@ -196,7 +197,8 @@ async function handleReset() {
 .form-group { display: flex; flex-direction: column; gap: 4px; }
 .form-label { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
 .form-input {
-  width: 100%; padding: 12px 14px;
+  /* 小程序原生 input：固定高度 + line-height 垂直居中（垂直 padding 会裁半 placeholder） */
+  width: 100%; height: 46px; line-height: 44px; padding: 0 14px; box-sizing: border-box;
   border: 1px solid rgba(0,0,0,0.08);
   border-radius: var(--radius-md); font-size: 14px;
   background: rgba(0,0,0,0.02);

@@ -8,6 +8,8 @@ import { PhonePasswordLoginDto } from './dto/phone-password-login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ContentModeration } from '../../common/moderation/content-moderation.decorator';
+import { ContentModerationGuard } from '../../common/moderation/content-moderation.guard';
 
 @ApiTags('认证')
 @Controller('api/auth')
@@ -38,6 +40,8 @@ export class AuthController {
     return await this.authService.phoneLogin(dto);
   }
 
+  @UseGuards(ContentModerationGuard)
+  @ContentModeration('realName', 'nickname', 'company', 'position', 'wechat', 'intro')
   @Post('register')
   @HttpCode(200)
   @ApiOperation({ summary: '会员注册（同步创建用户与名片）' })

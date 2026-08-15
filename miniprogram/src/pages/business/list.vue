@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div :style="sbStyle" class="page">
     <!-- Sticky Header -->
     <div class="header-bar">
       <div class="hero-card">
@@ -72,6 +72,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getBusinesses, getBusinessCategories } from '@/api'
@@ -268,14 +269,14 @@ onUnmounted(() => {
 /* ===== Header ===== */
 .header-bar {
   position: sticky;
-  top: 0;
+  top: var(--sbh, 0px);
   z-index: 100;
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.08);
-  /* 顶部安全区并入 Header，背景向上延伸覆盖状态栏，内容避让 */
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 8px;
+  /* 状态栏避让由页面根元素 sbStyle 统一下推；sticky top 用 --sbh 保证吸顶时不钻到状态栏下 */
+  padding: 10px 16px 8px;
 }
 
 /* ===== Hero Card (title + search) ===== */

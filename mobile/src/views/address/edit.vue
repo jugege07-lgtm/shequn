@@ -90,6 +90,8 @@ async function handleSave() {
     showToast('保存成功')
     router.back()
   } catch (e: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (e?.moderation) return
     showToast(e.message || '保存失败')
   } finally {
     saving.value = false

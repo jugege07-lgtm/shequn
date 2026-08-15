@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()"><image class="back-icon" :src="iconBack" mode="aspectFit" /></div>
@@ -188,8 +188,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { onLoad } from '@dcloudio/uni-app'
 import {
   getAddresses, getProduct, getCart,
   createOrder, createOrderFromCart, getUserCoupons,
@@ -205,11 +207,14 @@ const userStore = useUserStore()
 const iconBack = svgUri('<path d="m15 18-6-6 6-6"/>', { color: '#1e1b4b' })
 const iconChevron = svgUri('<path d="M9 18l6-6-6-6"/>', { color: '#9ca3af' })
 
-const productId = computed(() => Number(route.query.productId) || 0)
-const quantity = computed(() => Number(route.query.quantity) || 1)
-const payType = computed(() => (route.query.payType as string) || 'cash')
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
+const productId = computed(() => Number(pageOptions.value.productId) || Number(route.query.productId) || 0)
+const quantity = computed(() => Number(pageOptions.value.quantity) || Number(route.query.quantity) || 1)
+const payType = computed(() => pageOptions.value.payType || (route.query.payType as string) || 'cash')
 const cartItemIds = computed(() => {
-  const raw = route.query.cartItemIds as string
+  const raw = (pageOptions.value.cartItemIds || route.query.cartItemIds) as string
   return raw ? raw.split(',').map(Number).filter(Boolean) : []
 })
 const isCartMode = computed(() => cartItemIds.value.length > 0)
@@ -532,6 +537,8 @@ async function handleSubmit() {
     }
     router.push(`/order/pay/${orderId}`)
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     // 优先展示后端返回的中文业务错误（如"积分不足"），避免显示英文 axios 错误
     showToast(err.userMessage || err.message || '提交失败')
   } finally {
@@ -539,8 +546,9 @@ async function handleSubmit() {
   }
 }
 
-onMounted(async () => {
-  // 先刷新用户信息（确保VIP状态最新），再加载商品（价格依赖VIP身份）
+// 页面加载：onLoad 时机参数已就绪（先刷新用户信息确保VIP状态最新，再加载商品）
+onLoad(async (options: any) => {
+  pageOptions.value = options || {}
   await userStore.fetchUserInfo()
   loadAddresses()
   loadGoods()

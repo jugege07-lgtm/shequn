@@ -36,3 +36,7 @@ Thumbs.db
 # 日志
 *.log
 logs/
+
+# 微信支付商户证书（敏感，禁止提交）
+certificates/*.pem
+certificates/*.p12

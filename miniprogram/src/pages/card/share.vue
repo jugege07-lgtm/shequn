@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame share-page">
+  <div :style="sbStyle" class="phone-frame share-page">
     <!-- Header -->
     <div class="header">
       <div class="header-left">
@@ -69,9 +69,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { onShareAppMessage } from '@dcloudio/uni-app'
+import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { getMyCard, getCardShare, getMyCardQrcode } from '@/api'
 import { normalizeImageUrl } from '@/utils/image'
 import { buildShareUrl, copyText } from '@/utils/share'
@@ -79,6 +80,10 @@ import { svgUri } from '@/utils/svg'
 
 const route = useRoute()
 const router = useRouter()
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
+const cardId = computed(() => Number(pageOptions.value.id) || Number(route.params.id) || 0)
 const loading = ref(true)
 const cardData = ref<any>({})
 // 二维码图片地址（后端生成，normalizeImageUrl 补全为绝对地址）
@@ -149,7 +154,7 @@ function goBack() {
 async function loadCard() {
   loading.value = true
   try {
-    const id = route.params.id ? Number(route.params.id) : null
+    const id = cardId.value || null
     if (id) {
       // 查看他人名片：从后端获取完整数据（优先使用后端生成的二维码）
       const res: any = await getCardShare(id)
@@ -209,14 +214,16 @@ function showToast(msg: string) {
 
 // 微信转发：分享名片小程序页（接收者打开后查看对应名片）
 onShareAppMessage(() => {
-  const id = ownerId.value || (route.params.id ? Number(route.params.id) : null)
+  const id = ownerId.value || (cardId.value || null)
   return {
     title: `${displayName.value} 的名片`,
     path: id ? `/pages/card/share?id=${id}` : '/pages/card/share',
   }
 })
 
-onMounted(() => {
+// 页面加载：onLoad 时机参数已就绪
+onLoad((options: any) => {
+  pageOptions.value = options || {}
   loadCard()
 })
 </script>
@@ -225,11 +232,11 @@ onMounted(() => {
 .share-page { background: #f5f6fa; }
 
 .header {
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: var(--sbh, 0px); z-index: 100;
   background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  padding: 10px 16px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

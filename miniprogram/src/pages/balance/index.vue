@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame balance-page">
+  <view :style="sbStyle" class="phone-frame balance-page">
     <!-- Header -->
     <view class="header">
       <view class="back-btn" @click="$router.push('/profile/index')">
@@ -109,6 +109,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted } from 'vue'
 import { getMyBalance, getMyBalanceLogs, rechargeBalance, createUnifiedOrder } from '@/api'
 import { requestPayment } from '@/utils/pay'
@@ -279,8 +280,8 @@ onMounted(() => {
 .balance-page { background: #f6f4ef; position: relative; }
 
 .header {
-  position: sticky; top: 0; z-index: 100;
-  background: #f6f4ef; padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 16px 12px;
+  position: sticky; top: var(--sbh, 0px); z-index: 100;
+  background: #f6f4ef; padding: 12px 16px;
   display: flex; align-items: center; gap: 12px;
 }
 .back-btn {

@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="goBack">
@@ -150,9 +150,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { onShareAppMessage } from '@dcloudio/uni-app'
+import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { getBusinessDetail, unlockBusiness, getBusinessUnlockStatus } from '@/api'
 import { sanitizeRichHtml } from '@/utils/sanitize'
 import { normalizeImageUrl } from '@/utils/image'
@@ -166,6 +167,11 @@ import type { ShareContent } from '@/utils/share'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
+const businessId = computed(() => Number(pageOptions.value.id) || Number(route.params.id) || 0)
 
 // 内联 svg 图标转 data URI（小程序不支持模板内联 <svg>）
 const iconBack = svgUri('<path d="m15 18-6-6 6-6"/>', { color: '#1e1b4b' })
@@ -211,7 +217,7 @@ onShareAppMessage(() => {
   const b = rawBusiness.value
   return {
     title: b?.title || '商机详情',
-    path: `/pages/business/detail?id=${route.params.id}`,
+    path: `/pages/business/detail?id=${businessId.value}`,
     imageUrl: coverImageUrl.value || undefined,
   }
 })
@@ -348,7 +354,7 @@ const maskedWechat = computed(() => {
 
 async function loadBusiness() {
   try {
-    const id = Number(route.params.id)
+    const id = businessId.value
     const data = await getBusinessDetail(id)
     rawBusiness.value = {
       id: data.id,
@@ -376,7 +382,7 @@ async function loadBusiness() {
 
 async function loadUnlockStatus() {
   try {
-    const id = Number(route.params.id)
+    const id = businessId.value
     const data = await getBusinessUnlockStatus(id)
     unlockStatus.value = {
       isUnlocked: data?.isUnlocked || false,
@@ -391,12 +397,14 @@ async function loadUnlockStatus() {
   }
 }
 
-onMounted(async () => {
+// 页面加载：onLoad 时机参数已就绪（setup/onMounted 时页面尚未入栈，getCurrentPages() 取不到参数）
+onLoad(async (options: any) => {
+  pageOptions.value = options || {}
   await loadBusiness()
   await loadUnlockStatus()
 
   // 从支付成功页返回时刷新状态
-  if (route.query.paid === '1') {
+  if (pageOptions.value.paid === '1' || route.query.paid === '1') {
     showToast('支付成功，商机已解锁')
     await loadUnlockStatus()
     await loadBusiness()

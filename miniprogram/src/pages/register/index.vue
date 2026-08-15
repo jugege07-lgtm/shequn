@@ -1,5 +1,5 @@
 <template>
-  <view class="register-page">
+  <view :style="sbStyle" class="register-page">
     <!-- Background -->
     <view class="bg-layer">
       <view class="shape s1"></view>
@@ -160,6 +160,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { register, sendCode } from '@/api'
@@ -285,6 +286,8 @@ async function handleRegister() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
     setTimeout(() => router.replace(redirect && redirect.startsWith('/') ? redirect : '/'), 800)
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     toast(err.message || '注册失败')
   } finally {
     submitting.value = false
@@ -315,8 +318,8 @@ async function handleRegister() {
 /* ===== Header ===== */
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
-  /* 顶部安全区：渐变背景向上延伸覆盖状态栏，内容避让不被遮挡 */
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px; flex-shrink: 0;
+  /* 状态栏避让由页面根元素 sbStyle 统一下推 */
+  padding: 12px 16px 12px; flex-shrink: 0;
 }
 .back-btn {
   width: 36px; height: 36px; border-radius: 50%;
@@ -401,7 +404,8 @@ async function handleRegister() {
 .form-group { display: flex; flex-direction: column; gap: 4px; }
 
 .form-input {
-  width: 100%; padding: 13px 14px;
+  /* 小程序原生 input：固定高度 + line-height 垂直居中（垂直 padding 会裁半 placeholder） */
+  width: 100%; height: 47px; line-height: 45px; padding: 0 14px; box-sizing: border-box;
   border: 1px solid rgba(0,0,0,0.08);
   border-radius: 12px; font-size: 15px;
   background: rgba(0,0,0,0.02);

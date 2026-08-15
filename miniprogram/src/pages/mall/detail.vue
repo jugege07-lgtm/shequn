@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="goBack"><image class="back-icon" :src="iconBack" mode="aspectFit" /></div>
@@ -116,9 +116,10 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { onShareAppMessage } from '@dcloudio/uni-app'
+import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { getProduct, addToCart } from '@/api'
 import { useCartStore } from '@/store/cart'
 import { useUserStore } from '@/store/user'
@@ -133,6 +134,12 @@ const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const userStore = useUserStore()
+
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
+const productId = computed(() => Number(pageOptions.value.id) || Number(route.query.id) || Number(route.params.id) || 0)
+
 const product = ref<any>({})
 const loading = ref(true)
 const adding = ref(false)
@@ -248,11 +255,12 @@ const bottomActionClass = computed(() => {
   return 'dual-action'
 })
 
-onMounted(async () => {
+// 页面加载：onLoad 时机参数已就绪（先刷新用户信息确保VIP状态最新，影响价格展示）
+onLoad(async (options: any) => {
+  pageOptions.value = options || {}
   try {
-    // 先刷新用户信息（确保VIP状态最新，影响价格展示）
     await userStore.fetchUserInfo()
-    const id = Number(route.query.id || route.params.id)
+    const id = productId.value
     if (id) {
       const res = await getProduct(id)
       if (res) {

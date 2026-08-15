@@ -7,6 +7,8 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddressDto } from './dto/address.dto';
 import { SetPayPasswordDto } from './dto/pay-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ContentModeration } from '../../common/moderation/content-moderation.decorator';
+import { ContentModerationGuard } from '../../common/moderation/content-moderation.guard';
 
 @ApiTags('用户')
 @ApiBearerAuth()
@@ -68,12 +70,16 @@ export class UserController {
     return { code: 0, data: await this.addressService.getAddresses(Number(user.userId)) };
   }
 
+  @UseGuards(ContentModerationGuard)
+  @ContentModeration('receiver', 'detail')
   @Post('addresses')
   @ApiOperation({ summary: '新增收货地址' })
   async createAddress(@CurrentUser() user: any, @Body() dto: AddressDto) {
     return { code: 0, data: await this.addressService.createAddress(Number(user.userId), dto) };
   }
 
+  @UseGuards(ContentModerationGuard)
+  @ContentModeration('receiver', 'detail')
   @Put('addresses/:id')
   @ApiOperation({ summary: '更新收货地址' })
   async updateAddress(

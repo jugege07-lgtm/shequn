@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame index-root">
+  <view :style="sbStyle" class="phone-frame index-root">
     <!-- Banner 轮播 -->
     <view class="banner-section">
       <view class="banner-track" :style="{ transform: `translateX(-${bannerIndex * 100}%)` }">
@@ -253,6 +253,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { getHomepageData, getAnnouncements, globalSearch, getCurrentUser, getDajiaConfig, getSystemConfig } from '@/api/index'
@@ -668,9 +669,8 @@ onBeforeUnmount(() => {
 /* ===== Banner ===== */
 .banner-section {
   position: relative;
-  /* 背景延伸到状态栏（edge-to-edge 沉浸式），内容用 padding 避让状态栏 */
-  height: calc(200px + env(safe-area-inset-top, 0px));
-  padding-top: env(safe-area-inset-top, 0px);
+  /* 状态栏避让由页面根元素 sbStyle 统一下推（env() 在小程序非 fixed 元素恒为 0） */
+  height: 200px;
   overflow: hidden;
   /* 兜底背景，覆盖状态栏区域，保证与 banner 配色连贯 */
   background: linear-gradient(135deg, #4f46e5, #7c3aed);
@@ -722,7 +722,7 @@ onBeforeUnmount(() => {
 
 /* top: 安全区高度——edge-to-edge 下搜索框避让状态栏。
    绝对定位不受 .banner-section 的 padding-top 影响，必须显式指定 top。 */
-.top-overlay { position: absolute; top: env(safe-area-inset-top, 0px); left: 0; right: 0; z-index: 10; }
+.top-overlay { position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
 .search-bar {
   margin: 14px 16px 0;
   background: rgba(0,0,0,0.25);
@@ -972,8 +972,8 @@ onBeforeUnmount(() => {
 }
 .search-overlay-header {
   display: flex; align-items: center; gap: 8px;
-  /* padding-top 含安全区：搜索浮层 fixed 覆盖到状态栏后，头部避让状态栏 */
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px; background: #fff;
+  /* fixed 元素不吃页面根 padding，用 --sbh 变量（由根元素 sbStyle 注入）避让状态栏 */
+  padding: calc(var(--sbh, 0px) + 12px) 14px 12px; background: #fff;
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
 }
 .search-back {

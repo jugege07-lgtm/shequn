@@ -4,6 +4,8 @@ import { ActivityService } from './activity.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ContentModeration } from '../../common/moderation/content-moderation.decorator';
+import { ContentModerationGuard } from '../../common/moderation/content-moderation.guard';
 
 @ApiTags('活动')
 @Controller('api')
@@ -37,7 +39,8 @@ export class ActivityController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ContentModerationGuard)
+  @ContentModeration('title', 'description', 'location')
   @Post('activities')
   @ApiOperation({ summary: '创建活动' })
   async createActivity(@Body() dto: CreateActivityDto, @CurrentUser() user: any) {

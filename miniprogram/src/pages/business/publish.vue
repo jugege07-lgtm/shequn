@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()"><image :src="iconBack" mode="aspectFit" /></div>
@@ -109,6 +109,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createBusiness, getBusinessCategories } from '@/api'
@@ -272,6 +273,8 @@ async function handleSubmit() {
       router.replace('/business/my')
     }, 1200)
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     let msg = '发布失败，请稍后重试'
     if (err?.userMessage) msg = err.userMessage
     else if (err?.message) msg = err.message
@@ -310,11 +313,12 @@ onMounted(() => {
   margin-right: 2px;
 }
 
+/* input 与 textarea/select 拆分：小程序原生 input 不能用垂直 padding（裁半 placeholder），
+   用固定高度 + line-height */
 .form-input,
 .form-select,
 .form-textarea {
   width: 100%;
-  padding: 12px 14px;
   border-radius: var(--radius-md);
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: rgba(255, 255, 255, 0.7);
@@ -325,6 +329,8 @@ onMounted(() => {
   box-sizing: border-box;
   transition: border-color 0.2s, background 0.2s;
 }
+.form-input { height: 46px; line-height: 44px; padding: 0 14px; }
+.form-select, .form-textarea { padding: 12px 14px; }
 
 .form-select {
   display: flex;

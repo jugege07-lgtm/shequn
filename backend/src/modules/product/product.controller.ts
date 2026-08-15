@@ -5,6 +5,8 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateOrderFromCartDto } from './dto/create-order-from-cart.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ContentModeration } from '../../common/moderation/content-moderation.decorator';
+import { ContentModerationGuard } from '../../common/moderation/content-moderation.guard';
 
 @ApiTags('商城')
 @Controller('api')
@@ -30,7 +32,8 @@ export class ProductController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ContentModerationGuard)
+  @ContentModeration('remark')
   @Post('orders')
   @ApiOperation({ summary: '创建订单（立即购买）' })
   async createOrder(@Body() dto: CreateOrderDto, @CurrentUser() user: any) {
@@ -38,7 +41,8 @@ export class ProductController {
   }
 
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ContentModerationGuard)
+  @ContentModeration('remark')
   @Post('orders/from-cart')
   @ApiOperation({ summary: '购物车结算创建订单' })
   async createOrderFromCart(@Body() dto: CreateOrderFromCartDto, @CurrentUser() user: any) {

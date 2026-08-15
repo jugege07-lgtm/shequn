@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame dajia-page">
+  <view :style="sbStyle" class="phone-frame dajia-page">
     <!-- Header -->
     <view class="header">
       <view class="header-left">
@@ -91,6 +91,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted } from 'vue'
 import { getDajiaConfig, getDajiaRecommendations, requestConnection, getCurrentUser } from '@/api'
 import { useUserStore } from '@/store/user'
@@ -179,10 +180,10 @@ onMounted(() => {
 
 /* Header */
 .header {
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: var(--sbh, 0px); z-index: 100;
   background: #ffffff;
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  padding: 10px 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

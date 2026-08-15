@@ -17,12 +17,13 @@ form, navigator, canvas, picker, progress, slider, switch, video,
   padding-top: 0;
 }
 
-/* Header */
+/* Header（状态栏避让由页面根元素 sbStyle 下推；--sbh 变量同样由根元素注入，
+   sticky 吸顶时 top 用 var(--sbh) 保证不钻到状态栏下面） */
 .header {
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: var(--sbh, 0px); z-index: 100;
   background: #ffffff;
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  padding: 10px 16px 10px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

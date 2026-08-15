@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="main-scroll">
       <!-- Filter Bar -->
       <div class="filter-bar">
@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted, watch } from 'vue'
 import { svgUri } from '@/utils/svg'
 import { normalizeImageUrl } from '@/utils/image'

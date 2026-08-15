@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()"><image :src="iconBack" mode="aspectFit" /></div>
@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMyBusinesses, getBusinessCategories } from '@/api'

@@ -1,5 +1,5 @@
 <template>
-  <view class="login-page">
+  <view :style="sbStyle" class="login-page">
     <view class="login-bg-shapes">
       <view class="shape s1" />
       <view class="shape s2" />
@@ -168,6 +168,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, reactive, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { wechatLogin, register, login, sendCode } from '@/api'
@@ -356,6 +357,8 @@ async function handleRegister() {
     showToast('注册成功')
     redirectAfterAuth()
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     showToast(err.message || '注册失败')
   } finally {
     regLoading.value = false
@@ -400,12 +403,12 @@ const showPrivacyModal = ref(false)
   min-height: 100vh;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
   position: relative;
-  overflow: hidden;
+  /* 不加 overflow:hidden：小屏内容超高时页面需要可滚动（形状裁切已由 .login-bg-shapes 自身处理） */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  /* 不用 justify-content:center + align-items:center：
+     小屏内容超高时 flex 子项默认收缩，会把输入框纵向压扁（真机只显示一半的根因） */
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
 }
 .login-bg-shapes { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow: hidden; }
 .login-bg-shapes .shape {
@@ -420,6 +423,9 @@ const showPrivacyModal = ref(false)
   width: 100%;
   display: flex; flex-direction: column; align-items: center;
   padding: 40px 20px 20px;
+  /* margin:auto 垂直居中：空间充足时居中，小屏内容超高时自动贴顶滚动，不裁切不压缩 */
+  margin: auto 0;
+  flex-shrink: 0;
 }
 
 .login-logo { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; }
@@ -467,7 +473,8 @@ const showPrivacyModal = ref(false)
 }
 .optional { font-weight: 400; color: var(--color-text-tertiary); font-size: 12px; }
 .form-input {
-  width: 100%; padding: 12px 14px;
+  /* 小程序原生 input：固定高度 + line-height 垂直居中（垂直 padding 会裁半 placeholder） */
+  width: 100%; height: 46px; line-height: 44px; padding: 0 14px; box-sizing: border-box;
   border: 1px solid rgba(0,0,0,0.08);
   border-radius: var(--radius-md); font-size: 14px;
   background: rgba(0,0,0,0.02);

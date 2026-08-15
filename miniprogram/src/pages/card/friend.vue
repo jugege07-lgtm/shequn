@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame friend-page">
+  <div :style="sbStyle" class="phone-frame friend-page">
     <!-- Header -->
     <div class="header">
       <div class="header-left">
@@ -58,14 +58,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { sbStyle } from '@/utils/sb'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { onLoad } from '@dcloudio/uni-app'
 import { getFriendCard } from '@/api'
 import { normalizeImageUrl } from '@/utils/image'
 import { copyText } from '@/utils/share'
 import { svgUri } from '@/utils/svg'
 
 const route = useRoute()
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
+const friendUserId = computed(() => Number(pageOptions.value.userId) || Number(route.params.userId) || 0)
 const loading = ref(true)
 const cardData = ref<any>({})
 const avatarError = ref(false)
@@ -117,7 +123,7 @@ function onAvatarError() {
 async function loadCard() {
   loading.value = true
   try {
-    const userId = Number(route.params.userId)
+    const userId = friendUserId.value
     if (!userId) throw new Error('缺少好友ID')
     const res: any = await getFriendCard(userId)
     cardData.value = res || {}
@@ -170,7 +176,9 @@ function showToast(msg: string) {
   uni.showToast({ title: msg, icon: 'none' })
 }
 
-onMounted(() => {
+// 页面加载：onLoad 时机参数已就绪
+onLoad((options: any) => {
+  pageOptions.value = options || {}
   loadCard()
 })
 </script>
@@ -179,11 +187,11 @@ onMounted(() => {
 .friend-page { background: #f5f6fa; }
 
 .header {
-  position: sticky; top: 0; z-index: 100;
+  position: sticky; top: var(--sbh, 0px); z-index: 100;
   background: #ffffff;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-bottom: 0.5px solid rgba(60,60,67,0.1);
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  padding: 10px 16px;
   display: flex; align-items: center; justify-content: space-between;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }

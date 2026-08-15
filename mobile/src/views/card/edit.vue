@@ -204,6 +204,8 @@ const handleSubmit = async () => {
     showToast('保存成功')
     router.replace('/card/index')
   } catch (err: any) {
+    // 敏感词命中已由 request 层弹提示框，跳过重复 toast
+    if (err?.moderation) return
     showToast(err.userMessage || '保存失败')
   } finally {
     saving.value = false

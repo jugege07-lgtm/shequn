@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame pp-setup-page">
+  <view :style="sbStyle" class="phone-frame pp-setup-page">
     <!-- Header -->
     <view class="pp-header">
       <view class="header-title-row">
@@ -59,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCurrentUser, setPayPassword, sendPayPasswordCode } from '@/api'
@@ -163,8 +164,8 @@ async function submit() {
 .pp-setup-page { background: #f5f6fa; }
 .pp-header {
   background: #ffffff; color: #1e1b4b;
-  /* 顶部安全区并入白色 Header，背景向上延伸覆盖状态栏，内容避让 */
-  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) 16px 0;
+  /* 状态栏避让由页面根元素 sbStyle 统一下推 */
+  padding: 12px 16px 0;
 }
 .header-title-row {
   position: relative; display: flex; align-items: center; justify-content: center;
@@ -202,7 +203,9 @@ async function submit() {
 .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px; }
 .form-input {
   width: 100%; box-sizing: border-box;
-  padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 12px;
+  /* 小程序原生 input：固定高度 + line-height 垂直居中（垂直 padding 会裁半 placeholder） */
+  height: 46px; line-height: 43px; padding: 0 14px;
+  border: 1.5px solid #e5e7eb; border-radius: 12px;
   font-size: 15px; color: #1e1b4b; background: #fafafa;
 }
 .code-row { display: flex; gap: 10px; }

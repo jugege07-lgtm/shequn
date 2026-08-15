@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="header">
       <div class="header-left">
         <div class="back-btn" @click="$router.back()">
@@ -106,8 +106,10 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { onLoad } from '@dcloudio/uni-app'
 import { getOrder, createUnifiedOrder, payWithBalance, getMyBalance, getCurrentUser } from '@/api'
 import { requestPayment } from '@/utils/pay'
 import PayPasswordPopup from '@/components/PayPasswordPopup.vue'
@@ -117,14 +119,22 @@ import { svgUri } from '@/utils/svg'
 const route = useRoute()
 const router = useRouter()
 const iconBack = svgUri('<path d="m15 18-6-6 6-6"/>', { color: '#1e1b4b' })
-const orderId = Number(route.params.id) || Number(route.query.orderId) || 0
+
+// 页面参数：必须用 onLoad(options) 接收（小程序运行时直接传入，时机最可靠）。
+// 不能用 computed 读 route.params/query——setup/onMounted 执行时页面尚未入栈，
+// getCurrentPages() 拿不到当前页参数，且 computed 无响应式依赖会永久缓存空值，
+// 导致 orderId=0 → 订单加载失败 → 价格不显示、无法支付。
+const pageOptions = ref<Record<string, string>>({})
+const orderId = computed(
+  () => Number(pageOptions.value.id) || Number(pageOptions.value.orderId) || Number(route.query.orderId) || 0
+)
 const order = ref<any>({})
 const loading = ref(false)
 const paying = ref(false)
 const payMethod = ref('wechat')
 const balance = ref(0)
-const orderType = ref(route.query.type as string || 'product')
-const redirect = ref(route.query.redirect as string || '')
+const orderType = computed(() => pageOptions.value.type || (route.query.type as string) || 'product')
+const redirect = computed(() => pageOptions.value.redirect || (route.query.redirect as string) || '')
 const hasPayPassword = ref(false)
 const payPopupVisible = ref(false)
 
@@ -147,14 +157,14 @@ function normalizeImageUrl(url: string | undefined): string {
 }
 
 async function loadOrder() {
-  if (!orderId) return
+  if (!orderId.value) return
   loading.value = true
   try {
-    const data = await getOrder(orderId)
+    const data = await getOrder(orderId.value)
     order.value = data || {}
     if (data?.status === 'paid' && data?.payAmount === 0) {
       // 纯积分订单：无需支付，直接展示成功状态
-      router.replace(`/order/success?orderId=${orderId}&amount=0&points=${data.pointsUsed || 0}`)
+      router.replace(`/order/success?orderId=${orderId.value}&amount=0&points=${data.pointsUsed || 0}`)
       return
     }
     if (data?.status !== 'pending_payment') {
@@ -178,7 +188,7 @@ async function handlePay() {
   paying.value = true
   try {
     // 1. 获取后端统一支付参数
-    const payParams = await createUnifiedOrder(orderId)
+    const payParams = await createUnifiedOrder(orderId.value)
     if (!payParams || !payParams.appId) {
       throw new Error('未获取到有效支付参数')
     }
@@ -192,7 +202,7 @@ async function handlePay() {
       router.replace(`${redirect.value}${sep}paid=1`)
       return
     }
-    router.replace(`/order/success?orderId=${orderId}&amount=${order.value.payAmount}`)
+    router.replace(`/order/success?orderId=${orderId.value}&amount=${order.value.payAmount}`)
   } catch (err: any) {
     console.error('支付失败', err)
     showToast(err.userMessage || err.message || '支付失败')
@@ -206,13 +216,13 @@ async function confirmBalancePay(payPassword: string) {
   if (paying.value) return
   paying.value = true
   try {
-    await payWithBalance(orderId, payPassword)
+    await payWithBalance(orderId.value, payPassword)
     if (redirect.value) {
       const sep = redirect.value.includes('?') ? '&' : '?'
       router.replace(`${redirect.value}${sep}paid=1`)
       return
     }
-    router.replace(`/order/success?orderId=${orderId}&amount=${order.value.payAmount}`)
+    router.replace(`/order/success?orderId=${orderId.value}&amount=${order.value.payAmount}`)
   } catch (err: any) {
     showToast(err.userMessage || err.message || '支付失败')
   } finally {
@@ -225,8 +235,13 @@ function goSetPayPassword() {
   router.push('/setting/index?from=pay')
 }
 
-onMounted(() => {
+// 页面加载：onLoad 时机参数已就绪，立即拉取订单
+onLoad((options: any) => {
+  pageOptions.value = options || {}
   loadOrder()
+})
+
+onMounted(() => {
   getMyBalance().then((data: any) => {
     if (data) balance.value = Number(data.balance) || 0
   }).catch(() => {})

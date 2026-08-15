@@ -1,9 +1,9 @@
 <template>
-  <view v-if="visible" class="pp-mask" @click.self="handleClose">
-    <view class="pp-panel">
+  <view v-if="visible" class="pp-mask" @tap="handleClose" @touchmove.stop>
+    <view class="pp-panel" @tap.stop>
       <view class="pp-title">
         {{ hasPassword ? '余额支付' : '尚未设置支付密码' }}
-        <view class="pp-close" @click="handleClose">
+        <view class="pp-close" @tap="handleClose">
           <image class="pp-close-icon" :src="iconClose" mode="aspectFit" />
         </view>
       </view>
@@ -17,6 +17,9 @@
             class="pp-input"
             :password="true"
             :value="password"
+            :always-embed="true"
+            :cursor-spacing="20"
+            :adjust-position="true"
             @input="onInput"
             placeholder="请输入支付密码"
             :maxlength="20"
@@ -25,7 +28,7 @@
           />
         </view>
         <view v-if="error" class="pp-error">{{ error }}</view>
-        <button class="pp-btn" :disabled="verifying || !password" @click="doVerify">
+        <button class="pp-btn" :class="{ 'pp-btn-disabled': verifying || !password }" :disabled="verifying || !password" @click="doVerify">
           {{ verifying ? '校验中...' : '确认支付' }}
         </button>
       </template>
@@ -133,10 +136,14 @@ async function doVerify() {
 }
 .pp-label { font-size: 13px; color: #6b7280; margin-bottom: 10px; }
 .pp-input-row { margin-bottom: 12px; }
+/* 小程序原生 input：用固定高度 + line-height 垂直居中（垂直 padding 在原生渲染下
+   会导致 placeholder 被裁一半），box-sizing 保证边框计入高度 */
 .pp-input {
-  width: 100%;
-  padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 12px;
+  width: 100%; height: 46px; line-height: 44px;
+  padding: 0 14px; box-sizing: border-box;
+  border: 1.5px solid #e5e7eb; border-radius: 12px;
   font-size: 16px; color: #1e1b4b;
+  background: #fff;
 }
 .pp-error { font-size: 12px; color: #ef4444; margin-bottom: 10px; }
 .pp-tip {

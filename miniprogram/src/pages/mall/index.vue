@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame">
+  <div :style="sbStyle" class="phone-frame">
     <div class="main-scroll">
       <!-- Banner -->
       <div class="mall-banner">
@@ -78,6 +78,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, onMounted, watch } from 'vue'
 import FloatingCart from '@/components/FloatingCart.vue'
 import { getProducts, getProductCategories, getMyPoints, getUserCoupons } from '@/api'

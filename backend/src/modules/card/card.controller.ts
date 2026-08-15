@@ -3,6 +3,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CardService } from './card.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ContentModeration } from '../../common/moderation/content-moderation.decorator';
+import { ContentModerationGuard } from '../../common/moderation/content-moderation.guard';
 
 @ApiTags('名片')
 @Controller('api')
@@ -27,7 +29,8 @@ export class CardController {
 
   /** 私有接口：创建/更新名片 */
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ContentModerationGuard)
+  @ContentModeration('realName', 'company', 'position', 'wechat', 'intro', 'tags', 'socialLinks')
   @Put('cards/me')
   @ApiOperation({ summary: '创建/编辑名片' })
   async updateCard(

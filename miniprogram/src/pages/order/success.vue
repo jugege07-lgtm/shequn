@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame success-page">
+  <view :style="sbStyle" class="phone-frame success-page">
     <view class="main-scroll">
       <view class="success-icon">
         <image :src="iconSuccess" mode="aspectFit" />
@@ -31,23 +31,28 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { onLoad } from '@dcloudio/uni-app'
 import { svgUri } from '@/utils/svg'
 
 const route = useRoute()
 const router = useRouter()
-const orderId = Number(route.query.orderId) || 0
-const amount = Number(route.query.amount || 0).toFixed(2)
-const points = Number(route.query.points || 0)
+// 页面参数：onLoad(options) 由小程序运行时直接传入（setup/onMounted 时页面尚未入栈，
+// getCurrentPages() 取不到参数，computed 无响应式依赖还会永久缓存空值）
+const pageOptions = ref<Record<string, string>>({})
+const orderId = computed(() => Number(pageOptions.value.orderId) || Number(route.query.orderId) || 0)
+const amount = computed(() => Number(pageOptions.value.amount ?? route.query.amount ?? 0).toFixed(2))
+const points = computed(() => Number(pageOptions.value.points ?? route.query.points ?? 0))
 const payTime = ref('')
-const redirect = ref(route.query.redirect as string || '')
+const redirect = computed(() => pageOptions.value.redirect || (route.query.redirect as string) || '')
 
 const iconSuccess = svgUri('<polyline points="20 6 9 17 4 12"/>', { color: '#ffffff', strokeWidth: '3' })
 
-const titleText = computed(() => (points > 0 ? '兑换成功' : '支付成功'))
+const titleText = computed(() => (points.value > 0 ? '兑换成功' : '支付成功'))
 const descText = computed(() =>
-  points > 0 ? `已从您的账户扣除 ${points} 积分，商家将尽快为您发货` : '感谢您的购买，商家将尽快为您发货'
+  points.value > 0 ? `已从您的账户扣除 ${points.value} 积分，商家将尽快为您发货` : '感谢您的购买，商家将尽快为您发货'
 )
 
 const primaryBtnText = computed(() => redirect.value ? '返回' : '继续购物')
@@ -60,6 +65,10 @@ function goBackOrHome() {
   }
   router.replace('/mall/index')
 }
+
+onLoad((options: any) => {
+  pageOptions.value = options || {}
+})
 
 onMounted(() => {
   payTime.value = new Date().toLocaleString()

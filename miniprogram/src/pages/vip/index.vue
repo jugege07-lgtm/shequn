@@ -1,5 +1,5 @@
 <template>
-  <view class="phone-frame">
+  <view :style="sbStyle" class="phone-frame">
     <view class="header"><view class="header-left"><view class="back-btn" @click="$router.back()"><image :src="iconBack" mode="aspectFit" /></view><text class="header-title">会员中心</text></view></view>
     <view class="main-scroll">
       <view class="vip-hero">
@@ -34,6 +34,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getVipPlans, subscribeVip } from '@/api'

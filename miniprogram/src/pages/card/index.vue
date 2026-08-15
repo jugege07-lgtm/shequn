@@ -1,5 +1,5 @@
 <template>
-  <div class="phone-frame card-page">
+  <div :style="sbStyle" class="phone-frame card-page">
     <!-- Header -->
     <div class="header">
       <div class="header-left">
@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { sbStyle } from '@/utils/sb'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMyCard, getCurrentUser, getMyConnections, getDajiaConfig, getMyCardQrcode } from '@/api'
