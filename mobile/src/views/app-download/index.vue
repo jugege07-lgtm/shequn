@@ -47,6 +47,10 @@
               </a>
             </div>
             <div class="hero-version">当前版本 v{{ appVersion }} · 支持 Android / iOS</div>
+            <a class="hero-share" @click.prevent="handleShare">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              <span>生成分享海报</span>
+            </a>
           </div>
           <div class="hero-mockup">
             <div class="mockup-body">
@@ -527,6 +531,18 @@ onMounted(() => {
 .hero-desc { margin-top: 12px; font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.85); }
 .hero-actions { margin-top: 28px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 .hero-version { margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.7); }
+.hero-share {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 14px;
+  padding: 8px 18px; border-radius: 99px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff; font-size: 13px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: background 0.2s;
+}
+.hero-share:hover { background: rgba(255,255,255,0.24); }
+.hero-share svg { width: 16px; height: 16px; }
 
 /* Buttons */
 .btn-primary {
