@@ -228,7 +228,22 @@ export function useRouter() {
 }
 
 export function useRoute() {
-  return buildRoute()
+  const routeObj = buildRoute()
+  // uni-app vue3 小程序：setup 执行时页面尚未入栈，快照取到的是上一页（params 为空）。
+  // 注册 onLoad 回调，页面装载后用真实 options 回填（原地变异，保证页面闭包引用有效）。
+  try {
+    onLoad((_opts: Record<string, any> = {}) => {
+      const fresh = buildRoute()
+      routeObj.path = fresh.path
+      routeObj.fullPath = fresh.fullPath
+      routeObj.query = fresh.query
+      routeObj.params = fresh.params
+      routeObj.value = routeObj
+    })
+  } catch {
+    /* 非 setup 上下文调用忽略 */
+  }
+  return routeObj
 }
 
 // 供 request.ts 等模块直接引入
