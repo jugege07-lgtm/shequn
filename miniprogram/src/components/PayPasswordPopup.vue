@@ -147,5 +147,5 @@ async function doVerify() {
   width: 100%; padding: 13px; border: none; border-radius: 12px;
   background: #6366f1; color: #fff; font-size: 16px; font-weight: 600;
 }
-.pp-btn[disabled] { opacity: 0.6; }
+.pp-btn-disabled { opacity: 0.6; }
 </style>
