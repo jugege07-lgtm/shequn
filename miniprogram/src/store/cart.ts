@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { getCart, addToCart as apiAddToCart, updateCartItem, removeCartItem, clearCart as apiClearCart } from '@/api'
 import { normalizeImageUrl } from '@/utils/image'
 import { useUserStore } from '@/store/user'
+import { ls } from '@/shims/localStorage'
 
 export interface CartItem {
   id: number          // 购物车项ID
@@ -90,14 +91,14 @@ export const useCartStore = defineStore('cart', () => {
   // 本地持久化
   function saveToStorage() {
     try {
-      localStorage.setItem('cart_items', JSON.stringify(items.value))
+      ls.setItem('cart_items', JSON.stringify(items.value))
     } catch {}
   }
 
   // 从本地恢复
   function loadFromStorage() {
     try {
-      const saved = localStorage.getItem('cart_items')
+      const saved = ls.getItem('cart_items')
       if (saved) items.value = JSON.parse(saved)
     } catch {}
   }

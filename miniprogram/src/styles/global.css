@@ -1,9 +1,10 @@
 /* 全局样式（自 mobile/src/styles/global.css 迁移）
    小程序适配：html/body → page（page 样式在 App.vue 中定义）；
    内联 svg 选择器改为 image（svg 已转为 data-uri <image> 渲染）。 */
-*, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-view, text, image, button, input, textarea, scroll-view { box-sizing: border-box; }
+/* WXSS 不支持 * 通配选择器，用显式元素列表重置 */
+view, text, image, button, input, textarea, scroll-view, swiper, swiper-item,
+form, navigator, canvas, picker, progress, slider, switch, video,
+::before, ::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* 页面容器（等价 .phone-frame 的宽度约束在小程序由屏幕宽度天然保证） */
 .phone-frame {

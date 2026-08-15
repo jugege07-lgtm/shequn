@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import request from '@/api/request'
+import { ls } from '@/shims/localStorage'
 
 // 持久化存储 Key
 const TOKEN_KEY = 'token'
@@ -13,10 +14,10 @@ const LOGIN_TIME_KEY = 'login_time'
 const TOKEN_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref(localStorage.getItem(TOKEN_KEY) || '')
-  const refreshToken = ref(localStorage.getItem(REFRESH_TOKEN_KEY) || '')
-  const userInfo = ref<any>(JSON.parse(localStorage.getItem(USER_INFO_KEY) || 'null'))
-  const loginTime = ref<number>(Number(localStorage.getItem(LOGIN_TIME_KEY)) || 0)
+  const token = ref(ls.getItem(TOKEN_KEY) || '')
+  const refreshToken = ref(ls.getItem(REFRESH_TOKEN_KEY) || '')
+  const userInfo = ref<any>(JSON.parse(ls.getItem(USER_INFO_KEY) || 'null'))
+  const loginTime = ref<number>(Number(ls.getItem(LOGIN_TIME_KEY)) || 0)
 
   // 是否已登录：有 token 且未超过本地最长保留期
   const isLoggedIn = computed(() => {
@@ -58,21 +59,21 @@ export const useUserStore = defineStore('user', () => {
   // 写入 token（同时记录登录时间，便于本地过期判断）
   function setToken(t: string, rt?: string) {
     token.value = t
-    localStorage.setItem(TOKEN_KEY, t)
+    ls.setItem(TOKEN_KEY, t)
     if (rt) {
       refreshToken.value = rt
-      localStorage.setItem(REFRESH_TOKEN_KEY, rt)
+      ls.setItem(REFRESH_TOKEN_KEY, rt)
     }
     // 仅在首次登录（loginTime 为空）时记录登录时间，避免刷新 token 时重置
     if (!loginTime.value) {
       loginTime.value = Date.now()
-      localStorage.setItem(LOGIN_TIME_KEY, String(loginTime.value))
+      ls.setItem(LOGIN_TIME_KEY, String(loginTime.value))
     }
   }
 
   function setUserInfo(info: any) {
     userInfo.value = info
-    localStorage.setItem(USER_INFO_KEY, JSON.stringify(info))
+    ls.setItem(USER_INFO_KEY, JSON.stringify(info))
   }
 
   // 主动退出登录：清空所有凭证
@@ -81,18 +82,18 @@ export const useUserStore = defineStore('user', () => {
     refreshToken.value = ''
     userInfo.value = null
     loginTime.value = 0
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
-    localStorage.removeItem(USER_INFO_KEY)
-    localStorage.removeItem(LOGIN_TIME_KEY)
+    ls.removeItem(TOKEN_KEY)
+    ls.removeItem(REFRESH_TOKEN_KEY)
+    ls.removeItem(USER_INFO_KEY)
+    ls.removeItem(LOGIN_TIME_KEY)
   }
 
   // 应用启动时从 localStorage 恢复会话；若本地已过期则清理
   function restoreSession(): boolean {
-    token.value = localStorage.getItem(TOKEN_KEY) || ''
-    refreshToken.value = localStorage.getItem(REFRESH_TOKEN_KEY) || ''
-    userInfo.value = JSON.parse(localStorage.getItem(USER_INFO_KEY) || 'null')
-    loginTime.value = Number(localStorage.getItem(LOGIN_TIME_KEY)) || 0
+    token.value = ls.getItem(TOKEN_KEY) || ''
+    refreshToken.value = ls.getItem(REFRESH_TOKEN_KEY) || ''
+    userInfo.value = JSON.parse(ls.getItem(USER_INFO_KEY) || 'null')
+    loginTime.value = Number(ls.getItem(LOGIN_TIME_KEY)) || 0
 
     if (token.value && loginTime.value && Date.now() - loginTime.value >= TOKEN_MAX_AGE_MS) {
       logout()

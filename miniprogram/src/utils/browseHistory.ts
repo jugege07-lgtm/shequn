@@ -1,9 +1,10 @@
 /**
- * 浏览历史本地记录工具（前端 localStorage 方案）
+ * 浏览历史本地记录工具（前端本地存储方案）
  * - 记录用户浏览过的活动 / 商机 / 商品
  * - 相同类型 + 相同 id 去重：只保留最新一次浏览
  * - 按浏览时间倒序返回，最多保留 50 条
  */
+import { ls } from '@/shims/localStorage'
 
 export type BrowseType = 'activity' | 'business' | 'product'
 
@@ -21,7 +22,7 @@ const MAX_RECORDS = 50
 /** 读取本地浏览历史（已按时间倒序） */
 export function getBrowseHistory(limit?: number): BrowseRecord[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = ls.getItem(STORAGE_KEY)
     if (!raw) return []
     const list = JSON.parse(raw) as BrowseRecord[]
     if (!Array.isArray(list)) return []
@@ -49,7 +50,7 @@ export function recordBrowse(type: BrowseType, id: number, title: string) {
   filtered.sort((a, b) => b.time - a.time)
   const trimmed = filtered.slice(0, MAX_RECORDS)
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
+    ls.setItem(STORAGE_KEY, JSON.stringify(trimmed))
   } catch {
     // localStorage 不可用或超出配额时静默降级
   }
@@ -58,7 +59,7 @@ export function recordBrowse(type: BrowseType, id: number, title: string) {
 /** 清空浏览历史 */
 export function clearBrowseHistory() {
   try {
-    localStorage.removeItem(STORAGE_KEY)
+    ls.removeItem(STORAGE_KEY)
   } catch {
     // 忽略
   }

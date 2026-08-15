@@ -1,10 +1,10 @@
 /**
  * localStorage 兼容层（微信小程序）
- * 移动端 store/utils 大量使用 localStorage API；
- * 小程序无 window/localStorage，这里用 uni 同步存储实现同构接口。
- * 必须在 main.ts 中作为首个 import 引入，早于任何 store 模块执行。
+ * 小程序模块作用域中裸标识符 localStorage 不可靠（undefined），
+ * 因此各模块必须显式 `import { ls } from '@/shims/localStorage'` 使用，
+ * 不依赖全局污染。
  */
-const impl = {
+export const ls = {
   getItem(key: string): string | null {
     try {
       const v = uni.getStorageSync(key)
@@ -50,9 +50,4 @@ const impl = {
   },
 }
 
-const g = globalThis as any
-if (!g.localStorage) {
-  g.localStorage = impl
-}
-
-export default impl
+export default ls
