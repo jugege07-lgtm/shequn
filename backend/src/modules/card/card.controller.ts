@@ -60,7 +60,7 @@ export class CardController {
     return {
       ...card,
       qrcodeBase64,
-      shareUrl: `http://localhost:5175/card/share/${card.id}`,
+      shareUrl: `https://www.jugekeji.com/h5/card/share/${card.id}`,
     };
   }
 }
