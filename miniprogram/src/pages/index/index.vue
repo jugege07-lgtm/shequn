@@ -356,6 +356,8 @@ function goAbout() {
   router.push(link)
 }
 async function loadUserInfo() {
+  // 未登录直接跳过，避免 401 触发无谓的登录跳转与提示
+  if (!userStore.isLoggedIn) return
   try {
     const u = await getCurrentUser()
     if (u) {
@@ -363,7 +365,7 @@ async function loadUserInfo() {
       userStore.setUserInfo(u)
     }
   } catch {
-    // 未登录忽略
+    // 静默失败
   }
 }
 

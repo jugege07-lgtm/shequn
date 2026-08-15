@@ -47,11 +47,11 @@
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
-      { "pagePath": "pages/index/index", "text": "首页" },
-      { "pagePath": "pages/activity/list", "text": "活动" },
-      { "pagePath": "pages/opportunity/list", "text": "商机" },
-      { "pagePath": "pages/mall/index", "text": "商城" },
-      { "pagePath": "pages/profile/index", "text": "我的" }
+      { "pagePath": "pages/index/index", "text": "首页", "iconPath": "static/tabbar/home-normal.png", "selectedIconPath": "static/tabbar/home-active.png" },
+      { "pagePath": "pages/activity/list", "text": "活动", "iconPath": "static/tabbar/calendar-normal.png", "selectedIconPath": "static/tabbar/calendar-active.png" },
+      { "pagePath": "pages/opportunity/list", "text": "商机", "iconPath": "static/tabbar/briefcase-normal.png", "selectedIconPath": "static/tabbar/briefcase-active.png" },
+      { "pagePath": "pages/mall/index", "text": "商城", "iconPath": "static/tabbar/mall-normal.png", "selectedIconPath": "static/tabbar/mall-active.png" },
+      { "pagePath": "pages/profile/index", "text": "我的", "iconPath": "static/tabbar/me-normal.png", "selectedIconPath": "static/tabbar/me-active.png" }
     ]
   },
   "globalStyle": {
