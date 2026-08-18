@@ -47,6 +47,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
   const port = parseInt(process.env.PORT || '3000', 10) || 3000;
 
+  app.use(express.json({ limit: '5mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
   const uploadPath = path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(uploadPath, { recursive: true });
@@ -59,9 +62,12 @@ async function bootstrap() {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Disposition', 'inline');
   };
-  app.use('/uploads', express.static(uploadPath, { maxAge: '1d', setHeaders: staticCors }));
-  app.use('/api/uploads', express.static(uploadPath, { maxAge: '1d', setHeaders: staticCors }));
+  app.use('/uploads', express.static(uploadPath, { maxAge: '1d', setHeaders: staticCors, index: false, dotfiles: 'deny' }));
+  app.use('/api/uploads', express.static(uploadPath, { maxAge: '1d', setHeaders: staticCors, index: false, dotfiles: 'deny' }));
 
   app.useGlobalPipes(
     new ValidationPipe({
